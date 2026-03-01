@@ -1,0 +1,16 @@
+{
+    "pythonVersion": "3.10",
+    "extraPaths": [
+        "d:\\laragon\\www\\idp-lintasarta\\python-engine\\.venv\\Lib\\site-packages",
+        "d:\\laragon\\www\\idp-lintasarta\\python-engine"
+    ],
+    "include": [
+        "."
+    ],
+    "exclude": [
+        ".venv"
+    ],
+    "reportUnknownVariableType": "none",
+    "reportUnknownMemberType": "none",
+    "reportUnknownArgumentType": "none"
+}

@@ -1,0 +1,12 @@
+# Virtual environment
+.venv/
+
+# VS Code helper (null LSP server untuk disable Pyrefly)
+null_lsp.py
+pyrefly.toml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
