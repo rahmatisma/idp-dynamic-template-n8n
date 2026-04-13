@@ -139,6 +139,10 @@ export default function UserManagement({ users, filters = {}, flash = {} }) {
         router.patch(url, {}, { onSuccess: () => setConfirmToggle(null) });
     };
 
+    const handleRoleChange = (userId, newRole) => {
+        router.patch(`/user-management/${userId}/role`, { role: newRole });
+    };
+
     // Stats derived from paginated data (current page indicator)
     const totalUsers = users.total;
     const activeUsers = users.data.filter((u) => u.is_active).length;
@@ -280,14 +284,26 @@ export default function UserManagement({ users, filters = {}, flash = {} }) {
 
                                             {/* Actions */}
                                             <td className="px-5 py-4">
-                                                <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition">
+                                                <div className="flex flex-wrap items-center gap-2 opacity-80 group-hover:opacity-100 transition">
+                                                    {/* Ubah Role */}
+                                                    <select
+                                                        value={user.role}
+                                                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                                                        className="py-1.5 pl-2 pr-7 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-400 transition text-slate-600 bg-white"
+                                                        title="Ubah peran pengguna"
+                                                    >
+                                                        <option value="engineer">Engineer</option>
+                                                        <option value="nms">Operator NMS</option>
+                                                        <option value="admin">Admin</option>
+                                                    </select>
+
                                                     {/* Toggle aktif/nonaktif */}
                                                     <button
                                                         onClick={() => setConfirmToggle(user)}
                                                         title={user.is_active ? "Nonaktifkan" : "Aktifkan"}
                                                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition ${user.is_active
-                                                                ? "text-amber-600 bg-amber-50 hover:bg-amber-100"
-                                                                : "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                                                            ? "text-amber-600 bg-amber-50 hover:bg-amber-100"
+                                                            : "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
                                                             }`}
                                                     >
                                                         {user.is_active ? <BanIcon /> : <CheckIcon />}
@@ -342,8 +358,8 @@ export default function UserManagement({ users, filters = {}, flash = {} }) {
                                             key={p}
                                             onClick={() => router.get(`/user-management?page=${p}&search=${search}&role=${roleFilter}&status=${statusFilter}`)}
                                             className={`w-9 h-9 rounded-xl text-sm font-medium transition ${p === users.current_page
-                                                    ? "bg-indigo-600 text-white shadow-sm"
-                                                    : "border border-slate-200 text-slate-600 hover:bg-slate-100"
+                                                ? "bg-indigo-600 text-white shadow-sm"
+                                                : "border border-slate-200 text-slate-600 hover:bg-slate-100"
                                                 }`}
                                         >
                                             {p}
@@ -389,8 +405,8 @@ export default function UserManagement({ users, filters = {}, flash = {} }) {
                             <button
                                 onClick={handleToggle}
                                 className={`px-4 py-2 text-sm font-medium text-white rounded-xl transition ${confirmToggle.is_active
-                                        ? "bg-amber-500 hover:bg-amber-600"
-                                        : "bg-emerald-500 hover:bg-emerald-600"
+                                    ? "bg-amber-500 hover:bg-amber-600"
+                                    : "bg-emerald-500 hover:bg-emerald-600"
                                     }`}
                             >
                                 {confirmToggle.is_active ? "Ya, Nonaktifkan" : "Ya, Aktifkan"}

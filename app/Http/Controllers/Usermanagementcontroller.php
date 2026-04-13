@@ -79,4 +79,18 @@ class UserManagementController extends Controller
         $user->delete();
         return back()->with('success', 'User berhasil dihapus dari sistem.');
     }
+
+    /**
+     * Ubah role user (Admin only).
+     */
+    public function updateRole(Request $request, User $user)
+    {
+        $request->validate([
+            'role' => 'required|in:admin,engineer,nms',
+        ]);
+
+        $user->update(['role' => $request->role]);
+
+        return back()->with('success', "Role {$user->name} berhasil diubah menjadi '{$request->role}'.");
+    }
 }

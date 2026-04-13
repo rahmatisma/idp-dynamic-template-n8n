@@ -3,10 +3,10 @@ import { Link } from '@inertiajs/react';
 
 export default function GuestLayout({ children }) {
     return (
-        <div className="flex min-h-screen">
+        <div className="flex" style={{ height: '100vh', overflow: 'hidden' }}>
             {/* ── Left branding panel ── */}
             <div className="relative hidden lg:flex lg:w-3/5 flex-col items-center justify-center overflow-hidden"
-                 style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 45%, #1e40af 100%)' }}>
+                 style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 45%, #1e40af 100%)', flexShrink: 0 }}>
 
                 {/* Decorative background circles */}
                 <div style={{
@@ -104,10 +104,17 @@ export default function GuestLayout({ children }) {
             </div>
 
             {/* ── Right form panel ── */}
-            <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 lg:px-16"
-                 style={{ background: '#f8fafc' }}>
+            <div className="flex flex-1 flex-col items-center px-6 lg:px-16 guest-form-panel"
+                 style={{
+                     background: '#f8fafc',
+                     overflowY: 'auto',
+                     height: '100%',
+                     justifyContent: 'flex-start',
+                     paddingTop: '40px',
+                     paddingBottom: '40px',
+                 }}>
                 {/* Mobile logo */}
-                <div className="lg:hidden mb-8">
+                <div className="lg:hidden mb-6">
                     <Link href="/">
                         <ApplicationLogo style={{ width: '48px', height: '48px', fill: '#1e40af' }} />
                     </Link>
@@ -120,6 +127,7 @@ export default function GuestLayout({ children }) {
                     boxShadow: '0 4px 40px rgba(0,0,0,0.08)',
                     padding: '40px 36px',
                     border: '1px solid rgba(0,0,0,0.06)',
+                    flexShrink: 0,
                 }}>
                     {children}
                 </div>
@@ -139,6 +147,20 @@ export default function GuestLayout({ children }) {
                     from { opacity: 0; transform: translateY(20px); }
                     to   { opacity: 1; transform: translateY(0); }
                 }
+                /* Pastikan html & body tidak punya scroll */
+                html, body, #app {
+                    height: 100%;
+                    overflow: hidden;
+                }
+                /* Di layar besar, form panel center secara vertikal */
+                @media (min-width: 1024px) {
+                    .guest-form-panel {
+                        justify-content: center !important;
+                    }
+                }
+                /* Sembunyikan scrollbar visual di panel form (scroll tetap bisa) */
+                .guest-form-panel::-webkit-scrollbar { display: none; }
+                .guest-form-panel { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     );

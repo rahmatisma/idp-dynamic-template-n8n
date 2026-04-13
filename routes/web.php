@@ -11,12 +11,7 @@ use Inertia\Inertia;
 
 // ── Public ─────────────────────────────────────────────────────
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin'       => Route::has('login'),
-        'canRegister'    => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion'     => PHP_VERSION,
-    ]);
+    return redirect()->route('login');
 });
 
 // ── Authenticated ───────────────────────────────────────────────
@@ -49,11 +44,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/master-template/{template}',          [TemplateController::class, 'update'])->name('master-template.update');
     Route::delete('/master-template/{template}',         [TemplateController::class, 'destroy'])->name('master-template.destroy');
 
-    // ── User Management ───────────────────────────────────────
-    Route::get('/user-management',                       [UserManagementController::class, 'index'])->name('user-management');
-    Route::patch('/user-management/{user}/approve',      [UserManagementController::class, 'approve'])->name('user-management.approve');
-    Route::patch('/user-management/{user}/reject',       [UserManagementController::class, 'reject'])->name('user-management.reject');
-    Route::delete('/user-management/{user}',             [UserManagementController::class, 'destroy'])->name('user-management.destroy');
+    // ── User Management (Admin only) ───────────────────────────
+    Route::middleware('admin')->group(function () {
+        Route::get('/user-management',                       [UserManagementController::class, 'index'])->name('user-management');
+        Route::patch('/user-management/{user}/approve',      [UserManagementController::class, 'approve'])->name('user-management.approve');
+        Route::patch('/user-management/{user}/reject',       [UserManagementController::class, 'reject'])->name('user-management.reject');
+        Route::patch('/user-management/{user}/role',         [UserManagementController::class, 'updateRole'])->name('user-management.role');
+        Route::delete('/user-management/{user}',             [UserManagementController::class, 'destroy'])->name('user-management.destroy');
+    });
 
     // ── Internal API (dipanggil fetch() dari React) ───────────
     Route::prefix('internal-api')->name('api.')->group(function () {
@@ -90,6 +88,11 @@ Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken
         // Node 6: status = "need_validation" + extracted_data + confidence_score
         Route::patch('/api/webhook/ocr-result', [DocumentController::class, 'receiveOcrResult'])
             ->name('webhook.ocr-result');
+
+        // n8n Template Workflow — INSERT/UPDATE template ke database
+        // Dipanggil oleh n8n setelah menerima trigger dari TemplateController::save()
+        Route::post('/api/webhook/create-template', [TemplateController::class, 'createFromN8n'])
+            ->name('webhook.create-template');
     });
 
 require __DIR__ . '/auth.php';

@@ -42,7 +42,8 @@ return [
 
     // ── n8n Webhook ───────────────────────────────────────────
     'n8n' => [
-        'webhook_url' => env('N8N_WEBHOOK_URL', 'http://localhost:5678/webhook/document-upload'),
+        'webhook_url'          => env('N8N_WEBHOOK_URL', 'http://localhost:5678/webhook/document-upload'),
+        'template_webhook_url' => env('N8N_TEMPLATE_WEBHOOK_URL', 'http://localhost:5678/webhook/template-sync'),
     ],
 
 ];

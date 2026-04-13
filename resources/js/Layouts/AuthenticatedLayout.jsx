@@ -71,11 +71,11 @@ const Icons = {
 // NAV ITEMS
 // ─────────────────────────────────────────────
 const navItems = [
-    { label: "Dashboard",        icon: Icons.Dashboard, href: "/dashboard" },
-    { label: "Validasi Dokumen", icon: Icons.Validasi,  href: "/validasi-dokumen" },
-    { label: "Master Template",  icon: Icons.Template,  href: "/master-template" },
-    { label: "User Management",  icon: Icons.Users,     href: "/user-management" },
-    { label: "Upload Dokumen",   icon: Icons.Upload,    href: "/upload-dokumen" },
+    { label: "Dashboard", icon: Icons.Dashboard, href: "/dashboard" },
+    { label: "Upload Dokumen", icon: Icons.Upload, href: "/upload-dokumen" },
+    { label: "Validasi Dokumen", icon: Icons.Validasi, href: "/validasi-dokumen" },
+    { label: "Master Template", icon: Icons.Template, href: "/master-template" },
+    { label: "User Management", icon: Icons.Users, href: "/user-management", roles: ["admin"] },
 ];
 
 // ─────────────────────────────────────────────
@@ -89,6 +89,11 @@ function SidebarInner({ collapsed, setCollapsed, isMobile, setMobileOpen }) {
         : "U";
 
     const isActive = (href) => url === href || url.startsWith(href + "/");
+
+    // Filter menu berdasarkan role user
+    const visibleNav = navItems.filter(
+        ({ roles }) => !roles || roles.includes(user?.role)
+    );
 
     return (
         <div className="flex flex-col h-full">
@@ -146,7 +151,7 @@ function SidebarInner({ collapsed, setCollapsed, isMobile, setMobileOpen }) {
 
             {/* ── Nav ── */}
             <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-0.5">
-                {navItems.map(({ label, icon: Icon, href }) => {
+                {visibleNav.map(({ label, icon: Icon, href }) => {
                     const active = isActive(href);
                     return (
                         <div key={href} className="relative group">

@@ -1,6 +1,7 @@
 import InputError from '@/Components/InputError';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 
 // ── Icon components ────────────────────────────────────────────────
 function IconEmail() {
@@ -29,6 +30,29 @@ function IconSpinner() {
             stroke="currentColor" strokeWidth="2.5"
             style={{ animation: 'spin 0.8s linear infinite' }}>
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+        </svg>
+    );
+}
+
+// Mata terbuka
+function IconEyeOpen() {
+    return (
+        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8"
+            viewBox="0 0 24 24">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+        </svg>
+    );
+}
+
+// Mata tertutup
+function IconEyeOff() {
+    return (
+        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8"
+            viewBox="0 0 24 24">
+            <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+            <line x1="1" y1="1" x2="23" y2="23" />
         </svg>
     );
 }
@@ -79,6 +103,91 @@ function IconInput({ id, type, name, value, onChange, placeholder, Icon, autoCom
     );
 }
 
+// ── Password input dengan tombol mata hold-to-show ─────────────────
+function PasswordInput({ id, name, value, onChange, placeholder, autoComplete }) {
+    const [showPassword, setShowPassword] = useState(false);
+
+    // Saat tombol mata ditekan → tampilkan password
+    const handleRevealStart = (e) => {
+        e.preventDefault(); // cegah input kehilangan focus
+        setShowPassword(true);
+    };
+
+    // Saat tombol mata dilepas → sembunyikan password
+    const handleRevealEnd = () => {
+        setShowPassword(false);
+    };
+
+    return (
+        <div style={{ position: 'relative' }}>
+            {/* Icon gembok di kiri */}
+            <span style={{
+                position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
+                color: '#94a3b8', pointerEvents: 'none', display: 'flex',
+            }}>
+                <IconLock />
+            </span>
+
+            <input
+                id={id}
+                type={showPassword ? 'text' : 'password'}
+                name={name}
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+                autoComplete={autoComplete}
+                required
+                style={{
+                    width: '100%', boxSizing: 'border-box',
+                    paddingLeft: '44px', paddingRight: '48px', // kanan lebih lebar untuk tombol mata
+                    paddingTop: '13px', paddingBottom: '13px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #e2e8f0',
+                    fontSize: '0.9rem', color: '#0f172a',
+                    background: '#f8fafc',
+                    outline: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
+                }}
+                onFocus={e => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.15)';
+                    e.target.style.background = '#fff';
+                }}
+                onBlur={e => {
+                    e.target.style.borderColor = '#e2e8f0';
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.background = '#f8fafc';
+                }}
+            />
+
+            {/* Tombol mata di kanan — tahan untuk lihat, lepas untuk sembunyikan */}
+            <button
+                type="button"
+                onMouseDown={handleRevealStart}
+                onMouseUp={handleRevealEnd}
+                onMouseLeave={handleRevealEnd}   // kalau mouse keluar area tombol
+                onTouchStart={handleRevealStart} // support mobile
+                onTouchEnd={handleRevealEnd}
+                style={{
+                    position: 'absolute', right: '12px', top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none', border: 'none',
+                    cursor: 'pointer', padding: '4px',
+                    color: showPassword ? '#3b82f6' : '#94a3b8',
+                    display: 'flex', alignItems: 'center',
+                    transition: 'color 0.15s',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                }}
+                tabIndex={-1} // skip dari tab order supaya tidak ganggu UX
+                aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+            >
+                {showPassword ? <IconEyeOpen /> : <IconEyeOff />}
+            </button>
+        </div>
+    );
+}
+
 // ── Main component ─────────────────────────────────────────────────
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -115,7 +224,7 @@ export default function Login({ status, canResetPassword }) {
                         fontSize: '1.6rem', fontWeight: '700',
                         color: '#0f172a', letterSpacing: '-0.03em', marginBottom: '6px',
                     }}>
-                        Selamat datang 👋
+                        Selamat datang
                     </h2>
                     <p style={{ fontSize: '0.88rem', color: '#64748b' }}>
                         Silakan masuk ke akun Anda untuk melanjutkan.
@@ -176,31 +285,28 @@ export default function Login({ status, canResetPassword }) {
                                 </Link>
                             )}
                         </div>
-                        <IconInput
-                            id="password" type="password" name="password"
+
+                        {/* Password input dengan fitur tahan-untuk-lihat */}
+                        <PasswordInput
+                            id="password"
+                            name="password"
                             value={data.password}
                             onChange={e => setData('password', e.target.value)}
                             placeholder="••••••••"
                             autoComplete="current-password"
-                            Icon={IconLock}
                         />
                         <InputError message={errors.password} className="mt-1" />
                     </div>
 
                     {/* Remember me */}
                     <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-                        <div style={{ position: 'relative', flexShrink: 0 }}>
-                            <input
-                                type="checkbox"
-                                name="remember"
-                                checked={data.remember}
-                                onChange={e => setData('remember', e.target.checked)}
-                                style={{
-                                    width: '16px', height: '16px', cursor: 'pointer',
-                                    accentColor: '#3b82f6',
-                                }}
-                            />
-                        </div>
+                        <input
+                            type="checkbox"
+                            name="remember"
+                            checked={data.remember}
+                            onChange={e => setData('remember', e.target.checked)}
+                            style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#3b82f6' }}
+                        />
                         <span style={{ fontSize: '0.83rem', color: '#64748b', userSelect: 'none' }}>
                             Ingat saya di perangkat ini
                         </span>
@@ -234,16 +340,25 @@ export default function Login({ status, canResetPassword }) {
                             e.currentTarget.style.boxShadow = processing ? 'none' : '0 4px 14px rgba(59,130,246,0.4)';
                         }}
                     >
-                        {processing ? (
-                            <>
-                                <IconSpinner />
-                                Memproses...
-                            </>
-                        ) : (
-                            'Masuk ke Akun'
-                        )}
+                        {processing ? <><IconSpinner /> Memproses...</> : 'Masuk ke Akun'}
                     </button>
                 </form>
+
+                {/* Link ke Register */}
+                <p style={{
+                    marginTop: '24px', textAlign: 'center',
+                    fontSize: '0.83rem', color: '#64748b',
+                }}>
+                    Belum punya akun?{' '}
+                    <Link
+                        href={route('register')}
+                        style={{ color: '#3b82f6', fontWeight: '600', textDecoration: 'none' }}
+                        onMouseEnter={e => e.target.style.color = '#1d4ed8'}
+                        onMouseLeave={e => e.target.style.color = '#3b82f6'}
+                    >
+                        Daftar sekarang
+                    </Link>
+                </p>
             </div>
         </GuestLayout>
     );
