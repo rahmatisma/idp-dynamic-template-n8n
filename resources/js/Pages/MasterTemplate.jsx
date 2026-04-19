@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
@@ -40,9 +41,26 @@ function StatusBadge({ isActive }) {
 }
 
 export default function MasterTemplate({ templates = [], flash = {} }) {
-    const [search, setSearch]           = useState("");
-    const [filterStatus, setFilterStatus] = useState("all");
+    const [search, setSearch]             = useState("");
+    const [filterStatus, setFilterStatus]   = useState("all");
     const [confirmDelete, setConfirmDelete] = useState(null);
+    const [cloning, setCloning]             = useState(null); // ID template yang sedang di-clone
+
+    const handleClone = async (template) => {
+        if (!confirm(`Duplikasi template "${template.type_name}"?`)) return;
+        setCloning(template.id);
+        try {
+            const { data } = await axios.post(`/internal-api/template/${template.id}/clone`);
+            if (data.success) {
+                // Redirect ke halaman edit template hasil clone
+                router.visit(`/master-template/${data.id}/edit`);
+            }
+        } catch (err) {
+            alert("Gagal menduplikasi template: " + (err.response?.data?.message || err.message));
+        } finally {
+            setCloning(null);
+        }
+    };
 
     const filtered = templates.filter((t) => {
         const q = search.toLowerCase();
@@ -176,6 +194,14 @@ export default function MasterTemplate({ templates = [], flash = {} }) {
                                                     <Link href={`/master-template/${t.id}/edit`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition">
                                                         <EditIcon /> Edit
                                                     </Link>
+                                                    <button
+                                                        onClick={() => handleClone(t)}
+                                                        disabled={cloning === t.id}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition disabled:opacity-60"
+                                                        title="Duplikasi template ini"
+                                                    >
+                                                        {cloning === t.id ? "…" : "⎘ Clone"}
+                                                    </button>
                                                     <button onClick={() => setConfirmDelete(t)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition">
                                                         <TrashIcon /> Hapus
                                                     </button>

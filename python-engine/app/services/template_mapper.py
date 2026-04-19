@@ -35,24 +35,41 @@ class BoxCoords(TypedDict):
     height: int
 
 
-class FieldConfig(TypedDict):
-    """Struktur konfigurasi satu field dari template JSON."""
-    field_name: str
-    anchor_keyword: str
-    anchor_box: BoxCoords
-    value_box: BoxCoords
+class TargetCoord(TypedDict, total=False):
+    """Koordinat target isian beserta offset-nya."""
+    label: str
+    key: str
+    box: BoxCoords
     offset_x: int
     offset_y: int
-    value_width: int
-    value_height: int
-    field_type: str
+    width: int
+    height: int
+    text_type: str
+
+
+class FieldConfig(TypedDict):
+    """Struktur konfigurasi satu field dalam grup."""
+    field_name: str
+    field_key: str
+    field_anchor: str
+    anchor_box: BoxCoords
+    targets: list[TargetCoord]
+
+
+class GroupConfig(TypedDict):
+    """Struktur satu grup (Kategori/Tabel)."""
+    group_anchor: str
+    group_key: str
+    group_type: str  # fixed, checklist, list
+    fields: list[FieldConfig]
 
 
 class TemplateData(TypedDict):
-    """Struktur data template lengkap yang disimpan ke JSON."""
+    """Struktur data template lengkap yang kompatibel dengan React Editor."""
     template_name: str
-    source_image: str
-    fields: list[FieldConfig]
+    type_name: str
+    pdf_path: str
+    groups: list[GroupConfig]
 
 
 class CropCoords(TypedDict):
@@ -305,72 +322,56 @@ def load_template(template_name: str) -> TemplateData:
     return template
 
 
-def get_crop_coordinates(
+def get_field_crops(
     ocr_results: OcrResult,
     field_config: FieldConfig,
     image_shape: tuple[int, ...]
-) -> CropCoords | None:
+) -> dict[str, CropCoords] | None:
     """
-    Tentukan koordinat area crop untuk satu field berdasarkan posisi anchor
-    yang ditemukan oleh OCR di dokumen.
-
-    Ini inti dari Dynamic Template Mapping:
-    Posisi anchor di dokumen bisa berubah-ubah (karena scan),
-    tapi offset ke area value selalu tetap.
-
-    Args:
-        ocr_results: Hasil deteksi teks dari PaddleOCR.
-                     Format: [[[x1,y1],[x2,y2],[x3,y3],[x4,y4]], (text, confidence)]
-        field_config: Konfigurasi field dari template JSON.
-        image_shape: Dimensi gambar (height, width) untuk validasi batas.
-
-    Returns:
-        Dict berisi koordinat crop {x, y, width, height} atau None jika anchor tidak ditemukan.
+    Tentukan koordinat area crop untuk SEMUA target dalam satu field (result, standard, status).
     """
-    anchor_keyword = field_config["anchor_keyword"]
-    offset_x = field_config["offset_x"]
-    offset_y = field_config["offset_y"]
-    value_width = field_config["value_width"]
-    value_height = field_config["value_height"]
+    anchor_box_config = field_config.get("anchor_box")
+    if not anchor_box_config:
+        return None
 
     img_height, img_width = image_shape[:2]
 
-    # Cari anchor di hasil OCR menggunakan fuzzy matching
-    # (toleran terhadap kesalahan baca OCR pada label teks)
+    # Cari anchor di hasil OCR
     anchor_position = find_best_anchor_match(
         ocr_results,
-        anchor_keyword,
+        field_config.get("field_anchor", ""),
         threshold=ANCHOR_FUZZY_THRESHOLD
     )
 
     if anchor_position is None:
-        print(f"[Template Mapper] Anchor '{anchor_keyword}' tidak ditemukan di dokumen.")
         return None
 
-    anchor_x, anchor_y = anchor_position
+    found_x, found_y = anchor_position
+    
+    crops = {}
+    for target_cfg in field_config.get("targets", []):
+        if not target_cfg or not target_cfg.get("box"): continue
+        
+        t_key = target_cfg["key"]
+        offset_x = target_cfg["offset_x"]
+        offset_y = target_cfg["offset_y"]
+        w = target_cfg["width"]
+        h = target_cfg["height"]
 
-    # Hitung koordinat area value berdasarkan posisi anchor + offset
-    # Ini persamaan 2.5 di proposal kamu:
-    # x_target = x_anchor + delta_x
-    # y_target = y_anchor + delta_y
-    crop_x = anchor_x + offset_x - CROP_MARGIN
-    crop_y = anchor_y + offset_y - CROP_MARGIN
-    crop_w = value_width + (CROP_MARGIN * 2)
-    crop_h = value_height + (CROP_MARGIN * 2)
+        crop_x = max(0, found_x + offset_x - CROP_MARGIN)
+        crop_y = max(0, found_y + offset_y - CROP_MARGIN)
+        crop_w = min(w + (CROP_MARGIN * 2), img_width - crop_x)
+        crop_h = min(h + (CROP_MARGIN * 2), img_height - crop_y)
 
-    # Pastikan koordinat tidak keluar batas gambar
-    crop_x = max(0, crop_x)
-    crop_y = max(0, crop_y)
-    crop_w = min(crop_w, img_width - crop_x)
-    crop_h = min(crop_h, img_height - crop_y)
-
-    return CropCoords(
-        x=crop_x,
-        y=crop_y,
-        width=crop_w,
-        height=crop_h,
-        anchor_found_at={"x": anchor_x, "y": anchor_y}
-    )
+        crops[t_key] = CropCoords(
+            x=int(crop_x),
+            y=int(crop_y),
+            width=int(crop_w),
+            height=int(crop_h),
+            anchor_found_at={"x": found_x, "y": found_y}
+        )
+    
+    return crops
 
 
 def crop_value_area(image: MatLike, crop_coords: CropCoords) -> MatLike:

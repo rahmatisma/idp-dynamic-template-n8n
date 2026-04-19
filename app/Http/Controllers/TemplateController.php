@@ -52,15 +52,23 @@ class TemplateController extends Controller
      */
     public function edit(DocumentTemplate $template)
     {
+        // Resolusi URL gambar preview: prioritaskan master_image_path (lokal), fallback ke PDF URL
+        if ($template->master_image_path) {
+            $previewUrl = Storage::url($template->master_image_path);
+        } elseif ($template->master_file_path) {
+            // Fallback lama: URL ke PDF (tidak bisa ditampilkan sebagai gambar, tapi setidaknya tidak null)
+            $previewUrl = Storage::url($template->master_file_path);
+        } else {
+            $previewUrl = null;
+        }
+
         return Inertia::render('MasterTemplateEditor', [
             'editingTemplate' => [
                 'id'               => $template->id,
                 'type_name'        => $template->type_name,
                 'template_code'    => $template->template_code,
                 'mapping_config'   => $template->mapping_config,
-                'master_file_url'  => $template->master_file_path
-                    ? Storage::url($template->master_file_path)
-                    : null,
+                'master_file_url'  => $previewUrl,
                 'master_file_path' => $template->master_file_path,
             ],
         ]);
@@ -110,7 +118,7 @@ class TemplateController extends Controller
     public function convertPdf(Request $request)
     {
         $request->validate([
-            'pdf' => 'required|file|mimes:pdf|max:20480', // max 20MB
+            'pdf' => 'required|file|mimes:pdf|max:20480',
         ]);
 
         // 1. Simpan PDF
@@ -123,21 +131,38 @@ class TemplateController extends Controller
                 ->attach('pdf', file_get_contents($pdfFullPath), basename($pdfFullPath))
                 ->post(config('services.python_engine.url') . '/convert-pdf');
 
-            \Log::info('[TemplateController] Python response status: ' . $response->status());
-            \Log::info('[TemplateController] Python response body: ' . $response->body());
-
             if ($response->failed()) {
-                $errBody = $response->json();
                 return response()->json([
-                    'error' => 'Python Engine gagal memproses PDF: ' . ($errBody['error'] ?? $response->body())
+                    'error' => 'Python Engine gagal memproses PDF: ' . ($response->json()['error'] ?? $response->body())
                 ], 500);
             }
 
             $data = $response->json();
+            $pythonImageUrl = $data['image_url'];
+
+            // 3. Unduh PNG dari Python Engine dan simpan ke storage lokal
+            $imageBaseName = pathinfo($pdfPath, PATHINFO_FILENAME) . '_preview.png';
+            $localImagePath = 'template-previews/' . $imageBaseName;
+
+            // Coba unduh dari Python engine (Python URL mungkin relatif atau absolut)
+            $fullPythonUrl = str_starts_with($pythonImageUrl, 'http')
+                ? $pythonImageUrl
+                : config('services.python_engine.url') . $pythonImageUrl;
+
+            $imageContent = @file_get_contents($fullPythonUrl);
+            if ($imageContent !== false) {
+                Storage::disk('public')->put($localImagePath, $imageContent);
+                $localImageUrl = Storage::url($localImagePath);
+            } else {
+                // Fallback ke URL Python jika tidak bisa diunduh
+                $localImageUrl = $pythonImageUrl;
+                $localImagePath = null;
+            }
 
             return response()->json([
-                'image_url'   => $data['image_url'],   // URL PNG dari Python
-                'pdf_path'    => $pdfPath,              // Path untuk disimpan nanti
+                'image_url'   => $localImageUrl,
+                'image_path'  => $localImagePath,  // path untuk disimpan di DB
+                'pdf_path'    => $pdfPath,
                 'total_pages' => $data['total_pages'] ?? 1,
             ]);
 
@@ -184,31 +209,41 @@ class TemplateController extends Controller
         ]);
 
         $templateCode = Str::slug($validated['template_name'], '_');
-
-        // Untuk struktur nested ('groups'), kita simpan as-is dari frontend
         $mappingConfig = $validated['groups'];
+        $imagePath = $request->input('image_path'); // bisa null jika mode edit tanpa upload ulang
 
-        // Kirim ke n8n — n8n yang akan INSERT/UPDATE ke DB
-        // (Laravel tidak langsung insert, sama seperti alur upload dokumen)
+        $updateData = [
+            'template_code'    => $templateCode,
+            'type_name'        => $validated['type_name'],
+            'master_file_path' => $validated['pdf_path'],
+            'mapping_config'   => $mappingConfig,
+            'created_by'       => Auth::id() ?? 1,
+            'is_active'        => true,
+        ];
+        if ($imagePath) {
+            $updateData['master_image_path'] = $imagePath;
+        }
+
+        $template = DocumentTemplate::updateOrCreate(
+            ['id' => $validated['template_id'] ?? null],
+            $updateData
+        );
+
+        // 2. OPSIONAL: Tetap beri sinyal ke n8n (tanpa memblokir proses)
         try {
-            Http::timeout(5)->post(config('services.n8n.template_webhook_url'), [
+            Http::timeout(3)->post(config('services.n8n.template_webhook_url'), [
                 'event'          => isset($validated['template_id']) ? 'update' : 'create',
-                'template_id'    => $validated['template_id'] ?? null,
-                'template_name'  => $validated['template_name'],
+                'template_id'    => $template->id,
                 'template_code'  => $templateCode,
-                'type_name'      => $validated['type_name'],
-                'pdf_path'       => $validated['pdf_path'],
-                'mapping_config' => $mappingConfig,
-                'created_by'     => Auth::id(),
-                'is_active'      => true,
             ]);
         } catch (\Exception $e) {
-            \Log::warning("Gagal trigger n8n untuk template '{$validated['template_name']}': " . $e->getMessage());
+            \Log::warning("Gagal trigger n8n untuk template (Abaikan, data sudah di DB): " . $e->getMessage());
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Template sedang diproses oleh n8n.',
+            'message' => 'Template berhasil disimpan ke Database.',
+            'id'      => $template->id
         ]);
     }
 
@@ -262,6 +297,30 @@ class TemplateController extends Controller
             'template_id' => $template->id,
             'message'     => "Template #{$template->id} berhasil disimpan oleh n8n.",
         ], 201);
+    }
+
+    /**
+     * API: Clone (duplikasi) template yang sudah ada.
+     * Dipanggil dari MasterTemplate.jsx saat admin klik tombol "Clone".
+     *
+     * Method: POST
+     * URL: /internal-api/template/{template}/clone
+     */
+    public function clone(DocumentTemplate $template)
+    {
+        $newTemplate = $template->replicate();
+        $newTemplate->type_name        = $template->type_name . ' (Copy)';
+        $newTemplate->template_code    = $template->template_code . '_copy_' . time();
+        $newTemplate->created_by       = Auth::id() ?? 1;
+        $newTemplate->is_active        = false; // Default non-aktif dulu sampai admin edit
+        $newTemplate->save();
+
+        return response()->json([
+            'success'     => true,
+            'message'     => 'Template berhasil diduplikasi.',
+            'id'          => $newTemplate->id,
+            'type_name'   => $newTemplate->type_name,
+        ]);
     }
 
     /**

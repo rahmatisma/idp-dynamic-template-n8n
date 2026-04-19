@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, useForm, Link, router } from "@inertiajs/react";
+import { Head, useForm, Link, router, usePage } from "@inertiajs/react";
+import { supabase } from "@/Config/supabase";
 
 // ── Icons ──────────────────────────────────────────────────────
 const UploadCloudIcon = () => (
@@ -125,23 +126,67 @@ function ConfidenceBar({ score }) {
 }
 
 // ── Halaman Utama ──────────────────────────────────────────────
-export default function UploadDokumen({ documents = [], templates = [], flash = {} }) {
+export default function UploadDokumen({ documents: initialDocuments = [], templates: initialTemplates = [], flash = {} }) {
+    const { auth } = usePage().props;
+    const [documents, setDocuments] = useState(initialDocuments);
+    const [templates, setTemplates] = useState(initialTemplates);
     const [files, setFiles]   = useState([]);
     const [dragging, setDragging] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const inputRef = useRef(null);
 
+    // ── Realtime & Init ──────────────────────────────────────────────
     useEffect(() => {
-        const hasActive = documents.some(d =>
-            ['queued', 'processing'].includes(d.status)
-        );
-        if (!hasActive) return;
+        // 1. Fetch Latest Templates (ensure fresh data)
+        const fetchTemplates = async () => {
+            const { data } = await supabase
+                .from('document_templates')
+                .select('id, type_name, template_code')
+                .eq('is_active', true)
+                .order('type_name');
+            if (data) setTemplates(data);
+        };
+        fetchTemplates();
 
-        const interval = setInterval(() => {
-            router.reload({ only: ['documents'] });
-        }, 5000);
+        // 2. Fetch Initial Documents from Supabase (History)
+        const fetchDocuments = async () => {
+            const { data } = await supabase
+                .from('documents')
+                .select('*')
+                .eq('user_id', auth.user.id)
+                .order('created_at', { ascending: false })
+                .limit(50);
+            if (data) setDocuments(data);
+        };
+        fetchDocuments();
 
-        return () => clearInterval(interval);
-    }, [documents]);
+        // 3. Realtime Subscription for Documents
+        const channel = supabase
+            .channel('documents-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'documents',
+                    filter: `user_id=eq.${auth.user.id}`
+                },
+                (payload) => {
+                    if (payload.eventType === 'INSERT') {
+                        setDocuments(prev => [payload.new, ...prev]);
+                    } else if (payload.eventType === 'UPDATE') {
+                        setDocuments(prev => prev.map(d => d.id === payload.new.id ? { ...d, ...payload.new } : d));
+                    } else if (payload.eventType === 'DELETE') {
+                        setDocuments(prev => prev.filter(d => d.id !== payload.old.id));
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [auth.user.id]);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         documents:   [],
@@ -170,11 +215,78 @@ export default function UploadDokumen({ documents = [], templates = [], flash = 
     const onDrop      = (e) => { e.preventDefault(); setDragging(false); addFiles(e.dataTransfer.files); };
     const onFileInput = (e) => addFiles(e.target.files);
 
-    const handleSubmit = (e) => {
+    const handleDelete = async (id, filePath) => {
+        if (!confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) return;
+
+        try {
+            // 1. Hapus file dari Supabase Storage
+            if (filePath) {
+                await supabase.storage.from('documents').remove([filePath]);
+            }
+
+            // 2. Hapus record dari database
+            const { error } = await supabase
+                .from('documents')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            // UI akan terupdate otomatis via Realtime subscription
+        } catch (error) {
+            console.error("Gagal menghapus:", error);
+            alert("Terjadi kesalahan saat menghapus dokumen.");
+        }
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        post(route("upload-dokumen.store"), {
-            onSuccess: () => { setFiles([]); reset(); },
-        });
+        if (files.length === 0 || uploading) return;
+
+        setUploading(true);
+
+        try {
+            for (const file of files) {
+                // 1. Upload ke Supabase Storage
+                // Format: documents/[timestamp]_[filename]
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+                const filePath = `uploads/${fileName}`;
+
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('documents')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                // 2. Simpan Metadata ke Supabase Database
+                const { error: dbError } = await supabase
+                    .from('documents')
+                    .insert([{
+                        user_id: auth.user.id,
+                        template_id: data.template_id || null,
+                        original_name: file.name,
+                        file_path: filePath,
+                        status: 'queued',
+                        metadata: {
+                            notes: data.notes,
+                            size: file.size,
+                            type: file.type
+                        }
+                    }]);
+
+                if (dbError) throw dbError;
+            }
+
+            setFiles([]);
+            reset();
+            // Optional: Notification success
+        } catch (error) {
+            console.error("Upload error:", error);
+            alert("Gagal mengupload dokumen: " + error.message);
+        } finally {
+            setUploading(false);
+        }
     };
 
     return (
@@ -303,15 +415,15 @@ export default function UploadDokumen({ documents = [], templates = [], flash = 
                             </button>
                             <button
                                 type="submit"
-                                disabled={files.length === 0 || processing}
+                                disabled={files.length === 0 || uploading}
                                 className={[
                                     "px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all",
-                                    files.length === 0 || processing
+                                    files.length === 0 || uploading
                                         ? "bg-slate-300 cursor-not-allowed"
                                         : "bg-gradient-to-r from-indigo-600 to-violet-600 hover:opacity-90 shadow-md shadow-indigo-200",
                                 ].join(" ")}
                             >
-                                {processing ? "Mengupload…" : `Upload${files.length > 0 ? ` (${files.length} file)` : ""}`}
+                                {uploading ? "Mengupload…" : `Upload${files.length > 0 ? ` (${files.length} file)` : ""}`}
                             </button>
                         </div>
                     </form>
@@ -392,24 +504,31 @@ export default function UploadDokumen({ documents = [], templates = [], flash = 
 
                                             {/* Aksi */}
                                             <td className="px-5 py-4">
-                                                <div className="flex items-center justify-center">
-                                                    {doc.status === "need_validation" ? (
-                                                        <Link
-                                                            href={`/validasi-dokumen/${doc.id}`}
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition"
-                                                        >
-                                                            <EyeIcon /> Validasi
-                                                        </Link>
-                                                    ) : doc.status === "completed" ? (
-                                                        <Link
-                                                            href={`/validasi-dokumen/${doc.id}`}
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition"
-                                                        >
-                                                            <EyeIcon /> Lihat
-                                                        </Link>
-                                                    ) : (
-                                                        <span className="text-xs text-slate-300">—</span>
-                                                    )}
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {/* Tombol Detail/Lihat */}
+                                                    <Link
+                                                        href={`/validasi-dokumen/${doc.id}`}
+                                                        className={[
+                                                            "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition",
+                                                            doc.status === "completed" 
+                                                                ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" 
+                                                                : "text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
+                                                        ].join(" ")}
+                                                        title="Lihat Detail"
+                                                    >
+                                                        <EyeIcon /> 
+                                                        <span className="hidden sm:inline">Detail</span>
+                                                    </Link>
+
+                                                    {/* Tombol Hapus */}
+                                                    <button
+                                                        onClick={() => handleDelete(doc.id, doc.file_path)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                                                        title="Hapus Dokumen"
+                                                    >
+                                                        <TrashIcon />
+                                                        <span className="hidden sm:inline">Hapus</span>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>

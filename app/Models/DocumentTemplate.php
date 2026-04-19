@@ -20,9 +20,12 @@ class DocumentTemplate extends Model
         'type_name',
         'template_code',
         'created_by',
-        'master_file_path', // Sudah ditambahkan agar tidak error saat Admin upload file master
-        'mapping_config',   // JSON konfigurasi koordinat dan offset
+        'master_file_path',
+        'master_image_path',
+        'mapping_config',
         'is_active',
+        'version',
+        'parent_id',
     ];
 
     /**
@@ -33,10 +36,9 @@ class DocumentTemplate extends Model
     protected function casts(): array
     {
         return [
-            // Laravel akan otomatis mengubah string JSON di database 
-            // menjadi bentuk Array yang mudah dibaca oleh React / n8n
-            'mapping_config' => 'array', 
+            'mapping_config' => 'array',
             'is_active' => 'boolean',
+            'version' => 'integer',
         ];
     }
 
@@ -46,5 +48,21 @@ class DocumentTemplate extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the parent version of this template.
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(DocumentTemplate::class, 'parent_id');
+    }
+
+    /**
+     * Get the child versions of this template.
+     */
+    public function versions()
+    {
+        return $this->hasMany(DocumentTemplate::class, 'parent_id');
     }
 }

@@ -62,6 +62,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Simpan konfigurasi template (JSON mapping_config) ke database
         Route::post('/template/save',        [TemplateController::class, 'save'])->name('template.save');
 
+        // Clone (Duplikasi) template yang sudah ada
+        Route::post('/template/{template}/clone', [TemplateController::class, 'clone'])->name('template.clone');
+
         // Ambil daftar template aktif (untuk dropdown Upload Dokumen)
         Route::get('/templates',             [TemplateController::class, 'list'])->name('templates.list');
 

@@ -27,6 +27,7 @@ class Document extends Model
         'tp_count',
         'fp_count',
         'fn_count',
+        'metadata',
     ];
 
     protected function casts(): array
@@ -35,6 +36,7 @@ class Document extends Model
             // Casting JSON ke Array
             'extracted_data' => 'array',
             'ground_truth' => 'array',
+            'metadata' => 'array',
             
             // Casting waktu dan angka desimal
             'processing_started_at' => 'datetime',
