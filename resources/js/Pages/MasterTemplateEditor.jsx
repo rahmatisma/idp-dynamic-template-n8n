@@ -51,35 +51,35 @@ const FieldIcon = () => (
 // MODE GAMBAR
 // ══════════════════════════════════════════════════════════════
 const DRAW = {
-    NONE:         "none",
-    ANCHOR:       "anchor",       // Anchor field biasa (kuning)
-    TARGET:       "target",       // Target field biasa (biru)
-    TABLE_AREA:   "table_area",   // Area keseluruhan tabel (oranye)
-    COLUMN:       "column",       // Kotak kolom ( hijau)
-    NODE_ANCHOR:  "node_anchor",  // Anchor node tabel (kuning)
-    NODE_VALUE:   "node_value",   // Nilai node tabel (biru ungu)
+    NONE: "none",
+    ANCHOR: "anchor",       // Anchor field biasa (kuning)
+    TARGET: "target",       // Target field biasa (biru)
+    TABLE_AREA: "table_area",   // Area keseluruhan tabel (oranye)
+    COLUMN: "column",       // Kotak kolom ( hijau)
+    NODE_ANCHOR: "node_anchor",  // Anchor node tabel (kuning)
+    NODE_VALUE: "node_value",   // Nilai node tabel (biru ungu)
 };
 
 // Tipe node dalam hierarki tabel
 const NODE = {
-    CATEGORY:    "category",
-    ITEM:        "item",
+    CATEGORY: "category",
+    ITEM: "item",
     PARENT_ITEM: "parent_item",
-    SUB_ITEM:    "sub_item",
+    SUB_ITEM: "sub_item",
 };
 
 const NODE_STYLE = {
-    category:    { border: "#7c3aed", bg: "rgba(124,58,237,0.08)",  badge: "bg-violet-600",  label: "KATEGORI" },
-    item:        { border: "#2563eb", bg: "rgba(37,99,235,0.06)",   badge: "bg-blue-600",    label: "ITEM" },
-    parent_item: { border: "#0891b2", bg: "rgba(8,145,178,0.06)",   badge: "bg-cyan-600",    label: "PARENT" },
-    sub_item:    { border: "#059669", bg: "rgba(5,150,105,0.06)",   badge: "bg-emerald-600", label: "SUB" },
+    category: { border: "#7c3aed", bg: "rgba(124,58,237,0.08)", badge: "bg-violet-600", label: "KATEGORI" },
+    item: { border: "#2563eb", bg: "rgba(37,99,235,0.06)", badge: "bg-blue-600", label: "ITEM" },
+    parent_item: { border: "#0891b2", bg: "rgba(8,145,178,0.06)", badge: "bg-cyan-600", label: "PARENT" },
+    sub_item: { border: "#059669", bg: "rgba(5,150,105,0.06)", badge: "bg-emerald-600", label: "SUB" },
 };
 
 // Seksi JSON yang tersedia untuk field biasa
 const JSON_SECTIONS = [
     { value: "document", label: "document — Info Dokumen" },
-    { value: "header",   label: "header — Header Form" },
-    { value: "notes",    label: "notes — Catatan / Footer" },
+    { value: "header", label: "header — Header Form" },
+    { value: "notes", label: "notes — Catatan / Footer" },
     { value: "mengetahui", label: "mengetahui — Pengesah" },
 ];
 
@@ -121,7 +121,7 @@ const setNodeAtPath = (nodes, path, updater) => {
 // ══════════════════════════════════════════════════════════════
 // CANVAS EDITOR
 // ══════════════════════════════════════════════════════════════
-function CanvasEditor({ imageUrl, items, activeIdx, drawMode, zoom = 1, onBoxDrawn }) {
+function CanvasEditor({ imageUrl, items, activeIdx, activeNodePath, activeValueKey, drawMode, zoom = 1, onBoxDrawn }) {
     const containerRef = useRef(null);
     const imgRef = useRef(null);
     const [scale, setScale] = useState(1);
@@ -165,18 +165,18 @@ function CanvasEditor({ imageUrl, items, activeIdx, drawMode, zoom = 1, onBoxDra
 
     // Warna kotak sementara
     const tempColor = {
-        [DRAW.ANCHOR]:      "border-amber-500 bg-amber-400/15",
-        [DRAW.TARGET]:      "border-indigo-500 bg-indigo-400/15",
-        [DRAW.TABLE_AREA]:  "border-orange-500 bg-orange-400/10",
-        [DRAW.COLUMN]:      "border-green-500 bg-green-400/10",
+        [DRAW.ANCHOR]: "border-amber-500 bg-amber-400/15",
+        [DRAW.TARGET]: "border-indigo-500 bg-indigo-400/15",
+        [DRAW.TABLE_AREA]: "border-orange-500 bg-orange-400/10",
+        [DRAW.COLUMN]: "border-green-500 bg-green-400/10",
         [DRAW.NODE_ANCHOR]: "border-amber-500 bg-amber-400/15",
-        [DRAW.NODE_VALUE]:  "border-indigo-500 bg-indigo-400/15",
+        [DRAW.NODE_VALUE]: "border-indigo-500 bg-indigo-400/15",
     }[drawMode] || "border-slate-400 bg-slate-400/10";
 
     const tempBox = drawing && startPt && curPt ? {
-        left:   Math.min(startPt.x, curPt.x) * scale,
-        top:    Math.min(startPt.y, curPt.y) * scale,
-        width:  Math.abs(curPt.x - startPt.x) * scale,
+        left: Math.min(startPt.x, curPt.x) * scale,
+        top: Math.min(startPt.y, curPt.y) * scale,
+        width: Math.abs(curPt.x - startPt.x) * scale,
         height: Math.abs(curPt.y - startPt.y) * scale,
     } : null;
 
@@ -188,9 +188,9 @@ function CanvasEditor({ imageUrl, items, activeIdx, drawMode, zoom = 1, onBoxDra
         if (item.item_type === "field") {
             if (item.anchor_box) {
                 boxes.push(
-                    <div key={`fa-${ii}`} className="absolute pointer-events-none"
+                    <div key={`fa-${ii}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
                         style={{ left: item.anchor_box.x * scale, top: item.anchor_box.y * scale, width: item.anchor_box.width * scale, height: item.anchor_box.height * scale, border: `2px solid ${isActive ? "#f59e0b" : "rgba(245,158,11,0.4)"}`, background: isActive ? "rgba(245,158,11,0.12)" : "rgba(245,158,11,0.04)", zIndex: isActive ? 10 : 1 }}>
-                        <span className="absolute -top-5 left-0 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">
+                        <span className={`absolute -top-5 left-0 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
                             A · {item.field_name}
                         </span>
                     </div>
@@ -199,9 +199,9 @@ function CanvasEditor({ imageUrl, items, activeIdx, drawMode, zoom = 1, onBoxDra
             (item.targets || []).forEach((t, ti) => {
                 if (!t.box) return;
                 boxes.push(
-                    <div key={`ft-${ii}-${ti}`} className="absolute pointer-events-none"
+                    <div key={`ft-${ii}-${ti}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
                         style={{ left: t.box.x * scale, top: t.box.y * scale, width: t.box.width * scale, height: t.box.height * scale, border: `2px solid ${isActive ? "#6366f1" : "rgba(99,102,241,0.3)"}`, background: isActive ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.03)", zIndex: isActive ? 10 : 1 }}>
-                        <span className="absolute -bottom-5 left-0 bg-indigo-500 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">
+                        <span className={`absolute -bottom-5 left-0 bg-indigo-500 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
                             {t.label}
                         </span>
                     </div>
@@ -212,9 +212,9 @@ function CanvasEditor({ imageUrl, items, activeIdx, drawMode, zoom = 1, onBoxDra
         if (item.item_type === "table") {
             if (item.table_area) {
                 boxes.push(
-                    <div key={`ta-${ii}`} className="absolute pointer-events-none"
+                    <div key={`ta-${ii}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
                         style={{ left: item.table_area.x * scale, top: item.table_area.y * scale, width: item.table_area.width * scale, height: item.table_area.height * scale, border: "2px solid #ea580c", background: "rgba(234,88,12,0.05)", zIndex: 1 }}>
-                        <span className="absolute -top-5 left-0 bg-orange-600 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">
+                        <span className={`absolute -top-5 left-0 bg-orange-600 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
                             TABEL · {item.table_name}
                         </span>
                     </div>
@@ -223,23 +223,29 @@ function CanvasEditor({ imageUrl, items, activeIdx, drawMode, zoom = 1, onBoxDra
             (item.columns || []).forEach((col, ci) => {
                 if (!col.box) return;
                 boxes.push(
-                    <div key={`tc-${ii}-${ci}`} className="absolute pointer-events-none"
+                    <div key={`tc-${ii}-${ci}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
                         style={{ left: col.box.x * scale, top: col.box.y * scale, width: col.box.width * scale, height: col.box.height * scale, border: "1.5px dashed #16a34a", background: "rgba(22,163,74,0.05)", zIndex: 2 }}>
-                        <span className="absolute -top-5 left-0 bg-green-600 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap">
+                        <span className={`absolute -top-5 left-0 bg-green-600 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
                             {col.label || col.key}
                         </span>
                     </div>
                 );
             });
             // Render node boxes rekursif
-            const renderNodes = (nodes, depth = 0) => {
+            const renderNodes = (nodes, currentPath = []) => {
                 (nodes || []).forEach((node, ni) => {
+                    const nodePath = [...currentPath, ni];
+                    // Cek apakah node ini yang sedang aktif dipilih di sidebar
+                    const isNodeActive = activeNodePath && 
+                                        activeNodePath.itemIdx === ii && 
+                                        JSON.stringify(activeNodePath.path) === JSON.stringify(nodePath);
+
                     const style = NODE_STYLE[node.node_type] || NODE_STYLE.item;
                     if (node.anchor_box) {
                         boxes.push(
-                            <div key={`tn-${ii}-${depth}-${ni}`} className="absolute pointer-events-none"
-                                style={{ left: node.anchor_box.x * scale, top: node.anchor_box.y * scale, width: node.anchor_box.width * scale, height: node.anchor_box.height * scale, border: `2px solid ${style.border}`, background: style.bg, zIndex: 3 + depth }}>
-                                <span className={`absolute -top-5 left-0 ${style.badge} text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap`}>
+                            <div key={`tn-${ii}-${currentPath.join('-')}-${ni}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
+                                style={{ left: node.anchor_box.x * scale, top: node.anchor_box.y * scale, width: node.anchor_box.width * scale, height: node.anchor_box.height * scale, border: `2px solid ${style.border}`, background: style.bg, zIndex: 3 + currentPath.length }}>
+                                <span className={`absolute -top-5 left-0 ${style.badge} text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isNodeActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
                                     {style.label} · {node.label}
                                 </span>
                             </div>
@@ -247,16 +253,19 @@ function CanvasEditor({ imageUrl, items, activeIdx, drawMode, zoom = 1, onBoxDra
                     }
                     Object.entries(node.values || {}).forEach(([vk, vd]) => {
                         if (!vd.box) return;
+                        const isValueActive = isNodeActive && activeValueKey === vk;
                         boxes.push(
-                            <div key={`tv-${ii}-${depth}-${ni}-${vk}`} className="absolute pointer-events-none"
-                                style={{ left: vd.box.x * scale, top: vd.box.y * scale, width: vd.box.width * scale, height: vd.box.height * scale, border: "1.5px solid rgba(99,102,241,0.5)", background: "rgba(99,102,241,0.05)", zIndex: 3 + depth }}>
-                                <span className="absolute -bottom-5 left-0 bg-indigo-500 text-white text-[9px] px-1 py-0.5 rounded whitespace-nowrap">
+                            <div key={`tv-${ii}-${currentPath.join('-')}-${ni}-${vk}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
+                                style={{ left: vd.box.x * scale, top: vd.box.y * scale, width: vd.box.width * scale, height: vd.box.height * scale, border: "1.5px solid rgba(99,102,241,0.5)", background: "rgba(99,102,241,0.05)", zIndex: 3 + currentPath.length }}>
+                                <span className={`absolute -bottom-5 left-0 bg-indigo-500 text-white text-[9px] px-1 py-0.5 rounded whitespace-nowrap transition-opacity ${isValueActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
                                     {vk}
                                 </span>
                             </div>
                         );
                     });
-                    if (node.children) renderNodes(node.children, depth + 1);
+                    if (node.children && node.children.length > 0) {
+                        renderNodes(node.children, nodePath);
+                    }
                 });
             };
             renderNodes(item.nodes);
@@ -293,30 +302,31 @@ function CanvasEditor({ imageUrl, items, activeIdx, drawMode, zoom = 1, onBoxDra
 function NodePanel({ node, nodePath, itemIdx, activeNodePath, activeValueKey, drawMode,
     setActiveNodePath, setActiveValueKey, setDrawMode, updateNode, removeNode, addChildNode, syncNodeValues, depth = 0 }) {
 
-    // FIX BUG: activeNodePath adalah { path: [...], itemIdx } bukan array
+    if (!node) return null;
+
     const isActive =
         activeNodePath != null &&
         activeNodePath.itemIdx === itemIdx &&
         JSON.stringify(activeNodePath.path) === JSON.stringify(nodePath);
 
-    const style      = NODE_STYLE[node.node_type] || NODE_STYLE.item;
+    const style = NODE_STYLE[node.node_type] || NODE_STYLE.item;
     const isCategory = node.node_type === NODE.CATEGORY;
-    const isParent   = node.node_type === NODE.PARENT_ITEM;
-    const isItem     = node.node_type === NODE.ITEM;
-    const isSubItem  = node.node_type === NODE.SUB_ITEM;
+    const isParent = node.node_type === NODE.PARENT_ITEM;
+    const isItem = node.node_type === NODE.ITEM;
+    const isSubItem = node.node_type === NODE.SUB_ITEM;
     const needsValues = isItem || isSubItem;
 
     // Semua tipe node punya anchor — Kategori juga perlu digambar posisi barisnya
-    const anchorDone  = !!node.anchor_box;
-    const valuesDone  = !needsValues || Object.values(node.values || {}).every(v => v.box);
+    const anchorDone = !!node.anchor_box;
+    const valuesDone = !needsValues || Object.values(node.values || {}).every(v => v.box);
     const rowComplete = anchorDone && valuesDone;
 
     // Auto-label berdasarkan tipe dan posisi di tree
     const depth0 = nodePath[nodePath.length - 1]; // index di antara siblings
     const autoLabel = isCategory ? `Kategori ${nodePath[0] + 1}`
-                    : isParent   ? `Parent Baris ${depth0 + 1}`
-                    : isItem     ? `Baris ${depth0 + 1}`
-                    :              `Sub ${depth0 + 1}`;
+        : isParent ? `Parent Baris ${depth0 + 1}`
+            : isItem ? `Baris ${depth0 + 1}`
+                : `Sub ${depth0 + 1}`;
 
     return (
         <div className="mt-1" style={{ marginLeft: depth * 10 }}>
@@ -386,13 +396,12 @@ function NodePanel({ node, nodePath, itemIdx, activeNodePath, activeValueKey, dr
                             </p>
                             <button
                                 onClick={() => setDrawMode(drawMode === DRAW.NODE_ANCHOR ? DRAW.NONE : DRAW.NODE_ANCHOR)}
-                                className={`w-full py-1.5 rounded-lg border text-[10px] font-bold transition ${
-                                    drawMode === DRAW.NODE_ANCHOR
-                                        ? "bg-amber-500 text-white border-amber-600"
-                                        : anchorDone
-                                            ? "bg-amber-100 border-amber-300 text-amber-800"
-                                            : "bg-white border-amber-300 text-amber-700 hover:bg-amber-50"
-                                }`}>
+                                className={`w-full py-1.5 rounded-lg border text-[10px] font-bold transition ${drawMode === DRAW.NODE_ANCHOR
+                                    ? "bg-amber-500 text-white border-amber-600"
+                                    : anchorDone
+                                        ? "bg-amber-100 border-amber-300 text-amber-800"
+                                        : "bg-white border-amber-300 text-amber-700 hover:bg-amber-50"
+                                    }`}>
                                 {drawMode === DRAW.NODE_ANCHOR
                                     ? "⬛ Klik & tarik di canvas…"
                                     : anchorDone
@@ -461,13 +470,12 @@ function NodePanel({ node, nodePath, itemIdx, activeNodePath, activeValueKey, dr
                                                 </div>
                                                 <button
                                                     onClick={() => { setActiveValueKey(vk); setDrawMode(drawMode === DRAW.NODE_VALUE && activeValueKey === vk ? DRAW.NONE : DRAW.NODE_VALUE); }}
-                                                    className={`w-full py-1 rounded border text-[9px] font-bold transition ${
-                                                        drawMode === DRAW.NODE_VALUE && activeValueKey === vk
-                                                            ? "bg-indigo-600 text-white border-indigo-700"
-                                                            : vd.box
-                                                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                                                : "bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                                                    }`}>
+                                                    className={`w-full py-1 rounded border text-[9px] font-bold transition ${drawMode === DRAW.NODE_VALUE && activeValueKey === vk
+                                                        ? "bg-indigo-600 text-white border-indigo-700"
+                                                        : vd.box
+                                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                            : "bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                                                        }`}>
                                                     {drawMode === DRAW.NODE_VALUE && activeValueKey === vk
                                                         ? `⬛ Gambar kotak "${vk}" di canvas…`
                                                         : vd.box
@@ -613,8 +621,8 @@ function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, activeNode
     updateItem, removeItem, addColumn, removeColumn, updateColumn,
     addRootNode, updateNode, removeNode, addChildNode, syncNodeValues }) {
 
-    const hasArea    = !!item.table_area;
-    const hasCols    = (item.columns || []).length > 0;
+    const hasArea = !!item.table_area;
+    const hasCols = (item.columns || []).length > 0;
     const isThisNode = (path) => activeNodePath && activeNodePath.itemIdx === idx && JSON.stringify(activeNodePath.path) === JSON.stringify(path);
 
     return (
@@ -634,7 +642,7 @@ function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, activeNode
             {isActive && (
                 <div className="px-3 pb-3 space-y-3 border-t border-slate-100 pt-3" onClick={e => e.stopPropagation()}>
                     {/* Nama & Key */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 mb-2">
                         <div>
                             <label className="text-[10px] text-slate-500">Nama Tabel</label>
                             <input type="text" value={item.table_name || ""}
@@ -647,6 +655,17 @@ function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, activeNode
                                 onChange={e => updateItem(idx, "json_key", e.target.value)}
                                 className="w-full text-xs rounded-lg p-1.5 border border-slate-200 font-mono text-indigo-600" placeholder="checklist" />
                         </div>
+                    </div>
+                    {/* Table Anchor */}
+                    <div className="mb-3">
+                        <label className="text-[10px] items-center gap-1 text-orange-600 font-bold flex">
+                            Kata Kunci Anchor Kolom <span className="px-1 bg-orange-100 rounded text-[8px]">PENTING</span>
+                        </label>
+                        <input type="text" value={item.table_anchor || ""}
+                            onChange={e => updateItem(idx, "table_anchor", e.target.value)}
+                            placeholder="ex: Descriptions, atau Performance and Capacity"
+                            className="w-full text-xs rounded-lg p-1.5 border border-orange-200 focus:ring-orange-500" />
+                        <p className="text-[9px] text-slate-400 mt-1">💡 Teks statis (header) di dalam/dekat tabel ini agar sisi kiri tabel bisa dilacak saat kertas bergeser.</p>
                     </div>
 
                     {/* FASE 1: Area Tabel */}
@@ -732,31 +751,60 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
     const isEdit = !!editingTemplate;
 
     // ── State Umum ────────────────────────────────────────────
-    const [imageUrl,   setImageUrl]   = useState(editingTemplate?.master_file_url ?? null);
-    const [pdfPath,    setPdfPath]    = useState(editingTemplate?.master_file_path ?? null);
-    const [imagePath,  setImagePath]  = useState(null); // path PNG yang tersimpan lokal
-    const [pdfFile,    setPdfFile]    = useState(null);
+    const [imageUrl, setImageUrl] = useState(editingTemplate?.master_file_url ?? null);
+    const [pdfPath, setPdfPath] = useState(editingTemplate?.master_file_path ?? null);
+    const [imagePath, setImagePath] = useState(null); // path PNG yang tersimpan lokal
+    const [pdfFile, setPdfFile] = useState(null);
     const [converting, setConverting] = useState(false);
-    const [typeName,   setTypeName]   = useState(editingTemplate?.type_name ?? "");
-    const [saving,     setSaving]     = useState(false);
-    const [saveMsg,    setSaveMsg]    = useState(null);
-    const [zoom,       setZoom]       = useState(1);
+    const [typeName, setTypeName] = useState(editingTemplate?.type_name ?? "");
+    const [identifierText, setIdentifierText] = useState(editingTemplate?.identifier_text ?? "");
+    const [saving, setSaving] = useState(false);
+    const [saveMsg, setSaveMsg] = useState(null);
+    const [zoom, setZoom] = useState(1);
     const fileInputRef = useRef(null);
 
     // ── State Navigasi ────────────────────────────────────────
-    const [drawMode,        setDrawMode]        = useState(DRAW.NONE);
-    const [activeIdx,       setActiveIdx]       = useState(null);   // Index item yang dipilih
+    const [drawMode, setDrawMode] = useState(DRAW.NONE);
+    const [activeIdx, setActiveIdx] = useState(null);   // Index item yang dipilih
     const [activeTargetIdx, setActiveTargetIdx] = useState(null);   // Index target field biasa
     const [activeColumnIdx, setActiveColumnIdx] = useState(null);   // Index kolom tabel
-    const [activeNodePath,  setActiveNodePath]  = useState(null);   // { path: [...], itemIdx }
-    const [activeValueKey,  setActiveValueKey]  = useState(null);   // Key nilai node
+    const [activeNodePath, setActiveNodePath] = useState(null);   // { path: [...], itemIdx }
+    const [activeValueKey, setActiveValueKey] = useState(null);   // Key nilai node
 
     // ── State Data Utama (FLAT) ───────────────────────────────
     // Setiap elemen adalah "field" atau "table" — tanpa grup
     const [items, setItems] = useState(() => {
+        // Prioritas 1: UI Metadata (Format Lengkap untuk Editor)
+        if (editingTemplate?.ui_metadata && Array.isArray(editingTemplate.ui_metadata)) {
+            return editingTemplate.ui_metadata;
+        }
+
         if (!editingTemplate?.mapping_config) return [];
-        // Convert dari format lama (groups) ke format baru (items) jika perlu
         const config = editingTemplate.mapping_config;
+
+        // Prioritas 2: Format baru (Python format) {"fields": [...]}
+        if (config.fields && Array.isArray(config.fields)) {
+            return config.fields.map(f => ({
+                item_type: "field",
+                field_name: f.field_name,
+                field_key: f.field_name.toLowerCase().replace(/\s+/g, "_"),
+                json_section: f.section || "header",
+                field_anchor: f.anchor_text,
+                anchor_box: f.anchor_box || null,
+                targets: [{
+                    label: f.field_name,
+                    key: f.field_name.toLowerCase().replace(/\s+/g, "_"),
+                    text_type: f.type || "handwritten",
+                    box: null, // Box absolut mungkin hilang jika hanya simpan offset, tapi kita usahakan regenerasi jika ada
+                    offset_x: f.offset_x,
+                    offset_y: f.offset_y,
+                    width: f.width,
+                    height: f.height
+                }],
+                is_custom_key: false,
+            }));
+        }
+
         if (Array.isArray(config) && config[0]?.item_type) return config; // sudah format baru
         // Konversi dari format lama (groups)
         const converted = [];
@@ -774,10 +822,11 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                         is_custom_key: false,
                     });
                 });
-            } else if (group.group_type === "dynamic_table") {
+            if (group.group_type === "dynamic_table") {
                 converted.push({
                     item_type: "table",
                     table_name: group.group_anchor || "",
+                    table_anchor: group.table_anchor || "",
                     json_key: group.group_key || "checklist",
                     table_area: group.table_area || null,
                     columns: group.columns || [],
@@ -885,7 +934,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
 
     const addTable = () => {
         const newItem = {
-            item_type: "table", table_name: "Tabel Baru", json_key: "checklist",
+            item_type: "table", table_name: "Tabel Baru", json_key: "checklist", table_anchor: "",
             table_area: null, columns: [], nodes: [],
         };
         setItems(prev => [...prev, newItem]);
@@ -1073,7 +1122,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
     // ══════════════════════════════════════════════════════════
     const handleSave = async () => {
         if (!typeName.trim()) return alert("Nama template wajib diisi.");
-        if (!pdfPath)         return alert("Upload PDF master terlebih dahulu.");
+        if (!pdfPath) return alert("Upload PDF master terlebih dahulu.");
         if (items.length === 0) return alert("Tambahkan minimal satu field atau tabel.");
 
         // Konversi items flat → groups untuk backend & engine
@@ -1113,30 +1162,79 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
 
         const groups = [...fixedGroups, ...tableGroups];
 
+        // Format khusus untuk mesin Python (Step 3 & 4)
+        const pythonFields = items.filter(i => i.item_type === "field" && i.anchor_box).flatMap(item =>
+            (item.targets || []).filter(t => t.box).map(t => ({
+                field_name: (t.label === "nilai_1" || t.label === "result") ? item.field_key : (item.targets.length > 1 ? `${item.field_key}_${t.key}` : t.label),
+                anchor_text: item.field_anchor,
+                offset_x: Math.round(t.box.x - (item.anchor_box?.x || 0)),
+                offset_y: Math.round(t.box.y - (item.anchor_box?.y || 0)),
+                width: Math.round(t.box.width),
+                height: Math.round(t.box.height),
+                type: t.text_type
+            }))
+        );
+
+        const pythonTables = items.filter(i => i.item_type === "table" && i.table_area).map(tab => {
+            const tableArea = tab.table_area;
+            return {
+                table_name: tab.table_name,
+                json_key: tab.json_key || "checklist",
+                table_anchor: tab.table_anchor || "",
+                table_area: tableArea,
+                // Hitung koordinat kolom relatif terhadap bibir kiri tabel
+                columns: (tab.columns || []).map(col => {
+                    if (!col.box) return { name: col.label, key: col.key, x_start: 0, x_end: 0 };
+                    return {
+                        name: col.label,
+                        key: col.key,
+                        x_start: Math.round(col.box.x - tableArea.x),
+                        x_end: Math.round((col.box.x + col.box.width) - tableArea.x),
+                        type: col.text_type
+                    };
+                }),
+                nodes: tab.nodes || []
+            };
+        });
+
+        const pythonConfig = { 
+            fields: pythonFields,
+            tables: pythonTables
+        };
+
         setSaving(true); setSaveMsg(null);
         try {
-            await axios.post("/internal-api/template/save", {
+            const { data } = await axios.post("/internal-api/template/save", {
                 template_name: typeName.toLowerCase().replace(/\s+/g, "_"),
-                type_name: typeName, pdf_path: pdfPath, groups,
-                mapping_config: items,
+                type_name: typeName,
+                identifier_text: identifierText,
+                pdf_path: pdfPath,
+                groups,
+                mapping_config: pythonConfig, // Simpan format Python ke DB sesuai request Step 3
+                ui_metadata: items,           // Metadata untuk UI agar editor bisa dibuka lagi dengan posisi kotak yang sama
                 ...(imagePath && { image_path: imagePath }),
                 ...(isEdit && { template_id: editingTemplate.id }),
             });
             setSaveMsg("success");
-            setTimeout(() => router.visit("/master-template"), 1500);
+            // Berikan waktu lebih lama agar user bisa baca pesan n8n
+            setTimeout(() => router.visit("/master-template"), 2500);
         } catch (err) {
             console.error("Save error:", err.response?.data ?? err);
             setSaveMsg("error");
-        } finally { setSaving(false); }
+            setSaving(false);
+        } finally {
+            // Note: status saving tidak langsung false jika sukses agar loading tetap jalan sampai redirect
+            if (saveMsg !== "success") setSaving(false);
+        }
     };
 
     const drawModeLabel = {
-        [DRAW.ANCHOR]:      "Gambar Kotak ANCHOR (kuning) — klik & tarik di canvas",
-        [DRAW.TARGET]:      "Gambar Kotak NILAI (biru) — klik & tarik di canvas",
-        [DRAW.TABLE_AREA]:  "Gambar Area TABEL (oranye) — kotak besar seluruh tabel",
-        [DRAW.COLUMN]:      "Gambar Kotak KOLOM (hijau) — kotak vertikal satu kolom",
+        [DRAW.ANCHOR]: "Gambar Kotak ANCHOR (kuning) — klik & tarik di canvas",
+        [DRAW.TARGET]: "Gambar Kotak NILAI (biru) — klik & tarik di canvas",
+        [DRAW.TABLE_AREA]: "Gambar Area TABEL (oranye) — kotak besar seluruh tabel",
+        [DRAW.COLUMN]: "Gambar Kotak KOLOM (hijau) — kotak vertikal satu kolom",
         [DRAW.NODE_ANCHOR]: "Gambar Kotak ANCHOR ROW (kuning) — teks label baris ini",
-        [DRAW.NODE_VALUE]:  `Gambar Kotak NILAI "${activeValueKey}" (biru)`,
+        [DRAW.NODE_VALUE]: `Gambar Kotak NILAI "${activeValueKey}" (biru)`,
     }[drawMode];
 
     return (
@@ -1150,12 +1248,11 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                         <BackIcon /> Kembali
                     </Link>
                     <button onClick={handleSave} disabled={saving || !typeName.trim() || !pdfPath}
-                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition ${
-                            saveMsg === "success" ? "bg-emerald-500 text-white" :
+                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition ${saveMsg === "success" ? "bg-emerald-500 text-white" :
                             saving || !typeName.trim() || !pdfPath ? "bg-slate-200 text-slate-400 cursor-not-allowed" :
-                            "bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-90 shadow-sm"}`}>
+                                "bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-90 shadow-sm"}`}>
                         <SaveIcon />
-                        {saving ? "Menyimpan…" : saveMsg === "success" ? "✓ Tersimpan!" : "Simpan Template"}
+                        {saving ? "Mengirim ke n8n…" : saveMsg === "success" ? "✓ Dikirim!" : "Simpan Template"}
                     </button>
                 </div>
 
@@ -1214,6 +1311,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                         {/* Canvas */}
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3">
                             <CanvasEditor imageUrl={imageUrl} items={items} activeIdx={activeIdx}
+                                activeNodePath={activeNodePath} activeValueKey={activeValueKey}
                                 drawMode={drawMode} zoom={zoom} onBoxDrawn={handleBoxDrawn} />
                         </div>
                     </div>
@@ -1243,7 +1341,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                                     Daftar Elemen <span className="font-normal text-slate-400">({items.length} item)</span>
                                 </p>
                             </div>
-                            <div className="max-h-[72vh] overflow-y-auto p-2 pb-20 space-y-1.5">
+                            <div className="max-h-[50vh] overflow-y-auto p-2 space-y-1.5 border-b border-slate-100">
                                 {items.length === 0 && (
                                     <div className="text-center py-10 text-slate-400">
                                         <p className="text-sm">Belum ada elemen.</p>
@@ -1281,9 +1379,50 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                                     return null;
                                 })}
                             </div>
+
+                            {/* Live JSON Preview */}
+                            <div className="bg-slate-900 overflow-hidden flex flex-col h-48">
+                                <div className="px-3 py-1.5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">
+                                        Python Engine JSON
+                                    </p>
+                                    <div className="flex gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-auto p-3 font-mono text-[10px] text-emerald-400/90 leading-tight">
+                                    <pre>
+                                        {JSON.stringify({
+                                            fields: items.filter(i => i.item_type === "field" && i.anchor_box).flatMap(item =>
+                                                (item.targets || []).filter(t => t.box).map(t => ({
+                                                    field_name: (t.label === "nilai_1" || t.label === "result") ? item.field_key : (item.targets.length > 1 ? `${item.field_key}_${t.key}` : t.label),
+                                                    anchor_text: item.field_anchor,
+                                                    offset_x: Math.round(t.box.x - (item.anchor_box?.x || 0)),
+                                                    offset_y: Math.round(t.box.y - (item.anchor_box?.y || 0)),
+                                                    width: Math.round(t.box.width),
+                                                    height: Math.round(t.box.height),
+                                                    type: t.text_type
+                                                }))
+                                            ),
+                                            tables: items.filter(i => i.item_type === "table" && i.table_area).map(tab => ({
+                                                table_name: tab.table_name,
+                                                json_key: tab.json_key,
+                                                table_anchor: tab.table_anchor || "",
+                                                columns: (tab.columns || []).map(c => ({
+                                                    name: c.label,
+                                                    x_start: c.box ? Math.round(c.box.x - tab.table_area.x) : 0,
+                                                    x_end: c.box ? Math.round((c.box.x + c.box.width) - tab.table_area.x) : 0
+                                                })),
+                                                node_count: (tab.nodes || []).length
+                                            }))
+                                        }, null, 2)}
+                                    </pre>
+                                </div>
+                            </div>
                         </div>
-                    </div>
                 </div>
+            </div>
             </div>
         </AuthenticatedLayout>
     );

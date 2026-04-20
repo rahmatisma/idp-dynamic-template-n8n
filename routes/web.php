@@ -93,9 +93,14 @@ Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken
             ->name('webhook.ocr-result');
 
         // n8n Template Workflow — INSERT/UPDATE template ke database
-        // Dipanggil oleh n8n setelah menerima trigger dari TemplateController::save()
         Route::post('/api/webhook/create-template', [TemplateController::class, 'createFromN8n'])
             ->name('webhook.create-template');
+
+        // External API for n8n/Other systems
+        Route::get('/api/templates', [TemplateController::class, 'listApi'])
+            ->name('api.templates.list_external');
+        Route::get('/api/templates/{template}', [TemplateController::class, 'showApi'])
+            ->name('api.templates.show_external');
     });
 
 require __DIR__ . '/auth.php';

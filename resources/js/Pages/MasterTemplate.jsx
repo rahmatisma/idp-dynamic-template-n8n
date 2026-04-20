@@ -163,7 +163,7 @@ export default function MasterTemplate({ templates = [], flash = {} }) {
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-slate-100 bg-slate-50/60">
-                                        {["Nama Template", "Kode", "Jumlah Field", "Dibuat Oleh", "Tanggal", "Status", "Aksi"].map((h) => (
+                                        {["Nama Template", "Kode", "Identifier Text", "Field", "Dokumen", "Status", "Aksi"].map((h) => (
                                             <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide first:pl-5">
                                                 {h}
                                             </th>
@@ -175,15 +175,21 @@ export default function MasterTemplate({ templates = [], flash = {} }) {
                                         <tr key={t.id} className="hover:bg-slate-50/60 transition">
                                             <td className="px-5 py-4 font-medium text-slate-800">{t.type_name}</td>
                                             <td className="px-5 py-4">
-                                                <code className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">{t.template_code}</code>
+                                                <code className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-mono">{t.identifier_text || "-"}</code>
                                             </td>
                                             <td className="px-5 py-4">
                                                 <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 text-xs font-semibold">
                                                     {t.field_count}
                                                 </span>
                                             </td>
-                                            <td className="px-5 py-4 text-slate-600">{t.created_by ?? "-"}</td>
-                                            <td className="px-5 py-4 text-slate-500 text-xs">{t.created_at}</td>
+                                            <td className="px-5 py-4">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-xs font-semibold text-slate-700">{t.total_docs} Dokumen</span>
+                                                    {t.active_docs > 0 && (
+                                                        <span className="text-[10px] text-amber-600 font-medium">● {t.active_docs} sedang diproses</span>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-5 py-4">
                                                 <button onClick={() => toggleStatus(t)}>
                                                     <StatusBadge isActive={t.is_active} />

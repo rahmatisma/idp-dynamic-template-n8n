@@ -19,16 +19,23 @@ class TemplateController extends Controller
     public function index()
     {
         $templates = DocumentTemplate::with('creator')
+            ->withCount([
+                'documents',
+                'documents as active_documents_count' => fn($q) => $q->whereIn('status', ['queued', 'processing'])
+            ])
             ->orderByDesc('created_at')
             ->get()
             ->map(fn($t) => [
-                'id'            => $t->id,
-                'type_name'     => $t->type_name,
-                'template_code' => $t->template_code,
-                'is_active'     => $t->is_active,
-                'field_count'   => count($t->mapping_config ?? []),
-                'created_by'    => $t->creator?->name,
-                'created_at'    => $t->created_at->format('d M Y'),
+                'id'              => $t->id,
+                'type_name'       => $t->type_name,
+                'template_code'   => $t->template_code,
+                'identifier_text' => $t->identifier_text,
+                'is_active'       => $t->is_active,
+                'field_count'     => count($t->mapping_config ?? []),
+                'created_by'      => $t->creator?->name,
+                'created_at'      => $t->created_at->format('d M Y'),
+                'total_docs'      => $t->documents_count,
+                'active_docs'     => $t->active_documents_count,
                 'master_file_url' => $t->master_file_path
                     ? Storage::url($t->master_file_path)
                     : null,
@@ -67,6 +74,7 @@ class TemplateController extends Controller
                 'id'               => $template->id,
                 'type_name'        => $template->type_name,
                 'template_code'    => $template->template_code,
+                'identifier_text'  => $template->identifier_text,
                 'mapping_config'   => $template->mapping_config,
                 'master_file_url'  => $previewUrl,
                 'master_file_path' => $template->master_file_path,
@@ -80,10 +88,18 @@ class TemplateController extends Controller
     public function update(Request $request, DocumentTemplate $template)
     {
         $validated = $request->validate([
-            'type_name'      => 'required|string|max:255',
-            'mapping_config' => 'required|array',
-            'is_active'      => 'boolean',
+            'type_name'       => 'required|string|max:255',
+            'identifier_text' => 'nullable|string|max:255',
+            'mapping_config'  => 'required|array',
+            'is_active'       => 'boolean',
         ]);
+
+        // Proteksi: Cek apakah identifier_text berubah
+        if ($request->has('identifier_text') && $request->identifier_text !== $template->identifier_text) {
+            if ($template->hasActiveDocuments()) {
+                return back()->with('error', 'Gagal: Identifier tidak boleh diubah karena masih ada dokumen status QUEUED/PROCESSING.');
+            }
+        }
 
         $template->update($validated);
 
@@ -201,50 +217,60 @@ class TemplateController extends Controller
     public function save(Request $request)
     {
         $validated = $request->validate([
-            'template_name'  => 'required|string|max:255',
-            'type_name'      => 'required|string|max:255',
-            'pdf_path'       => 'required|string',
-            'groups'         => 'required|array|min:1',
-            'template_id'    => 'nullable|exists:document_templates,id',
+            'template_name'   => 'required|string|max:255',
+            'type_name'       => 'required|string|max:255',
+            'identifier_text' => 'nullable|string|max:255',
+            'pdf_path'        => 'required|string',
+            'mapping_config'  => 'required|array',       // Format Python untuk Engine
+            'ui_metadata'     => 'nullable|array',       // Format Flat untuk Editor
+            'groups'          => 'required|array|min:1', // Format Nested untuk Engine
+            'template_id'     => 'nullable|exists:document_templates,id',
+            'image_path'      => 'nullable|string',
         ]);
 
         $templateCode = Str::slug($validated['template_name'], '_');
-        $mappingConfig = $validated['groups'];
-        $imagePath = $request->input('image_path'); // bisa null jika mode edit tanpa upload ulang
 
-        $updateData = [
-            'template_code'    => $templateCode,
-            'type_name'        => $validated['type_name'],
-            'master_file_path' => $validated['pdf_path'],
-            'mapping_config'   => $mappingConfig,
-            'created_by'       => Auth::id() ?? 1,
-            'is_active'        => true,
-        ];
-        if ($imagePath) {
-            $updateData['master_image_path'] = $imagePath;
-        }
-
-        $template = DocumentTemplate::updateOrCreate(
-            ['id' => $validated['template_id'] ?? null],
-            $updateData
-        );
-
-        // 2. OPSIONAL: Tetap beri sinyal ke n8n (tanpa memblokir proses)
+        // 1. KIRIM KE n8n (Delegasi Penyimpanan)
+        // Laravel hanya sebagai pengirim pesan, DB akan diupdate n8n via webhook
         try {
-            Http::timeout(3)->post(config('services.n8n.template_webhook_url'), [
-                'event'          => isset($validated['template_id']) ? 'update' : 'create',
-                'template_id'    => $template->id,
-                'template_code'  => $templateCode,
-            ]);
-        } catch (\Exception $e) {
-            \Log::warning("Gagal trigger n8n untuk template (Abaikan, data sudah di DB): " . $e->getMessage());
-        }
+            $n8nUrl = config('services.n8n.template_webhook_url');
+            
+            if (!$n8nUrl) {
+                throw new \Exception("Konfigurasi services.n8n.template_webhook_url belum diset.");
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Template berhasil disimpan ke Database.',
-            'id'      => $template->id
-        ]);
+            $response = Http::timeout(10)->post($n8nUrl, [
+                'event'           => isset($validated['template_id']) ? 'update' : 'create',
+                'template_id'     => $validated['template_id'] ?? null,
+                'template_name'   => $validated['template_name'],
+                'template_code'   => $templateCode,
+                'type_name'       => $validated['type_name'],
+                'identifier_text' => $validated['identifier_text'],
+                'pdf_path'        => $validated['pdf_path'],
+                'image_path'      => $validated['image_path'] ?? null,
+                'mapping_config'  => $validated['mapping_config'],
+                'ui_metadata'     => $validated['ui_metadata'] ?? [],
+                'groups'          => $validated['groups'],
+                'created_by'      => Auth::id() ?? 1,
+            ]);
+
+            if ($response->failed()) {
+                throw new \Exception("n8n merespon dengan status: " . $response->status());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Permintaan simpan telah dikirim ke n8n. Tunggu sesaat hingga data muncul di daftar.',
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error("Gagal mengirim data template ke n8n: " . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal terhubung ke n8n: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -258,44 +284,58 @@ class TemplateController extends Controller
      */
     public function createFromN8n(Request $request)
     {
-        $request->merge([
-            'created_by' => intval($request->created_by),
-            'is_active'  => (bool) ($request->is_active ?? true),
-        ]);
+        \Log::info("Data masuk dari n8n ke createFromN8n:", $request->all());
+
+        // n8n sering mengirimkan null/angka sebagai string, kita konversi paksa agar validasi lancar
+        $input = $request->all();
+        
+        if (isset($input['template_id'])) {
+            $input['template_id'] = ($input['template_id'] === 'null' || $input['template_id'] === '') ? null : (int) $input['template_id'];
+        }
+        
+        if (isset($input['created_by'])) {
+            $input['created_by'] = (int) $input['created_by'];
+        }
+
+        // Pastikan mapping_config adalah array (jika n8n mengirim string JSON, kita decode)
+        if (isset($input['mapping_config']) && is_string($input['mapping_config'])) {
+            $input['mapping_config'] = json_decode($input['mapping_config'], true);
+        }
+
+        $request->replace($input);
 
         $validated = $request->validate([
-            'template_name'  => 'required|string|max:255',
-            'template_code'  => 'required|string|max:255',
-            'type_name'      => 'required|string|max:255',
-            'pdf_path'       => 'required|string',
-            'mapping_config' => 'required|array',
-            'created_by'     => 'required|integer|exists:users,id',
-            'is_active'      => 'boolean',
+            'template_id'     => 'nullable|integer',
+            'template_code'   => 'required|string|max:255',
+            'type_name'       => 'required|string|max:255',
+            'identifier_text' => 'nullable|string|max:255',
+            'pdf_path'        => 'required|string',
+            'image_path'      => 'nullable|string',
+            'mapping_config'  => 'required|array',
+            'ui_metadata'     => 'nullable|array',
+            'created_by'      => 'required|integer',
+            'is_active'       => 'boolean',
         ]);
 
-        // Cek jika template_code sudah ada → update saja
-        $template = DocumentTemplate::where('template_code', $validated['template_code'])->first();
-
-        if ($template) {
-            $template->update([
-                'mapping_config'   => $validated['mapping_config'],
-                'master_file_path' => $validated['pdf_path'],
-            ]);
-        } else {
-            $template = DocumentTemplate::create([
-                'type_name'        => $validated['type_name'],
-                'template_code'    => $validated['template_code'],
-                'created_by'       => $validated['created_by'],
-                'master_file_path' => $validated['pdf_path'],
-                'mapping_config'   => $validated['mapping_config'],
-                'is_active'        => $validated['is_active'],
-            ]);
-        }
+        $template = DocumentTemplate::updateOrCreate(
+            ['id' => $validated['template_id'] ?? null],
+            [
+                'template_code'     => $validated['template_code'],
+                'type_name'         => $validated['type_name'],
+                'identifier_text'   => $validated['identifier_text'],
+                'master_file_path'  => $validated['pdf_path'],
+                'master_image_path' => $validated['image_path'] ?? null,
+                'mapping_config'    => $validated['mapping_config'],
+                'ui_metadata'       => $validated['ui_metadata'] ?? [],
+                'created_by'        => $validated['created_by'],
+                'is_active'         => $validated['is_active'] ?? true,
+            ]
+        );
 
         return response()->json([
             'success'     => true,
             'template_id' => $template->id,
-            'message'     => "Template #{$template->id} berhasil disimpan oleh n8n.",
+            'message'     => "Template #{$template->id} berhasil di-synchronize oleh n8n ke Database.",
         ], 201);
     }
 
@@ -330,8 +370,38 @@ class TemplateController extends Controller
     {
         $templates = DocumentTemplate::where('is_active', true)
             ->orderBy('type_name')
-            ->get(['id', 'type_name', 'template_code']);
+            ->get(['id', 'type_name', 'template_code', 'identifier_text']);
 
         return response()->json($templates);
+    }
+
+    /**
+     * API: Ambil detail template untuk n8n (External).
+     * URL: /api/templates/{template}
+     */
+    public function showApi(DocumentTemplate $template)
+    {
+        return response()->json([
+            'id'              => $template->id,
+            'type_name'       => $template->type_name,
+            'template_code'   => $template->template_code,
+            'identifier_text' => $template->identifier_text,
+            'mapping_config'  => $template->mapping_config,
+        ]);
+    }
+
+    /**
+     * API: List template untuk n8n (External).
+     * URL: /api/templates
+     */
+    public function listApi()
+    {
+        $templates = DocumentTemplate::where('is_active', true)
+            ->get(['id', 'type_name', 'template_code', 'identifier_text']);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $templates
+        ]);
     }
 }
