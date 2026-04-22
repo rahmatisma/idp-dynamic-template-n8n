@@ -76,8 +76,11 @@ class TemplateController extends Controller
                 'template_code'    => $template->template_code,
                 'identifier_text'  => $template->identifier_text,
                 'mapping_config'   => $template->mapping_config,
+                'ui_metadata'      => $template->ui_metadata,
                 'master_file_url'  => $previewUrl,
                 'master_file_path' => $template->master_file_path,
+                'image_path'       => $template->master_image_path,
+                'python_image_path' => $template->master_image_path ? storage_path('app/public/' . $template->master_image_path) : null,
             ],
         ]);
     }
@@ -176,10 +179,11 @@ class TemplateController extends Controller
             }
 
             return response()->json([
-                'image_url'   => $localImageUrl,
-                'image_path'  => $localImagePath,  // path untuk disimpan di DB
-                'pdf_path'    => $pdfPath,
-                'total_pages' => $data['total_pages'] ?? 1,
+                'image_url'         => $localImageUrl,
+                'image_path'        => $localImagePath,  // path untuk disimpan di DB
+                'python_image_path' => storage_path('app/public/' . $localImagePath), // path absolut
+                'pdf_path'          => $pdfPath,
+                'total_pages'       => $data['total_pages'] ?? 1,
             ]);
 
         } catch (\Exception $e) {
@@ -187,6 +191,35 @@ class TemplateController extends Controller
             return response()->json([
                 'error' => 'Tidak bisa terhubung ke Python Engine: ' . $e->getMessage()
             ], 503);
+        }
+    }
+    
+    /**
+     * API: OCR Cepat pada area crop.
+     * Digunakan untuk Auto-Fill nama field saat Admin menggambar kotak anchor.
+     */
+    public function ocrPredict(Request $request)
+    {
+        $request->validate([
+            'image_path' => 'required|string',
+            'box'        => 'required|array',
+        ]);
+
+        try {
+            // Python Engine butuh path relatif terhadap BASE_DIR nya
+            // Laravel kirim path dari image_path preview
+            $response = Http::timeout(15)->post(config('services.python_engine.url') . '/predict-ocr', [
+                'image_path' => $request->image_path,
+                'box'        => $request->box,
+            ]);
+
+            if ($response->failed()) {
+                return response()->json(['error' => 'OCR Engine error'], 500);
+            }
+
+            return response()->json($response->json());
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 503);
         }
     }
 
@@ -221,9 +254,8 @@ class TemplateController extends Controller
             'type_name'       => 'required|string|max:255',
             'identifier_text' => 'nullable|string|max:255',
             'pdf_path'        => 'required|string',
-            'mapping_config'  => 'required|array',       // Format Python untuk Engine
+            'mapping_config'  => 'required|array',       // Includes fields and tables
             'ui_metadata'     => 'nullable|array',       // Format Flat untuk Editor
-            'groups'          => 'required|array|min:1', // Format Nested untuk Engine
             'template_id'     => 'nullable|exists:document_templates,id',
             'image_path'      => 'nullable|string',
         ]);
@@ -245,12 +277,11 @@ class TemplateController extends Controller
                 'template_name'   => $validated['template_name'],
                 'template_code'   => $templateCode,
                 'type_name'       => $validated['type_name'],
-                'identifier_text' => $validated['identifier_text'],
+                'identifier_text' => $validated['identifier_text'] ?? null,
                 'pdf_path'        => $validated['pdf_path'],
                 'image_path'      => $validated['image_path'] ?? null,
                 'mapping_config'  => $validated['mapping_config'],
                 'ui_metadata'     => $validated['ui_metadata'] ?? [],
-                'groups'          => $validated['groups'],
                 'created_by'      => Auth::id() ?? 1,
             ]);
 

@@ -48,34 +48,17 @@ const FieldIcon = () => (
 );
 
 // ══════════════════════════════════════════════════════════════
-// MODE GAMBAR
+// CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const DRAW = {
     NONE: "none",
-    ANCHOR: "anchor",       // Anchor field biasa (kuning)
-    TARGET: "target",       // Target field biasa (biru)
-    TABLE_AREA: "table_area",   // Area keseluruhan tabel (oranye)
-    COLUMN: "column",       // Kotak kolom ( hijau)
-    NODE_ANCHOR: "node_anchor",  // Anchor node tabel (kuning)
-    NODE_VALUE: "node_value",   // Nilai node tabel (biru ungu)
+    ANCHOR: "anchor",
+    TARGET: "target",
+    TABLE_ANCHOR: "table_anchor",
+    TABLE_AREA: "table_area",
+    COLUMN: "column",
 };
 
-// Tipe node dalam hierarki tabel
-const NODE = {
-    CATEGORY: "category",
-    ITEM: "item",
-    PARENT_ITEM: "parent_item",
-    SUB_ITEM: "sub_item",
-};
-
-const NODE_STYLE = {
-    category: { border: "#7c3aed", bg: "rgba(124,58,237,0.08)", badge: "bg-violet-600", label: "KATEGORI" },
-    item: { border: "#2563eb", bg: "rgba(37,99,235,0.06)", badge: "bg-blue-600", label: "ITEM" },
-    parent_item: { border: "#0891b2", bg: "rgba(8,145,178,0.06)", badge: "bg-cyan-600", label: "PARENT" },
-    sub_item: { border: "#059669", bg: "rgba(5,150,105,0.06)", badge: "bg-emerald-600", label: "SUB" },
-};
-
-// Seksi JSON yang tersedia untuk field biasa
 const JSON_SECTIONS = [
     { value: "document", label: "document — Info Dokumen" },
     { value: "header", label: "header — Header Form" },
@@ -83,209 +66,155 @@ const JSON_SECTIONS = [
     { value: "mengetahui", label: "mengetahui — Pengesah" },
 ];
 
-// ══════════════════════════════════════════════════════════════
-// HELPER
-// ══════════════════════════════════════════════════════════════
 const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
-
-const getNodeAtPath = (nodes, path) => {
-    if (!path || path.length === 0 || !nodes) return null;
-    let node = nodes[path[0]];
-    for (let i = 1; i < path.length; i++) {
-        if (!node?.children) return null;
-        node = node.children[path[i]];
-    }
-    return node;
-};
-
-const setNodeAtPath = (nodes, path, updater) => {
-    const cloned = deepClone(nodes);
-    if (path.length === 1) {
-        cloned[path[0]] = updater(cloned[path[0]]);
-        return cloned;
-    }
-    const setIn = (arr, pathSlice) => {
-        const idx = pathSlice[0];
-        if (pathSlice.length === 1) {
-            arr[idx] = updater(arr[idx]);
-        } else {
-            arr[idx] = { ...arr[idx] };
-            arr[idx].children = deepClone(arr[idx].children || []);
-            setIn(arr[idx].children, pathSlice.slice(1));
-        }
-    };
-    setIn(cloned, path);
-    return cloned;
-};
 
 // ══════════════════════════════════════════════════════════════
 // CANVAS EDITOR
 // ══════════════════════════════════════════════════════════════
-function CanvasEditor({ imageUrl, items, activeIdx, activeNodePath, activeValueKey, drawMode, zoom = 1, onBoxDrawn }) {
+function CanvasEditor({ imageUrl, items, activeIdx, drawMode, zoom = 1, onBoxDrawn, onImageLoad: onImageLoadProp }) {
     const containerRef = useRef(null);
     const imgRef = useRef(null);
-    const [scale, setScale] = useState(1);
+    const [naturalSize, setNaturalSize] = useState(null);
     const [drawing, setDrawing] = useState(false);
-    const [startPt, setStartPt] = useState(null);
-    const [curPt, setCurPt] = useState(null);
+    const [startPt, setStartPt] = useState(null); // {x, y} as ratios 0-1
+    const [curPt, setCurPt] = useState(null);   // {x, y} as ratios 0-1
 
-    const computeScale = useCallback(() => {
-        if (!containerRef.current || !imgRef.current) return;
-        setScale(containerRef.current.clientWidth / imgRef.current.naturalWidth);
-    }, []);
-
-    useEffect(() => { computeScale(); }, [zoom, computeScale]);
+    const onImageLoad = (e) => {
+        const size = {
+            width: e.target.naturalWidth,
+            height: e.target.naturalHeight
+        };
+        setNaturalSize(size);
+        if (onImageLoadProp) onImageLoadProp(size);
+    };
 
     const getPos = (e) => {
-        const rect = containerRef.current.getBoundingClientRect();
-        return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
+        if (!imgRef.current) return { x: 0, y: 0 };
+        const rect = imgRef.current.getBoundingClientRect();
+        // Return ratios 0-1
+        return { 
+            x: (e.clientX - rect.left) / rect.width, 
+            y: (e.clientY - rect.top) / rect.height 
+        };
     };
 
     const canDraw = drawMode !== DRAW.NONE;
 
     const onMouseDown = (e) => {
-        if (!canDraw) return;
+        if (!canDraw || !naturalSize) return;
         e.preventDefault();
         const pos = getPos(e);
         setDrawing(true); setStartPt(pos); setCurPt(pos);
     };
     const onMouseMove = (e) => { if (drawing) setCurPt(getPos(e)); };
     const onMouseUp = (e) => {
-        if (!drawing || !startPt) return;
+        if (!drawing || !startPt || !naturalSize) return;
         const end = getPos(e);
+        
+        // Simpan dalam rasio 0-1
         const box = {
-            x: Math.round(Math.min(startPt.x, end.x)),
-            y: Math.round(Math.min(startPt.y, end.y)),
-            width: Math.round(Math.abs(end.x - startPt.x)),
-            height: Math.round(Math.abs(end.y - startPt.y)),
+            x: Math.min(startPt.x, end.x),
+            y: Math.min(startPt.y, end.y),
+            w: Math.abs(end.x - startPt.x),
+            h: Math.abs(end.y - startPt.y),
         };
-        if (box.width > 5 && box.height > 5) onBoxDrawn(box, drawMode);
+
+        if (box.w > 0.005 && box.h > 0.005) {
+            onBoxDrawn(box, drawMode);
+        }
         setDrawing(false); setStartPt(null); setCurPt(null);
     };
 
-    // Warna kotak sementara
     const tempColor = {
         [DRAW.ANCHOR]: "border-amber-500 bg-amber-400/15",
         [DRAW.TARGET]: "border-indigo-500 bg-indigo-400/15",
+        [DRAW.TABLE_ANCHOR]: "border-rose-500 bg-rose-400/15",
         [DRAW.TABLE_AREA]: "border-orange-500 bg-orange-400/10",
         [DRAW.COLUMN]: "border-green-500 bg-green-400/10",
-        [DRAW.NODE_ANCHOR]: "border-amber-500 bg-amber-400/15",
-        [DRAW.NODE_VALUE]: "border-indigo-500 bg-indigo-400/15",
     }[drawMode] || "border-slate-400 bg-slate-400/10";
 
     const tempBox = drawing && startPt && curPt ? {
-        left: Math.min(startPt.x, curPt.x) * scale,
-        top: Math.min(startPt.y, curPt.y) * scale,
-        width: Math.abs(curPt.x - startPt.x) * scale,
-        height: Math.abs(curPt.y - startPt.y) * scale,
+        left: Math.min(startPt.x, curPt.x) * 100,
+        top: Math.min(startPt.y, curPt.y) * 100,
+        width: Math.abs(curPt.x - startPt.x) * 100,
+        height: Math.abs(curPt.y - startPt.y) * 100,
     } : null;
 
-    // Render semua box
+    const renderBox = (box, color, label, isActive, keyPrefix, labelPos = 'top') => {
+        if (!box) return null;
+        // Gunakan w dan h (ratio) atau width dan height (legacy pixels)
+        const x = box.x;
+        const y = box.y;
+        const w = box.w ?? (naturalSize ? box.width / naturalSize.width : 0);
+        const h = box.h ?? (naturalSize ? box.height / naturalSize.height : 0);
+
+        // Jika box masih dalam pixel (legacy), kita konversi di sini untuk rendering
+        const finalX = box.w === undefined && naturalSize ? box.x / naturalSize.width : x;
+        const finalY = box.h === undefined && naturalSize ? box.y / naturalSize.height : y;
+
+        return (
+            <div key={keyPrefix} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
+                style={{ 
+                    left: `${finalX * 100}%`, 
+                    top: `${finalY * 100}%`, 
+                    width: `${w * 100}%`, 
+                    height: `${h * 100}%`, 
+                    border: `2px solid ${isActive ? color : color + '66'}`, 
+                    background: isActive ? color + '1F' : color + '0A', 
+                    zIndex: isActive ? 10 : 1 
+                }}>
+                <span className={`absolute ${labelPos === 'top' ? '-top-5' : '-bottom-5'} left-0 bg-${color === '#f59e0b' ? 'amber-500' : color === '#6366f1' ? 'indigo-500' : color === '#e11d48' ? 'rose-600' : color === '#ea580c' ? 'orange-600' : 'green-600'} text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
+                    {label}
+                </span>
+            </div>
+        );
+    };
+
     const boxes = [];
     (items || []).forEach((item, ii) => {
         const isActive = ii === activeIdx;
-
         if (item.item_type === "field") {
             if (item.anchor_box) {
-                boxes.push(
-                    <div key={`fa-${ii}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
-                        style={{ left: item.anchor_box.x * scale, top: item.anchor_box.y * scale, width: item.anchor_box.width * scale, height: item.anchor_box.height * scale, border: `2px solid ${isActive ? "#f59e0b" : "rgba(245,158,11,0.4)"}`, background: isActive ? "rgba(245,158,11,0.12)" : "rgba(245,158,11,0.04)", zIndex: isActive ? 10 : 1 }}>
-                        <span className={`absolute -top-5 left-0 bg-amber-500 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
-                            A · {item.field_name}
-                        </span>
-                    </div>
-                );
+                boxes.push(renderBox(item.anchor_box, "#f59e0b", `A · ${item.field_name}`, isActive, `fa-${ii}`));
             }
             (item.targets || []).forEach((t, ti) => {
-                if (!t.box) return;
-                boxes.push(
-                    <div key={`ft-${ii}-${ti}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
-                        style={{ left: t.box.x * scale, top: t.box.y * scale, width: t.box.width * scale, height: t.box.height * scale, border: `2px solid ${isActive ? "#6366f1" : "rgba(99,102,241,0.3)"}`, background: isActive ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.03)", zIndex: isActive ? 10 : 1 }}>
-                        <span className={`absolute -bottom-5 left-0 bg-indigo-500 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
-                            {t.label}
-                        </span>
-                    </div>
-                );
+                if (t.box) {
+                    boxes.push(renderBox(t.box, "#6366f1", t.label, isActive, `ft-${ii}-${ti}`, 'bottom'));
+                }
             });
         }
-
         if (item.item_type === "table") {
+            if (item.anchor_box) {
+                boxes.push(renderBox(item.anchor_box, "#e11d48", `ANC · ${item.table_name}`, isActive, `tab-a-${ii}`));
+            }
             if (item.table_area) {
-                boxes.push(
-                    <div key={`ta-${ii}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
-                        style={{ left: item.table_area.x * scale, top: item.table_area.y * scale, width: item.table_area.width * scale, height: item.table_area.height * scale, border: "2px solid #ea580c", background: "rgba(234,88,12,0.05)", zIndex: 1 }}>
-                        <span className={`absolute -top-5 left-0 bg-orange-600 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
-                            TABEL · {item.table_name}
-                        </span>
-                    </div>
-                );
+                boxes.push(renderBox(item.table_area, "#ea580c", `TABEL · ${item.table_name}`, isActive, `ta-${ii}`));
             }
             (item.columns || []).forEach((col, ci) => {
-                if (!col.box) return;
-                boxes.push(
-                    <div key={`tc-${ii}-${ci}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
-                        style={{ left: col.box.x * scale, top: col.box.y * scale, width: col.box.width * scale, height: col.box.height * scale, border: "1.5px dashed #16a34a", background: "rgba(22,163,74,0.05)", zIndex: 2 }}>
-                        <span className={`absolute -top-5 left-0 bg-green-600 text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
-                            {col.label || col.key}
-                        </span>
-                    </div>
-                );
+                if (col.box) {
+                    boxes.push(renderBox(col.box, "#16a34a", col.label || col.key, isActive, `tc-${ii}-${ci}`));
+                }
             });
-            // Render node boxes rekursif
-            const renderNodes = (nodes, currentPath = []) => {
-                (nodes || []).forEach((node, ni) => {
-                    const nodePath = [...currentPath, ni];
-                    // Cek apakah node ini yang sedang aktif dipilih di sidebar
-                    const isNodeActive = activeNodePath && 
-                                        activeNodePath.itemIdx === ii && 
-                                        JSON.stringify(activeNodePath.path) === JSON.stringify(nodePath);
-
-                    const style = NODE_STYLE[node.node_type] || NODE_STYLE.item;
-                    if (node.anchor_box) {
-                        boxes.push(
-                            <div key={`tn-${ii}-${currentPath.join('-')}-${ni}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
-                                style={{ left: node.anchor_box.x * scale, top: node.anchor_box.y * scale, width: node.anchor_box.width * scale, height: node.anchor_box.height * scale, border: `2px solid ${style.border}`, background: style.bg, zIndex: 3 + currentPath.length }}>
-                                <span className={`absolute -top-5 left-0 ${style.badge} text-white text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap transition-opacity ${isNodeActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
-                                    {style.label} · {node.label}
-                                </span>
-                            </div>
-                        );
-                    }
-                    Object.entries(node.values || {}).forEach(([vk, vd]) => {
-                        if (!vd.box) return;
-                        const isValueActive = isNodeActive && activeValueKey === vk;
-                        boxes.push(
-                            <div key={`tv-${ii}-${currentPath.join('-')}-${ni}-${vk}`} className={`absolute group transition-all ${canDraw ? 'pointer-events-none' : 'pointer-events-auto'}`}
-                                style={{ left: vd.box.x * scale, top: vd.box.y * scale, width: vd.box.width * scale, height: vd.box.height * scale, border: "1.5px solid rgba(99,102,241,0.5)", background: "rgba(99,102,241,0.05)", zIndex: 3 + currentPath.length }}>
-                                <span className={`absolute -bottom-5 left-0 bg-indigo-500 text-white text-[9px] px-1 py-0.5 rounded whitespace-nowrap transition-opacity ${isValueActive ? 'opacity-100 shadow-sm' : 'opacity-0 group-hover:opacity-100'}`}>
-                                    {vk}
-                                </span>
-                            </div>
-                        );
-                    });
-                    if (node.children && node.children.length > 0) {
-                        renderNodes(node.children, nodePath);
-                    }
-                });
-            };
-            renderNodes(item.nodes);
         }
     });
 
     return (
-        <div className="rounded-xl border border-slate-200 bg-slate-100 overflow-auto">
-            <div ref={containerRef} className="relative select-none"
+        <div className="rounded-xl border border-slate-200 bg-slate-100 overflow-auto min-h-[600px]">
+            <div ref={containerRef} className="relative select-none mx-auto"
                 style={{ width: `${zoom * 100}%`, minWidth: `${zoom * 100}%`, cursor: canDraw ? "crosshair" : "default" }}
                 onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}
                 onMouseLeave={() => { setDrawing(false); setStartPt(null); setCurPt(null); }}>
                 {imageUrl ? (
                     <>
-                        <img ref={imgRef} src={imageUrl} alt="Dokumen" className="w-full h-auto block" onLoad={computeScale} draggable={false} />
-                        {boxes}
-                        {tempBox && <div className={`absolute border-2 pointer-events-none ${tempColor}`} style={{ left: tempBox.left, top: tempBox.top, width: tempBox.width, height: tempBox.height }} />}
+                        <img ref={imgRef} src={imageUrl} alt="Dokumen" className="w-full h-auto block" onLoad={onImageLoad} draggable={false} />
+                        {naturalSize && boxes}
+                        {tempBox && (
+                            <div className={`absolute border-2 pointer-events-none ${tempColor}`} 
+                                 style={{ left: `${tempBox.left}%`, top: `${tempBox.top}%`, width: `${tempBox.width}%`, height: `${tempBox.height}%` }} />
+                        )}
                     </>
                 ) : (
-                    <div className="flex flex-col items-center justify-center h-72 gap-3 text-slate-400">
+                    <div className="flex flex-col items-center justify-center h-[500px] gap-3 text-slate-400 bg-white">
                         <UploadIcon />
                         <p className="text-sm">Upload PDF master untuk memulai</p>
                     </div>
@@ -296,220 +225,14 @@ function CanvasEditor({ imageUrl, items, activeIdx, activeNodePath, activeValueK
 }
 
 // ══════════════════════════════════════════════════════════════
+// SIDEBAR PANELS
 // ══════════════════════════════════════════════════════════════
-// NODE PANEL (rekursif, untuk tabel)
-// ══════════════════════════════════════════════════════════════
-function NodePanel({ node, nodePath, itemIdx, activeNodePath, activeValueKey, drawMode,
-    setActiveNodePath, setActiveValueKey, setDrawMode, updateNode, removeNode, addChildNode, syncNodeValues, depth = 0 }) {
-
-    if (!node) return null;
-
-    const isActive =
-        activeNodePath != null &&
-        activeNodePath.itemIdx === itemIdx &&
-        JSON.stringify(activeNodePath.path) === JSON.stringify(nodePath);
-
-    const style = NODE_STYLE[node.node_type] || NODE_STYLE.item;
-    const isCategory = node.node_type === NODE.CATEGORY;
-    const isParent = node.node_type === NODE.PARENT_ITEM;
-    const isItem = node.node_type === NODE.ITEM;
-    const isSubItem = node.node_type === NODE.SUB_ITEM;
-    const needsValues = isItem || isSubItem;
-
-    // Semua tipe node punya anchor — Kategori juga perlu digambar posisi barisnya
-    const anchorDone = !!node.anchor_box;
-    const valuesDone = !needsValues || Object.values(node.values || {}).every(v => v.box);
-    const rowComplete = anchorDone && valuesDone;
-
-    // Auto-label berdasarkan tipe dan posisi di tree
-    const depth0 = nodePath[nodePath.length - 1]; // index di antara siblings
-    const autoLabel = isCategory ? `Kategori ${nodePath[0] + 1}`
-        : isParent ? `Parent Baris ${depth0 + 1}`
-            : isItem ? `Baris ${depth0 + 1}`
-                : `Sub ${depth0 + 1}`;
-
-    return (
-        <div className="mt-1" style={{ marginLeft: depth * 10 }}>
-            <div className={`rounded-lg cursor-pointer transition border ${isActive ? "border-indigo-300 bg-white shadow-sm" : "border-transparent hover:bg-slate-50"}`}
-                onClick={() => { setActiveNodePath({ path: nodePath, itemIdx }); setDrawMode(DRAW.NONE); }}>
-
-                {/* Baris ringkasan node */}
-                <div className="flex items-center justify-between px-2 py-1.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                        <span className={`${style.badge} text-white text-[8px] px-1 py-0.5 rounded font-bold flex-shrink-0`}>
-                            {style.label}
-                        </span>
-                        <span className="text-xs font-semibold text-slate-600 truncate">
-                            {autoLabel}
-                        </span>
-                        {/* Status indicator */}
-                        <span className={`text-[8px] px-1 rounded flex-shrink-0 ${anchorDone ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-400"}`}>
-                            {anchorDone ? "✓" : "□"}
-                        </span>
-                        {needsValues && (
-                            <span className={`text-[8px] px-1 rounded flex-shrink-0 ${valuesDone && Object.keys(node.values || {}).length > 0 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
-                                {Object.values(node.values || {}).filter(v => v.box).length}/{Object.keys(node.values || {}).length}
-                            </span>
-                        )}
-                        {rowComplete && Object.keys(node.values || {}).length > 0 && (
-                            <span className="text-[8px] px-1 rounded bg-emerald-100 text-emerald-700 flex-shrink-0">✓ OK</span>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0 ml-1">
-                        {isCategory && (
-                            <>
-                                <button onClick={(e) => { e.stopPropagation(); addChildNode(itemIdx, nodePath, NODE.ITEM); }}
-                                    className="text-[9px] text-blue-600 hover:bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100"
-                                    title="Tambah Item biasa">+Item</button>
-                                <button onClick={(e) => { e.stopPropagation(); addChildNode(itemIdx, nodePath, NODE.PARENT_ITEM); }}
-                                    className="text-[9px] text-cyan-600 hover:bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-100"
-                                    title="Tambah Parent Item (ada sub di bawahnya)">+Parent</button>
-                            </>
-                        )}
-                        {isParent && (
-                            <button onClick={(e) => { e.stopPropagation(); addChildNode(itemIdx, nodePath, NODE.SUB_ITEM); }}
-                                className="text-[9px] text-emerald-600 hover:bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100"
-                                title="Tambah Sub-Item">+Sub</button>
-                        )}
-                        <button onClick={(e) => { e.stopPropagation(); removeNode(itemIdx, nodePath); }}
-                            className="text-slate-300 hover:text-red-500 p-0.5 rounded"><TrashIcon /></button>
-                    </div>
-                </div>
-
-                {/* Detail — tampil hanya saat dipilih */}
-                {isActive && (
-                    <div className="px-2 pb-2.5 space-y-2 border-t border-slate-100 pt-2" onClick={e => e.stopPropagation()}>
-
-                        {/* ── LANGKAH 1: Gambar Baris di Canvas ───────────── */}
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase">
-                            <span className={`w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] flex-shrink-0 ${anchorDone ? "bg-amber-500" : "bg-amber-300"}`}>1</span>
-                            Tandai Baris Ini di Canvas
-                        </div>
-                        <div className="ml-6 rounded-lg border border-amber-200 bg-amber-50/60 p-2 space-y-1.5">
-                            <p className="text-[9px] text-amber-800 leading-relaxed">
-                                {isCategory
-                                    ? "Kotaki seluruh baris ini (No + Deskripsi)."
-                                    : isParent
-                                        ? "Kotaki teks baris ini di kolom Deskripsi."
-                                        : "Kotaki teks deskripsi baris ini di kolom Deskripsi."
-                                }
-                            </p>
-                            <button
-                                onClick={() => setDrawMode(drawMode === DRAW.NODE_ANCHOR ? DRAW.NONE : DRAW.NODE_ANCHOR)}
-                                className={`w-full py-1.5 rounded-lg border text-[10px] font-bold transition ${drawMode === DRAW.NODE_ANCHOR
-                                    ? "bg-amber-500 text-white border-amber-600"
-                                    : anchorDone
-                                        ? "bg-amber-100 border-amber-300 text-amber-800"
-                                        : "bg-white border-amber-300 text-amber-700 hover:bg-amber-50"
-                                    }`}>
-                                {drawMode === DRAW.NODE_ANCHOR
-                                    ? "⬛ Klik & tarik di canvas…"
-                                    : anchorDone
-                                        ? "✓ Tergambar — klik untuk gambar ulang"
-                                        : "📍 Klik, lalu gambar kotak di canvas"}
-                            </button>
-                        </div>
-
-                        {/* Info untuk Parent Item */}
-                        {isParent && anchorDone && (
-                            <p className="ml-6 text-[9px] text-cyan-700 bg-cyan-50 px-2 py-1.5 rounded border border-cyan-100">
-                                Klik "+Sub" di kanan untuk tambah baris sub di bawah ini.
-                            </p>
-                        )}
-
-                        {/* ── LANGKAH 2: Nilai (hanya Item & Sub-Item) ────────── */}
-                        {needsValues && (
-                            <>
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase">
-                                    <span className={`w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] flex-shrink-0 ${valuesDone ? "bg-indigo-600" : "bg-indigo-300"}`}>3</span>
-                                    Gambar Nilai — Sejajar Baris Anchor
-                                </div>
-
-                                {/* Nilai belum ada — tampilkan tombol Sinkron */}
-                                {Object.keys(node.values || {}).length === 0 ? (
-                                    <div className="ml-6 rounded-lg border border-dashed border-indigo-300 bg-indigo-50 p-3 space-y-2">
-                                        <p className="text-[9px] text-indigo-700">
-                                            Belum ada kolom gambar. Tambah kolom di ② dulu, lalu klik Sinkron.
-                                        </p>
-                                        <button
-                                            onClick={() => syncNodeValues(itemIdx, nodePath)}
-                                            className="w-full py-1.5 rounded-lg bg-indigo-600 text-white text-[10px] font-bold hover:bg-indigo-700 transition">
-                                            🔄 Sinkron Nilai dari Kolom
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="ml-6 rounded-lg border border-indigo-200 bg-indigo-50/40 p-2 space-y-1.5">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-[9px] text-indigo-700">
-                                                Gambar kotak per kolom, <strong>sejajar</strong> dengan baris di atas.
-                                            </p>
-                                            <button
-                                                onClick={() => syncNodeValues(itemIdx, nodePath)}
-                                                className="text-[8px] text-indigo-500 hover:text-indigo-700 underline flex-shrink-0 ml-1"
-                                                title="Perbarui jika kolom tabel berubah">
-                                                🔄 Sinkron
-                                            </button>
-                                        </div>
-                                        {Object.entries(node.values || {}).map(([vk, vd]) => (
-                                            <div key={vk} className="bg-white rounded-lg border border-indigo-100 p-1.5 space-y-1">
-                                                <div className="flex items-center gap-1.5 text-[10px]">
-                                                    <span className={`font-mono font-bold w-20 truncate ${vd.box ? "text-emerald-700" : "text-indigo-800"}`}>
-                                                        {vd.box ? "✓ " : ""}{vk}
-                                                    </span>
-                                                    <select value={vd.text_type || "printed"}
-                                                        onChange={e => updateNode(itemIdx, nodePath, `values.${vk}.text_type`, e.target.value)}
-                                                        className="flex-1 text-[9px] border border-slate-200 rounded bg-white focus:ring-0">
-                                                        <option value="printed">Teks Cetak</option>
-                                                        <option value="handwritten">Tulisan Tangan</option>
-                                                    </select>
-                                                    <label className="flex items-center gap-0.5 text-slate-500 text-[9px] whitespace-nowrap">
-                                                        <input type="checkbox" checked={vd.multi_line || false}
-                                                            onChange={e => updateNode(itemIdx, nodePath, `values.${vk}.multi_line`, e.target.checked)}
-                                                            className="w-3 h-3" />Multi
-                                                    </label>
-                                                </div>
-                                                <button
-                                                    onClick={() => { setActiveValueKey(vk); setDrawMode(drawMode === DRAW.NODE_VALUE && activeValueKey === vk ? DRAW.NONE : DRAW.NODE_VALUE); }}
-                                                    className={`w-full py-1 rounded border text-[9px] font-bold transition ${drawMode === DRAW.NODE_VALUE && activeValueKey === vk
-                                                        ? "bg-indigo-600 text-white border-indigo-700"
-                                                        : vd.box
-                                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                                            : "bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                                                        }`}>
-                                                    {drawMode === DRAW.NODE_VALUE && activeValueKey === vk
-                                                        ? `⬛ Gambar kotak "${vk}" di canvas…`
-                                                        : vd.box
-                                                            ? `✓ ${vk} — klik untuk gambar ulang`
-                                                            : `📦 Gambar kotak kolom "${vk}"`}
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Children rekursif */}
-            {(node.children || []).map((child, ci) => (
-                <NodePanel key={ci} node={child} nodePath={[...nodePath, ci]} itemIdx={itemIdx}
-                    activeNodePath={activeNodePath} activeValueKey={activeValueKey} drawMode={drawMode}
-                    setActiveNodePath={setActiveNodePath} setActiveValueKey={setActiveValueKey}
-                    setDrawMode={setDrawMode} updateNode={updateNode} removeNode={removeNode}
-                    addChildNode={addChildNode} syncNodeValues={syncNodeValues} depth={depth + 1} />
-            ))}
-        </div>
-    );
-}
-
-// ══════════════════════════════════════════════════════════════
-// SIDEBAR: PANEL FIELD BIASA
-// ══════════════════════════════════════════════════════════════
-function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx,
-    setActiveIdx, setDrawMode, setActiveTargetIdx,
-    updateItem, removeItem, addTarget, removeTarget, updateTarget }) {
+function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx, setActiveIdx, setDrawMode, setActiveTargetIdx, updateItem, removeItem, addTarget, removeTarget, updateTarget, ocrPredicting }) {
+    const [editKeys, setEditKeys] = useState({});
+    const toggleKeyEdit = (id) => {
+        if (!editKeys[id] && !confirm("Warning: Mengubah Key teknis akan merusak integrasi database/n8n. Lanjutkan?")) return;
+        setEditKeys(p => ({ ...p, [id]: !p[id] }));
+    };
 
     return (
         <div className={`rounded-xl border transition cursor-pointer ${isActive ? "border-indigo-300 bg-white shadow-sm ring-1 ring-indigo-400/20" : "border-slate-100 hover:border-slate-200 bg-slate-50/50"}`}
@@ -519,91 +242,50 @@ function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx,
                     <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1"><FieldIcon />FIELD</span>
                     <span className="text-xs font-semibold text-slate-700 truncate max-w-[140px]">{item.field_name || "Field Baru"}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-slate-400 font-mono">{item.json_section}/{item.field_key || "..."}</span>
-                    <button onClick={(e) => { e.stopPropagation(); removeItem(idx); }}
-                        className="text-slate-300 hover:text-red-500 p-1 rounded"><TrashIcon /></button>
-                </div>
+                <button onClick={(e) => { e.stopPropagation(); removeItem(idx); }} className="text-slate-300 hover:text-red-500 p-1 rounded"><TrashIcon /></button>
             </div>
-
             {isActive && (
                 <div className="px-3 pb-3 space-y-3 border-t border-slate-100 pt-3" onClick={e => e.stopPropagation()}>
-                    {/* Nama Field */}
                     <div className="grid grid-cols-2 gap-2">
                         <div>
-                            <label className="text-[10px] text-slate-500">Nama Field</label>
-                            <input type="text" value={item.field_name}
-                                onChange={e => updateItem(idx, "field_name", e.target.value)}
-                                className="w-full text-xs rounded-lg p-1.5 border border-slate-200" />
+                            <label className="text-[10px] text-slate-500 uppercase font-bold tracking-tight">Nama Field</label>
+                            <input type="text" value={item.field_name} onChange={e => updateItem(idx, "field_name", e.target.value)} className="w-full text-xs rounded-lg p-1.5 border border-slate-200" />
                         </div>
                         <div>
-                            <label className="text-[10px] text-slate-500 flex justify-between">
-                                JSON Key
-                                <button onClick={() => updateItem(idx, "is_custom_key", !item.is_custom_key)} className="text-[9px] text-indigo-500">
-                                    {item.is_custom_key ? "Auto" : "Edit"}
-                                </button>
-                            </label>
-                            <input type="text" value={item.field_key}
-                                disabled={!item.is_custom_key}
-                                onChange={e => updateItem(idx, "field_key", e.target.value)}
-                                className={`w-full text-xs rounded-lg p-1.5 border border-slate-200 ${!item.is_custom_key ? "bg-slate-50 text-slate-400" : "text-indigo-600 font-mono"}`} />
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] text-slate-500 uppercase font-bold tracking-tight">JSON Key {editKeys[item.id] ? "🔓" : "🔒"}</label>
+                                <button onClick={() => toggleKeyEdit(item.id)} className="text-[9px] text-indigo-500 underline">Edit</button>
+                            </div>
+                            <input type="text" value={item.field_key} readOnly={!editKeys[item.id]} onChange={e => updateItem(idx, "field_key", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} className={`w-full text-xs rounded-lg p-1.5 border ${editKeys[item.id] ? "border-indigo-300 ring-2 ring-indigo-50" : "border-slate-200 bg-slate-50 text-slate-400"}`} />
                         </div>
                     </div>
-
-                    {/* Seksi JSON */}
-                    <div>
-                        <label className="text-[10px] text-slate-500">Bagian JSON Output</label>
-                        <select value={item.json_section}
-                            onChange={e => updateItem(idx, "json_section", e.target.value)}
-                            className="w-full text-xs rounded-lg p-1.5 border border-slate-200">
-                            {JSON_SECTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                        </select>
-                    </div>
-
-                    {/* Anchor */}
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label className="text-[10px] text-slate-500">Kata Kunci Anchor</label>
-                            <button
-                                onClick={() => setDrawMode(drawMode === DRAW.ANCHOR ? DRAW.NONE : DRAW.ANCHOR)}
-                                className={`text-[9px] px-2 py-0.5 rounded border font-bold transition ${drawMode === DRAW.ANCHOR ? "bg-amber-500 text-white border-amber-600" : item.anchor_box ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
-                                {item.anchor_box ? "✓ Gambar Ulang" : "Gambar Box"}
+                            <label className="text-[10px] text-slate-500 font-bold uppercase flex items-center gap-1">
+                                Anchor Text {isActive && ocrPredicting && <span className="inline-block w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>}
+                            </label>
+                            <button onClick={() => setDrawMode(drawMode === DRAW.ANCHOR ? DRAW.NONE : DRAW.ANCHOR)} className={`text-[9px] px-2 py-0.5 rounded border font-bold transition ${drawMode === DRAW.ANCHOR ? "bg-amber-500 text-white border-amber-600" : item.anchor_box ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
+                                {item.anchor_box ? "✓ Drawn" : "📍 Draw"}
                             </button>
                         </div>
-                        <input type="text" value={item.field_anchor}
-                            onChange={e => updateItem(idx, "field_anchor", e.target.value)}
-                            placeholder="ex: Location, No. Dok…"
-                            className="w-full text-xs rounded-lg p-1.5 border border-slate-200" />
-                        <p className="text-[9px] text-slate-400 mt-1">💡 Teks label yang tercetak di formulir, digunakan sebagai titik acuan posisi.</p>
+                        <input type="text" value={item.field_anchor} onChange={e => updateItem(idx, "field_anchor", e.target.value)} placeholder="ex: Location" className="w-full text-xs rounded-lg p-1.5 border border-slate-200" />
                     </div>
-
-                    {/* Targets */}
                     <div className="border-t border-slate-100 pt-2">
                         <div className="flex justify-between items-center mb-1.5">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase">Area Nilai</span>
-                            <button onClick={() => addTarget(idx)}
-                                className="bg-indigo-600 text-white text-[9px] px-2 py-0.5 rounded hover:bg-indigo-700">+ Nilai</button>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">Target Boxes</span>
+                            <button onClick={() => addTarget(idx)} className="bg-indigo-600 text-white text-[9px] px-2 py-0.5 rounded hover:bg-indigo-700">+ Add</button>
                         </div>
-                        {(item.targets || []).length === 0 && (
-                            <p className="text-[9px] text-slate-400 italic">Klik "+ Nilai" lalu gambar kotak area isian di canvas.</p>
-                        )}
                         {(item.targets || []).map((t, ti) => (
-                            <div key={ti} className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-lg border border-slate-100 mb-1">
-                                <input type="text" value={t.label}
-                                    onChange={e => updateTarget(idx, ti, "label", e.target.value)}
-                                    className="flex-1 text-[10px] p-0 border-none bg-transparent focus:ring-0 font-medium"
-                                    placeholder="result…" />
-                                <select value={t.text_type || "printed"}
-                                    onChange={e => updateTarget(idx, ti, "text_type", e.target.value)}
-                                    className="w-16 text-[9px] border-none bg-slate-200/60 rounded p-0 focus:ring-0">
-                                    <option value="printed">Cetak</option>
-                                    <option value="handwritten">Tulis</option>
-                                </select>
-                                <button
-                                    onClick={() => { setActiveTargetIdx(ti); setDrawMode(drawMode === DRAW.TARGET && activeTargetIdx === ti ? DRAW.NONE : DRAW.TARGET); }}
-                                    className={`p-1 rounded transition ${drawMode === DRAW.TARGET && activeTargetIdx === ti ? "bg-indigo-600 text-white" : t.box ? "bg-emerald-100 text-emerald-600" : "bg-white text-slate-300 border"}`}
-                                    title="Gambar kotak"><BoxIcon /></button>
-                                <button onClick={() => removeTarget(idx, ti)} className="text-slate-200 hover:text-red-400"><TrashIcon /></button>
+                            <div key={ti} className="flex flex-col gap-1 mb-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                <div className="flex items-center gap-1">
+                                    <input type="text" value={t.label} onChange={e => updateTarget(idx, ti, "label", e.target.value)} className="flex-1 text-[10px] p-0 border-none bg-transparent focus:ring-0 font-medium" />
+                                    <button onClick={() => toggleKeyEdit(t.id)} className="text-[9px] text-slate-400">{editKeys[t.id] ? "🔓" : "🔒"}</button>
+                                    <button onClick={() => { setActiveTargetIdx(ti); setDrawMode(drawMode === DRAW.TARGET && activeTargetIdx === ti ? DRAW.NONE : DRAW.TARGET); }} className={`p-1 rounded transition ${drawMode === DRAW.TARGET && activeTargetIdx === ti ? "bg-indigo-600 text-white" : t.box ? "bg-emerald-100 text-emerald-600" : "bg-white text-slate-300 border"}`}><BoxIcon /></button>
+                                    <button onClick={() => removeTarget(idx, ti)} className="text-slate-200 hover:text-red-400"><TrashIcon /></button>
+                                </div>
+                                {editKeys[t.id] && (
+                                    <input type="text" value={t.key} onChange={e => updateTarget(idx, ti, "key", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} className="text-[9px] p-1 border-indigo-200 rounded bg-white text-indigo-600" placeholder="Technical Key" />
+                                )}
                             </div>
                         ))}
                     </div>
@@ -613,129 +295,129 @@ function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx,
     );
 }
 
-// ══════════════════════════════════════════════════════════════
-// SIDEBAR: PANEL TABEL
-// ══════════════════════════════════════════════════════════════
-function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, activeNodePath, activeValueKey,
-    setActiveIdx, setDrawMode, setActiveColumnIdx, setActiveNodePath, setActiveValueKey,
-    updateItem, removeItem, addColumn, removeColumn, updateColumn,
-    addRootNode, updateNode, removeNode, addChildNode, syncNodeValues }) {
-
+function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, setActiveIdx, setDrawMode, setActiveColumnIdx, updateItem, removeItem, addColumn, removeColumn, updateColumn, ocrPredicting }) {
     const hasArea = !!item.table_area;
-    const hasCols = (item.columns || []).length > 0;
-    const isThisNode = (path) => activeNodePath && activeNodePath.itemIdx === idx && JSON.stringify(activeNodePath.path) === JSON.stringify(path);
+    const [editKeys, setEditKeys] = useState({});
+    const toggleKeyEdit = (id) => {
+        if (!editKeys[id] && !confirm("Warning: Mengubah Key teknis akan merusak integrasi database/n8n. Lanjutkan?")) return;
+        setEditKeys(p => ({ ...p, [id]: !p[id] }));
+    };
 
     return (
-        <div className={`rounded-xl border transition cursor-pointer ${isActive ? "border-orange-300 bg-white shadow-sm" : "border-slate-100 hover:border-orange-200 bg-orange-50/20"}`}
+        <div className={`rounded-xl border transition cursor-pointer ${isActive ? "border-rose-300 bg-white shadow-sm ring-1 ring-rose-400/20" : "border-slate-100 hover:border-rose-200 bg-rose-50/20"}`}
             onClick={() => { setActiveIdx(idx); setDrawMode(DRAW.NONE); }}>
-
-            {/* Header */}
             <div className="flex items-center justify-between px-3 py-2.5">
                 <div className="flex items-center gap-2">
-                    <span className="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1"><TableIcon />TABEL</span>
+                    <span className="text-[9px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1"><TableIcon />TABEL</span>
                     <span className="text-xs font-semibold text-slate-700 truncate max-w-[130px]">{item.table_name || "Tabel Baru"}</span>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); removeItem(idx); }}
-                    className="text-slate-300 hover:text-red-500 p-1 rounded"><TrashIcon /></button>
+                <button onClick={(e) => { e.stopPropagation(); removeItem(idx); }} className="text-slate-300 hover:text-red-500 p-1 rounded"><TrashIcon /></button>
             </div>
-
             {isActive && (
                 <div className="px-3 pb-3 space-y-3 border-t border-slate-100 pt-3" onClick={e => e.stopPropagation()}>
-                    {/* Nama & Key */}
-                    <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="grid grid-cols-2 gap-2">
                         <div>
-                            <label className="text-[10px] text-slate-500">Nama Tabel</label>
-                            <input type="text" value={item.table_name || ""}
-                                onChange={e => updateItem(idx, "table_name", e.target.value)}
-                                className="w-full text-xs rounded-lg p-1.5 border border-slate-200" placeholder="ex: Checklist" />
+                            <label className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Nama Tabel</label>
+                            <input type="text" value={item.table_name} onChange={e => updateItem(idx, "table_name", e.target.value)} className="w-full text-xs rounded-lg p-1.5 border border-slate-200" />
                         </div>
                         <div>
-                            <label className="text-[10px] text-slate-500">JSON Key</label>
-                            <input type="text" value={item.json_key || ""}
-                                onChange={e => updateItem(idx, "json_key", e.target.value)}
-                                className="w-full text-xs rounded-lg p-1.5 border border-slate-200 font-mono text-indigo-600" placeholder="checklist" />
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">JSON Key {editKeys[item.id] ? "🔓" : "🔒"}</label>
+                                <button onClick={() => toggleKeyEdit(item.id)} className="text-[9px] text-indigo-500 underline">Edit</button>
+                            </div>
+                            <input type="text" value={item.json_key} readOnly={!editKeys[item.id]} onChange={e => updateItem(idx, "json_key", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} className={`w-full text-xs rounded-lg p-1.5 border font-mono ${editKeys[item.id] ? "border-indigo-300 ring-2 ring-indigo-50" : "border-slate-200 bg-slate-50 text-slate-400"}`} />
                         </div>
-                    </div>
-                    {/* Table Anchor */}
-                    <div className="mb-3">
-                        <label className="text-[10px] items-center gap-1 text-orange-600 font-bold flex">
-                            Kata Kunci Anchor Kolom <span className="px-1 bg-orange-100 rounded text-[8px]">PENTING</span>
-                        </label>
-                        <input type="text" value={item.table_anchor || ""}
-                            onChange={e => updateItem(idx, "table_anchor", e.target.value)}
-                            placeholder="ex: Descriptions, atau Performance and Capacity"
-                            className="w-full text-xs rounded-lg p-1.5 border border-orange-200 focus:ring-orange-500" />
-                        <p className="text-[9px] text-slate-400 mt-1">💡 Teks statis (header) di dalam/dekat tabel ini agar sisi kiri tabel bisa dilacak saat kertas bergeser.</p>
                     </div>
 
-                    {/* FASE 1: Area Tabel */}
-                    <div className="rounded-lg border border-slate-100 p-2.5 bg-slate-50/60">
+                    {/* Stage 0: Anchor */}
+                    <div className="p-2 bg-rose-50/50 rounded-lg border border-rose-100">
                         <div className="flex justify-between items-center mb-1">
-                            <p className="text-[10px] font-bold text-slate-500 uppercase">① Gambar Area Tabel</p>
-                            <button
-                                onClick={() => setDrawMode(drawMode === DRAW.TABLE_AREA ? DRAW.NONE : DRAW.TABLE_AREA)}
-                                className={`text-[9px] px-2 py-0.5 rounded border font-bold transition ${drawMode === DRAW.TABLE_AREA ? "bg-orange-500 text-white border-orange-600" : item.table_area ? "bg-orange-50 border-orange-200 text-orange-700" : "bg-slate-50 border-slate-200 text-slate-400"}`}>
-                                {item.table_area ? "✓ Gambar Ulang" : "Gambar"}
+                            <label className="text-[10px] text-rose-700 font-bold tracking-tight flex items-center gap-1">
+                                1. ANCHOR POIN (0,0) {isActive && ocrPredicting && <span className="inline-block w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>}
+                            </label>
+                            <button onClick={() => setDrawMode(drawMode === DRAW.TABLE_ANCHOR ? DRAW.NONE : DRAW.TABLE_ANCHOR)} className={`text-[9px] px-2 py-0.5 rounded border font-bold transition ${drawMode === DRAW.TABLE_ANCHOR ? "bg-rose-500 text-white border-rose-600 shadow-sm" : item.anchor_box ? "bg-white border-rose-200 text-rose-700" : "bg-white border-slate-200 text-slate-400"}`}>
+                                {item.anchor_box ? "✓ Re-Draw" : "📍 Draw Box"}
                             </button>
                         </div>
-                        <p className="text-[9px] text-slate-400">Gambar satu kotak besar yang mencakup seluruh area tabel dari baris pertama hingga terakhir.</p>
-                        {item.table_area && <p className="text-[9px] text-emerald-600 mt-1">✓ x:{item.table_area.x} y:{item.table_area.y}</p>}
+                        <input type="text" value={item.table_anchor} onChange={e => updateItem(idx, "table_anchor", e.target.value)} placeholder="ex: Descriptions, No." className="w-full text-xs rounded-lg p-1.5 border border-slate-200" />
+                        <div className="mt-1 flex gap-2">
+                            <select value={item.table_anchor_match_type || "contains"} onChange={e => updateItem(idx, "table_anchor_match_type", e.target.value)} className="text-[9px] border-none bg-slate-100 rounded px-1 py-0.5">
+                                <option value="contains">Contains</option>
+                                <option value="exact">Exact</option>
+                            </select>
+                            <span className="text-[9px] text-slate-400 italic">Rule finding.</span>
+                        </div>
                     </div>
 
-                    {/* FASE 2: Kolom */}
+                    {/* Stage 1: Area */}
+                    <div className="p-2 bg-orange-50/50 rounded-lg border border-orange-100">
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="text-[10px] text-orange-700 font-bold tracking-tight">2. JANGKAUAN ISI TABEL</label>
+                            <button onClick={() => setDrawMode(drawMode === DRAW.TABLE_AREA ? DRAW.NONE : DRAW.TABLE_AREA)} className={`text-[9px] px-2 py-0.5 rounded border font-bold transition ${drawMode === DRAW.TABLE_AREA ? "bg-orange-500 text-white border-orange-600 shadow-sm" : item.table_area ? "bg-white border-orange-200 text-orange-700" : "bg-white border-slate-200 text-slate-400"}`}>
+                                {item.table_area ? "✓ Re-Draw" : "🔲 Draw Area"}
+                            </button>
+                        </div>
+                        <p className="text-[9px] text-slate-400">Gambar area vertikal seluruh baris.</p>
+                        {item.table_area && item.anchor_box && (
+                            <p className="text-[9px] text-emerald-600 font-mono mt-0.5 px-1 bg-emerald-50 rounded inline-block">offset_y: {Math.round(item.table_area.y - item.anchor_box.y)}px</p>
+                        )}
+                    </div>
+
+                    {/* Stage 2: Columns */}
                     {hasArea && (
-                        <div className="rounded-lg border border-slate-100 p-2.5 bg-slate-50/60">
+                        <div className="p-2 bg-green-50/30 rounded-lg border border-green-100">
                             <div className="flex justify-between items-center mb-1.5">
-                                <p className="text-[10px] font-bold text-slate-500 uppercase">② Definisi Kolom</p>
-                                <button
-                                    onClick={() => { setActiveColumnIdx((item.columns || []).length); addColumn(idx); setDrawMode(DRAW.COLUMN); }}
-                                    className="text-[9px] bg-green-600 text-white px-2 py-0.5 rounded hover:bg-green-700">+ Kolom</button>
+                                <label className="text-[10px] text-green-700 font-bold tracking-tight">3. STRUKTUR KOLOM (X)</label>
+                                <button onClick={() => addColumn(idx)} className="bg-green-600 text-white text-[9px] px-2 py-0.5 rounded shadow-sm">+ Kolom</button>
                             </div>
-                            <p className="text-[9px] text-slate-400 mb-2">Gambar kotak vertikal yang memanjang ke bawah untuk setiap kolom (No, Deskripsi, Hasil, Standard, Status).</p>
-                            {(item.columns || []).length === 0 && <p className="text-[9px] text-slate-400 italic">Belum ada kolom.</p>}
-                            <div className="space-y-1">
+                            <div className="space-y-1.5">
                                 {(item.columns || []).map((col, ci) => (
-                                    <div key={ci} className={`flex items-center gap-2 p-1.5 rounded border text-[10px] transition ${activeColumnIdx === ci && isActive ? "bg-green-50 border-green-300" : "bg-white border-slate-100"}`}
-                                        onClick={(e) => { e.stopPropagation(); setActiveColumnIdx(ci); }}>
-                                        <span className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center text-[9px] font-bold ${col.box ? "bg-green-500 text-white" : "bg-slate-200 text-slate-500"}`}>
-                                            {ci + 1}
-                                        </span>
-                                        <span className="flex-1 font-mono text-slate-600 text-[9px]">
-                                            {col.key || `kolom_${ci + 1}`}
-                                            {col.box && <span className="ml-1 text-emerald-600">✓</span>}
-                                        </span>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setActiveColumnIdx(ci); setDrawMode(DRAW.COLUMN); }}
-                                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold border transition ${drawMode === DRAW.COLUMN && activeColumnIdx === ci ? "bg-green-600 text-white border-green-700" : col.box ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white text-slate-400 border-slate-200 hover:border-green-300"}`}>
-                                            {col.box ? "✓ Gambar Ulang" : "🟩 Gambar"}
-                                        </button>
-                                        <button onClick={(e) => { e.stopPropagation(); removeColumn(idx, ci); }} className="text-slate-300 hover:text-red-400"><TrashIcon /></button>
+                                    <div key={ci} className={`p-2 rounded border transition ${activeColumnIdx === ci && isActive ? "bg-white border-green-400 shadow-sm" : "bg-white/60 border-slate-100"}`} onClick={(e) => { e.stopPropagation(); setActiveColumnIdx(ci); }}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${col.box ? "bg-green-500 text-white" : "bg-slate-200 text-slate-500"}`}>{ci+1}</span>
+                                            <input type="text" value={col.label} onChange={e => updateColumn(idx, ci, "label", e.target.value)} className="flex-1 text-[10px] font-bold p-0 border-none bg-transparent focus:ring-0" />
+                                            <button onClick={() => toggleKeyEdit(col.id)} className="text-[9px] text-slate-400">{editKeys[col.id] ? "🔓" : "🔒"}</button>
+                                            <button onClick={(e) => { e.stopPropagation(); setActiveColumnIdx(ci); setDrawMode(DRAW.COLUMN); }} className={`p-1 rounded ${drawMode === DRAW.COLUMN && activeColumnIdx === ci ? "bg-green-600 text-white" : col.box ? "bg-green-100 text-green-600" : "bg-slate-100 text-slate-400"}`}><BoxIcon /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); removeColumn(idx, ci); }} className="text-slate-200 hover:text-red-400"><TrashIcon /></button>
+                                        </div>
+                                        {editKeys[col.id] && (
+                                            <input type="text" value={col.key} onChange={e => updateColumn(idx, ci, "key", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} className="text-[9px] w-full p-1 border-indigo-200 rounded bg-indigo-50/30 text-indigo-700 mb-1.5" placeholder="Technical Key" />
+                                        )}
+                                        <div className="flex gap-3 px-1 border-t border-slate-50 pt-1.5">
+                                            <label className="flex items-center gap-1 text-[9px] text-slate-600 cursor-pointer">
+                                                <input type="checkbox" checked={!!col.is_row_anchor} onChange={e => updateColumn(idx, ci, "is_row_anchor", e.target.checked)} className="w-3 h-3 rounded text-indigo-600" /> Anchor
+                                            </label>
+                                            <label className="flex items-center gap-1 text-[9px] text-slate-600 cursor-pointer">
+                                                <input type="checkbox" checked={!!col.is_multi_line} onChange={e => updateColumn(idx, ci, "is_multi_line", e.target.checked)} className="w-3 h-3 rounded text-indigo-600" /> Multi
+                                            </label>
+                                            <select value={col.text_type || "printed"} onChange={e => updateColumn(idx, ci, "text_type", e.target.value)} className="text-[9px] border-none bg-slate-50 rounded ml-auto p-0">
+                                                <option value="printed">Teks</option>
+                                                <option value="handwritten">Tulis</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {/* FASE 3: Node */}
-                    {hasCols && (
-                        <div className="rounded-lg border border-slate-100 p-2.5 bg-slate-50/60">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[10px] font-bold text-slate-500 uppercase">③ Isi Data Tabel</p>
-                                <button onClick={() => addRootNode(idx, NODE.CATEGORY)}
-                                    className="text-[9px] bg-violet-600 text-white px-2 py-0.5 rounded hover:bg-violet-700">+ Kategori</button>
-                            </div>
-                            <p className="text-[9px] text-slate-400 mb-2">Tambah Kategori (ex: "Visual Check"), lalu tambah Item atau Parent Item di dalamnya.</p>
-                            {(item.nodes || []).length === 0 && <p className="text-[9px] text-slate-400 italic">Belum ada data.</p>}
-                            {(item.nodes || []).map((node, ni) => (
-                                <NodePanel key={ni} node={node} nodePath={[ni]} itemIdx={idx}
-                                    activeNodePath={activeNodePath} activeValueKey={activeValueKey}
-                                    drawMode={drawMode}
-                                    setActiveNodePath={setActiveNodePath}
-                                    setActiveValueKey={setActiveValueKey}
-                                    setDrawMode={setDrawMode}
-                                    updateNode={updateNode} removeNode={removeNode} addChildNode={addChildNode}
-                                    syncNodeValues={syncNodeValues} />
-                            ))}
+                    {/* Stage 3: Fallback Policy */}
+                    {item.columns && item.columns.length > 0 && (
+                        <div className="p-2 bg-indigo-50/30 rounded-lg border border-indigo-100">
+                            <label className="text-[10px] text-indigo-700 font-bold tracking-tight mb-1 block">4. FALLBACK ROW ANCHOR</label>
+                            <select value={item.fallback_row_anchor_id || ""} onChange={e => updateItem(idx, "fallback_row_anchor_id", e.target.value)} className="w-full text-[10px] border-slate-200 rounded-lg p-1">
+                                <option value="">No Fallback (Risky)</option>
+                                {item.columns.map((c, ci) => (
+                                    <option key={ci} value={c.id}>{c.label} ({c.key})</option>
+                                ))}
+                            </select>
+                            {(() => {
+                                const selected = item.columns.find(c => c.id === item.fallback_row_anchor_id);
+                                if (selected?.text_type === "handwritten") {
+                                    return <p className="text-[9px] text-amber-600 font-bold mt-1 animate-pulse">⚠️ Peringatan: Kolom tulis tangan berisiko tinggi noise.</p>;
+                                }
+                                return null;
+                            })()}
                         </div>
                     )}
                 </div>
@@ -745,684 +427,528 @@ function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, activeNode
 }
 
 // ══════════════════════════════════════════════════════════════
-// MAIN PAGE
+// MAIN EDITOR
 // ══════════════════════════════════════════════════════════════
 export default function MasterTemplateEditor({ editingTemplate = null }) {
     const isEdit = !!editingTemplate;
 
-    // ── State Umum ────────────────────────────────────────────
     const [imageUrl, setImageUrl] = useState(editingTemplate?.master_file_url ?? null);
     const [pdfPath, setPdfPath] = useState(editingTemplate?.master_file_path ?? null);
-    const [imagePath, setImagePath] = useState(null); // path PNG yang tersimpan lokal
-    const [pdfFile, setPdfFile] = useState(null);
+    const [imagePath, setImagePath] = useState(editingTemplate?.image_path ?? null);
     const [converting, setConverting] = useState(false);
     const [typeName, setTypeName] = useState(editingTemplate?.type_name ?? "");
     const [identifierText, setIdentifierText] = useState(editingTemplate?.identifier_text ?? "");
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState(null);
     const [zoom, setZoom] = useState(1);
-    const fileInputRef = useRef(null);
-
-    // ── State Navigasi ────────────────────────────────────────
-    const [drawMode, setDrawMode] = useState(DRAW.NONE);
-    const [activeIdx, setActiveIdx] = useState(null);   // Index item yang dipilih
-    const [activeTargetIdx, setActiveTargetIdx] = useState(null);   // Index target field biasa
-    const [activeColumnIdx, setActiveColumnIdx] = useState(null);   // Index kolom tabel
-    const [activeNodePath, setActiveNodePath] = useState(null);   // { path: [...], itemIdx }
-    const [activeValueKey, setActiveValueKey] = useState(null);   // Key nilai node
-
-    // ── State Data Utama (FLAT) ───────────────────────────────
-    // Setiap elemen adalah "field" atau "table" — tanpa grup
+    const [naturalSize, setNaturalSize] = useState(null);
+    const [pythonImagePath, setPythonImagePath] = useState(editingTemplate?.python_image_path ?? null);
+    const [ocrPredicting, setOcrPredicting] = useState(false);
     const [items, setItems] = useState(() => {
-        // Prioritas 1: UI Metadata (Format Lengkap untuk Editor)
         if (editingTemplate?.ui_metadata && Array.isArray(editingTemplate.ui_metadata)) {
-            return editingTemplate.ui_metadata;
-        }
-
-        if (!editingTemplate?.mapping_config) return [];
-        const config = editingTemplate.mapping_config;
-
-        // Prioritas 2: Format baru (Python format) {"fields": [...]}
-        if (config.fields && Array.isArray(config.fields)) {
-            return config.fields.map(f => ({
-                item_type: "field",
-                field_name: f.field_name,
-                field_key: f.field_name.toLowerCase().replace(/\s+/g, "_"),
-                json_section: f.section || "header",
-                field_anchor: f.anchor_text,
-                anchor_box: f.anchor_box || null,
-                targets: [{
-                    label: f.field_name,
-                    key: f.field_name.toLowerCase().replace(/\s+/g, "_"),
-                    text_type: f.type || "handwritten",
-                    box: null, // Box absolut mungkin hilang jika hanya simpan offset, tapi kita usahakan regenerasi jika ada
-                    offset_x: f.offset_x,
-                    offset_y: f.offset_y,
-                    width: f.width,
-                    height: f.height
-                }],
-                is_custom_key: false,
+            // Lock all existing keys
+            return deepClone(editingTemplate.ui_metadata).map(item => ({
+                ...item,
+                manual_key: true,
+                targets: (item.targets || []).map(t => ({ ...t, manual_key: true })),
+                columns: (item.columns || []).map(c => ({ ...c, manual_key: true }))
             }));
         }
-
-        if (Array.isArray(config) && config[0]?.item_type) return config; // sudah format baru
-        // Konversi dari format lama (groups)
-        const converted = [];
-        (config || []).forEach(group => {
-            if (group.group_type === "fixed") {
-                (group.fields || []).forEach(field => {
-                    converted.push({
-                        item_type: "field",
-                        field_name: field.field_name || "",
-                        field_key: field.field_key || "",
-                        json_section: group.group_key || "header",
-                        field_anchor: field.field_anchor || "",
-                        anchor_box: field.anchor_box || null,
-                        targets: field.targets || [],
-                        is_custom_key: false,
-                    });
-                });
-            if (group.group_type === "dynamic_table") {
-                converted.push({
-                    item_type: "table",
-                    table_name: group.group_anchor || "",
-                    table_anchor: group.table_anchor || "",
-                    json_key: group.group_key || "checklist",
-                    table_area: group.table_area || null,
-                    columns: group.columns || [],
-                    nodes: group.nodes || [],
-                });
-            }
-        });
-        return converted;
+        return [];
     });
+    const [drawMode, setDrawMode] = useState(DRAW.NONE);
+    const [activeIdx, setActiveIdx] = useState(null);
+    const [activeTargetIdx, setActiveTargetIdx] = useState(null);
+    const [activeColumnIdx, setActiveColumnIdx] = useState(null);
+    const fileInputRef = useRef(null);
 
-    // ══════════════════════════════════════════════════════════
-    // UPLOAD PDF
-    // ══════════════════════════════════════════════════════════
     const handlePdfUpload = async (e) => {
         const file = e.target.files[0];
         if (!file || file.type !== "application/pdf") return;
-        setPdfFile(file);
         setConverting(true);
         const formData = new FormData();
         formData.append("pdf", file);
         try {
-            const { data } = await axios.post("/internal-api/template/convert-pdf", formData, { headers: { "Accept": "application/json" } });
+            const { data } = await axios.post("/internal-api/template/convert-pdf", formData);
             if (data.image_url) {
                 setImageUrl(data.image_url);
                 setPdfPath(data.pdf_path);
                 setImagePath(data.image_path || null);
-            } else alert("PDF terkirim tapi preview tidak tersedia.\n" + JSON.stringify(data));
-        } catch (err) {
-            alert("Gagal memproses PDF:\n" + (err.response?.data?.error || err.message));
-        } finally { setConverting(false); }
+                setPythonImagePath(data.python_image_path || null);
+            }
+        } catch (err) { alert("Fail: " + err.message); } finally { setConverting(false); }
     };
 
-    // ══════════════════════════════════════════════════════════
-    // HANDLER BOX DRAWN
-    // ══════════════════════════════════════════════════════════
+    const slugify = (v) => v.toLowerCase().replace(/[^a-z0-9_]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+
+    const performAutoOCR = async (box, index) => {
+        if (!pythonImagePath) return;
+        setOcrPredicting(true);
+        try {
+            const { data } = await axios.post("/internal-api/template/ocr-predict", {
+                image_path: pythonImagePath,
+                box: box
+            });
+
+            if (data.status === "ok") {
+                const detectedText = data.text || "";
+                console.log("OCR Success, Result:", detectedText);
+                
+                setItems(prev => {
+                    const updated = [...prev];
+                    const item = { ...updated[index] };
+                    
+                    if (item.item_type === "field") {
+                        item.field_anchor = detectedText;
+                        if (item.field_name.startsWith("nilai_") || !item.field_name) {
+                            item.field_name = slugify(detectedText);
+                            item.field_key = item.field_name;
+                        }
+                    } else if (item.item_type === "table") {
+                        item.table_anchor = detectedText;
+                        if (item.table_name === "Tabel Baru" || item.table_name.startsWith("Tabel_") || !item.table_name) {
+                            item.table_name = detectedText;
+                            item.json_key = slugify(detectedText);
+                        }
+                    }
+                    updated[index] = item;
+                    return updated;
+                });
+            }
+        } catch (err) {
+            console.error("Auto-OCR failed:", err);
+        } finally {
+            setOcrPredicting(false);
+        }
+    };
+
     const handleBoxDrawn = (box, mode) => {
         if (activeIdx === null) return;
         setItems(prev => {
-            const updated = deepClone(prev);
-            const item = updated[activeIdx];
-
-            if (mode === DRAW.ANCHOR) {
+            const updated = [...prev];
+            const item = { ...updated[activeIdx] };
+            
+            if (mode === DRAW.ANCHOR || mode === DRAW.TABLE_ANCHOR) {
                 item.anchor_box = box;
-                setDrawMode(DRAW.NONE);
-            } else if (mode === DRAW.TARGET && activeTargetIdx !== null) {
-                if (!item.targets) item.targets = [];
-                if (item.targets[activeTargetIdx]) {
-                    item.targets[activeTargetIdx] = { ...item.targets[activeTargetIdx], box, width: box.width, height: box.height };
-                }
-                setDrawMode(DRAW.NONE);
-                setActiveTargetIdx(null);
-            } else if (mode === DRAW.TABLE_AREA) {
-                item.table_area = box;
-                setDrawMode(DRAW.NONE);
+            }
+            else if (mode === DRAW.TABLE_AREA) item.table_area = box;
+            else if (mode === DRAW.TARGET && activeTargetIdx !== null) {
+                const newTargets = [...(item.targets || [])];
+                newTargets[activeTargetIdx] = { ...newTargets[activeTargetIdx], box };
+                item.targets = newTargets;
             } else if (mode === DRAW.COLUMN && activeColumnIdx !== null) {
-                if (!item.columns) item.columns = [];
-                if (!item.columns[activeColumnIdx]) item.columns[activeColumnIdx] = { label: "", key: "", text_type: "printed" };
-                item.columns[activeColumnIdx].box = box;
-                setDrawMode(DRAW.NONE);
-            } else if (mode === DRAW.NODE_ANCHOR && activeNodePath && activeNodePath.itemIdx === activeIdx) {
-                item.nodes = setNodeAtPath(item.nodes, activeNodePath.path, n => {
-                    const updated = { ...n, anchor_box: box };
-                    // Auto-detect value columns: kolom yang ada di KANAN anchor box
-                    const needsVals = n.node_type === NODE.ITEM || n.node_type === NODE.SUB_ITEM;
-                    if (needsVals) {
-                        const rightKeys = getValueKeysFromColumns(item.columns || [], box);
-                        if (rightKeys.length > 0) {
-                            const existingValues = n.values || {};
-                            const newValues = {};
-                            rightKeys.forEach(k => {
-                                newValues[k] = existingValues[k] || { text_type: "handwritten", box: null, multi_line: false };
-                            });
-                            updated.values = newValues;
-                        }
-                    }
-                    return updated;
-                });
-                setDrawMode(DRAW.NONE);
-            } else if (mode === DRAW.NODE_VALUE && activeNodePath && activeNodePath.itemIdx === activeIdx && activeValueKey) {
-                item.nodes = setNodeAtPath(item.nodes, activeNodePath.path, n => {
-                    const values = deepClone(n.values || {});
-                    if (!values[activeValueKey]) values[activeValueKey] = { text_type: "handwritten", multi_line: false };
-                    values[activeValueKey].box = box;
-                    return { ...n, values };
-                });
-                setDrawMode(DRAW.NONE);
-                setActiveValueKey(null);
+                const newCols = [...(item.columns || [])];
+                newCols[activeColumnIdx] = { ...newCols[activeColumnIdx], box };
+                item.columns = newCols;
             }
+            updated[activeIdx] = item;
             return updated;
         });
-    };
-
-    // ══════════════════════════════════════════════════════════
-    // CRUD ITEMS
-    // ══════════════════════════════════════════════════════════
-    const addField = () => {
-        const newItem = {
-            item_type: "field", field_name: "Field Baru", field_key: "field_baru",
-            json_section: "header", field_anchor: "", anchor_box: null, targets: [], is_custom_key: false,
-        };
-        setItems(prev => [...prev, newItem]);
-        setActiveIdx(items.length);
         setDrawMode(DRAW.NONE);
-    };
-
-    const addTable = () => {
-        const newItem = {
-            item_type: "table", table_name: "Tabel Baru", json_key: "checklist", table_anchor: "",
-            table_area: null, columns: [], nodes: [],
-        };
-        setItems(prev => [...prev, newItem]);
-        setActiveIdx(items.length);
-        setDrawMode(DRAW.NONE);
-    };
-
-    const removeItem = (idx) => {
-        if (!confirm("Hapus item ini?")) return;
-        setItems(prev => prev.filter((_, i) => i !== idx));
-        setActiveIdx(null);
-    };
-
-    const updateItem = (idx, key, val) => {
-        setItems(prev => {
-            const updated = deepClone(prev);
-            updated[idx][key] = val;
-            if (key === "field_name" && !updated[idx].is_custom_key) {
-                updated[idx].field_key = val.toLowerCase().replace(/[^a-z0-9_]/g, "_");
-            }
-            return updated;
-        });
-    };
-
-    // ── Targets (Field Biasa) ─────────────────────────────────
-    const addTarget = (idx) => {
-        setItems(prev => {
-            const updated = deepClone(prev);
-            const targets = updated[idx].targets || [];
-            targets.push({ label: `nilai_${targets.length + 1}`, key: `nilai_${targets.length + 1}`, text_type: "handwritten", box: null });
-            updated[idx].targets = targets;
-            return updated;
-        });
-    };
-    const removeTarget = (idx, ti) => {
-        setItems(prev => { const u = deepClone(prev); u[idx].targets.splice(ti, 1); return u; });
-    };
-    const updateTarget = (idx, ti, key, val) => {
-        setItems(prev => {
-            const updated = deepClone(prev);
-            updated[idx].targets[ti][key] = val;
-            if (key === "label") updated[idx].targets[ti].key = val.toLowerCase().replace(/[^a-z0-9_]/g, "_");
-            return updated;
-        });
-    };
-
-    // ── Columns (Tabel) ───────────────────────────────────────
-    const addColumn = (idx) => {
-        setItems(prev => {
-            const u = deepClone(prev);
-            if (!u[idx].columns) u[idx].columns = [];
-            const n = u[idx].columns.length + 1;
-            u[idx].columns.push({ label: `Kolom ${n}`, key: `kolom_${n}`, text_type: "printed", box: null });
-            return u;
-        });
-    };
-    const removeColumn = (idx, ci) => {
-        setItems(prev => { const u = deepClone(prev); u[idx].columns.splice(ci, 1); return u; });
-        setActiveColumnIdx(null);
-    };
-    const updateColumn = (idx, ci, key, val) => {
-        setItems(prev => {
-            const u = deepClone(prev);
-            u[idx].columns[ci][key] = val;
-            if (key === "label" && !u[idx].columns[ci].is_custom_key) u[idx].columns[ci].key = val.toLowerCase().replace(/[^a-z0-9_]/g, "_");
-            return u;
-        });
-    };
-
-    // ── Nodes (Tabel) ─────────────────────────────────────────
-    const buildDefaultNode = (nodeType, valueKeys) => {
-        const values = {};
-        valueKeys.forEach(k => { values[k] = { text_type: "handwritten", box: null, multi_line: false }; });
-        return {
-            node_type: nodeType, label: "", anchor_keyword: "", anchor_box: null,
-            ...(nodeType === NODE.CATEGORY && { no: 1, children: [] }),
-            ...(nodeType === NODE.ITEM && { sub: "", values }),
-            ...(nodeType === NODE.PARENT_ITEM && { sub: "", children: [] }),
-            ...(nodeType === NODE.SUB_ITEM && { values }),
-        };
-    };
-
-    // Helper: deteksi kolom yang berada di KANAN anchor box (berdasarkan koordinat X)
-    // Ini memungkinkan sistem auto-skip kolom No. dan Descriptions
-    const getValueKeysFromColumns = (cols, anchorBox) => {
-        if (!anchorBox || cols.every(c => !c.box)) {
-            // Fallback: jika belum ada kolom yang digambar, return semua kolom
-            return cols.map((c, ci) => c.key || `kolom_${ci + 1}`);
+        
+        // PARALLEL CHAIN REACTION:
+        if (mode === DRAW.ANCHOR) {
+            // Langsung tambah value 1 & masuk mode target TANPA nunggu OCR
+            addTarget(activeIdx);
+            setActiveTargetIdx(0);
+            setDrawMode(DRAW.TARGET);
+            performAutoOCR(box, activeIdx);
+        } else if (mode === DRAW.TABLE_ANCHOR) {
+            // Langsung masuk mode area tabel
+            setDrawMode(DRAW.TABLE_AREA);
+            performAutoOCR(box, activeIdx);
         }
-        const anchorRight = anchorBox.x + anchorBox.width;
-        return cols
-            .map((c, ci) => ({ key: c.key || `kolom_${ci + 1}`, box: c.box, ci }))
-            .filter(({ box }) => box && box.x >= anchorRight - 25) // 25px tolerance
-            .map(({ key }) => key);
     };
 
-    const getValueKeys = (idx) => {
-        // Semua kolom menjadi value keys — admin cukup gambar
-        return (items[idx]?.columns || []).map((c, ci) => c.key || `kolom_${ci + 1}`);
-    };
-
-    const addRootNode = (idx, nodeType) => {
-        // Start with empty values — akan diisi otomatis saat anchor digambar
-        setItems(prev => { const u = deepClone(prev); if (!u[idx].nodes) u[idx].nodes = []; u[idx].nodes.push(buildDefaultNode(nodeType, [])); return u; });
-        setActiveNodePath({ path: [items[idx]?.nodes?.length ?? 0], itemIdx: idx });
-    };
-
-    const addChildNode = (idx, parentPath, nodeType) => {
-        // Start with empty values — akan diisi otomatis saat anchor digambar
-        setItems(prev => {
-            const u = deepClone(prev);
-            u[idx].nodes = setNodeAtPath(u[idx].nodes, parentPath, parent => {
-                const children = deepClone(parent.children || []);
-                children.push(buildDefaultNode(nodeType, []));
-                return { ...parent, children };
-            });
-            return u;
+    const addField = () => {
+        const fieldItems = items.filter(i => i.item_type === "field");
+        const existingNums = fieldItems.map(i => {
+            const m = (i.field_name || "").match(/nilai_(\d+)/);
+            return m ? parseInt(m[1]) : 0;
         });
-        const parentNode = getNodeAtPath(items[idx]?.nodes, parentPath);
-        setActiveNodePath({ path: [...parentPath, (parentNode?.children || []).length], itemIdx: idx });
-    };
+        const nextId = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+        const kn = `nilai_${nextId}`;
 
-    const syncNodeValues = (idx, nodePath) => {
-        setItems(prev => {
-            const u = deepClone(prev);
-            u[idx].nodes = setNodeAtPath(u[idx].nodes, nodePath, node => {
-                const existing = node.values || {};
-                const cols = u[idx].columns || [];
-                // Gunakan anchor_box untuk deteksi kolom kanan jika tersedia
-                const keys = node.anchor_box
-                    ? getValueKeysFromColumns(cols, node.anchor_box)
-                    : cols.map((c, ci) => c.key || `kolom_${ci + 1}`);
-                if (keys.length === 0) {
-                    alert("Gambar anchor dulu, lalu klik Sinkron. Atau pastikan kolom sudah digambar di ② Definisi Kolom.");
-                    return node;
-                }
-                const newValues = {};
-                keys.forEach(k => {
-                    newValues[k] = existing[k] || { text_type: "handwritten", box: null, multi_line: false };
-                });
-                return { ...node, values: newValues };
-            });
-            return u;
-        });
+        setItems(p => [...p, { 
+            id: `f-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            item_type: "field", 
+            field_name: kn, 
+            field_key: kn, 
+            json_section: "header", 
+            field_anchor: "", 
+            anchor_box: null, 
+            targets: [] 
+        }]);
+        setActiveIdx(items.length);
+        setDrawMode(DRAW.ANCHOR);
     };
-
-    const removeNode = (idx, nodePath) => {
-        if (!confirm("Hapus node ini?")) return;
-        setItems(prev => {
-            const u = deepClone(prev);
-            if (nodePath.length === 1) {
-                u[idx].nodes.splice(nodePath[0], 1);
-            } else {
-                const parentPath = nodePath.slice(0, -1);
-                const lastIdx = nodePath[nodePath.length - 1];
-                u[idx].nodes = setNodeAtPath(u[idx].nodes, parentPath, parent => {
-                    const children = deepClone(parent.children || []);
-                    children.splice(lastIdx, 1);
-                    return { ...parent, children };
-                });
+    const addTable = () => {
+        setItems(p => [...p, { 
+            id: `t-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            item_type: "table", 
+            table_name: "Tabel Baru", 
+            json_key: "checklist", 
+            table_anchor: "", 
+            anchor_box: null, 
+            table_area: null, 
+            columns: [], 
+            fallback_row_anchor_id: "" 
+        }]);
+        setActiveIdx(items.length);
+        setDrawMode(DRAW.TABLE_ANCHOR);
+    };
+    const removeItem = (idx) => { if (confirm("Hapus?")) { setItems(p => p.filter((_, i) => i !== idx)); setActiveIdx(null); } };
+    const updateItem = (idx, k, v) => {
+        setItems(p => {
+            const u = [...p];
+            u[idx] = { ...u[idx], [k]: v };
+            
+            if (k === "field_name" && !u[idx].manual_key) {
+                u[idx].field_key = slugify(v);
             }
-            return u;
-        });
-        setActiveNodePath(null);
-    };
-
-    const updateNode = (idx, nodePath, key, val) => {
-        setItems(prev => {
-            const u = deepClone(prev);
-            u[idx].nodes = setNodeAtPath(u[idx].nodes, nodePath, node => {
-                if (key.includes(".")) {
-                    const parts = key.split(".");
-                    let ref = node;
-                    for (let i = 0; i < parts.length - 1; i++) { if (!ref[parts[i]]) ref[parts[i]] = {}; ref = ref[parts[i]]; }
-                    ref[parts[parts.length - 1]] = val;
-                } else { node[key] = val; }
-                return { ...node };
-            });
+            if (k === "field_key") u[idx].manual_key = true;
             return u;
         });
     };
+    const addTarget = (idx) => {
+        setItems(p => {
+            const u = [...p];
+            const item = { ...u[idx] };
+            const t = [...(item.targets || [])];
+            const kn = `val_${t.length + 1}`;
+            t.push({ id: `v-${Date.now()}`, label: kn, key: kn, text_type: "handwritten", box: null, manual_key: false });
+            item.targets = t;
+            u[idx] = item;
+            return u;
+        });
+    };
+    const removeTarget = (idx, ti) => { 
+        setItems(p => { 
+            const u = [...p]; 
+            const item = { ...u[idx] };
+            const t = [...item.targets];
+            t.splice(ti, 1); 
+            item.targets = t;
+            u[idx] = item;
+            return u; 
+        }); 
+    };
+    const updateTarget = (idx, ti, k, v) => {
+        setItems(p => { 
+            const u = [...p]; 
+            const item = { ...u[idx] };
+            const t = [...item.targets];
+            t[ti] = { ...t[ti], [k]: v };
+            
+            if (k === "label" && !t[ti].manual_key) {
+                t[ti].key = slugify(v);
+            }
+            if (k === "key") t[ti].manual_key = true;
+            
+            item.targets = t;
+            u[idx] = item;
+            return u; 
+        });
+    };
+    const addColumn = (idx) => {
+        const currentCols = items[idx].columns?.length || 0;
+        setItems(p => {
+            const u = [...p];
+            const item = { ...u[idx] };
+            const c = [...(item.columns || [])];
+            const ln = `Kolom ${c.length+1}`;
+            c.push({ id: `c-${Date.now()}`, label: ln, key: slugify(ln), text_type: "printed", box: null, manual_key: false });
+            item.columns = c;
+            u[idx] = item;
+            return u;
+        });
+        setActiveIdx(idx);
+        setActiveColumnIdx(currentCols);
+        setDrawMode(DRAW.COLUMN);
+    };
+    const removeColumn = (idx, ci) => { 
+        setItems(p => { 
+            const u = [...p]; 
+            const item = { ...u[idx] };
+            const c = [...item.columns];
+            const colId = c[ci].id;
+            c.splice(ci, 1); 
+            item.columns = c;
+            if (item.fallback_row_anchor_id === colId) item.fallback_row_anchor_id = "";
+            u[idx] = item;
+            return u; 
+        }); 
+    };
+    const updateColumn = (idx, ci, k, v) => {
+        setItems(p => { 
+            const u = deepClone(p); 
+            u[idx].columns[ci][k] = v; 
+            if (k === "label" && !u[idx].columns[ci].manual_key) {
+                u[idx].columns[ci].key = slugify(v);
+            }
+            if (k === "key") u[idx].columns[ci].manual_key = true;
+            return u; 
+        });
+    };
 
-    // ══════════════════════════════════════════════════════════
-    // SAVE — Konversi flat items → format groups untuk engine
-    // ══════════════════════════════════════════════════════════
     const handleSave = async () => {
-        if (!typeName.trim()) return alert("Nama template wajib diisi.");
-        if (!pdfPath) return alert("Upload PDF master terlebih dahulu.");
-        if (items.length === 0) return alert("Tambahkan minimal satu field atau tabel.");
-
-        // Konversi items flat → groups untuk backend & engine
-        const fieldsBySectionMap = {};
-        const tableGroups = [];
-
-        items.forEach(item => {
-            if (item.item_type === "field") {
-                const sec = item.json_section || "header";
-                if (!fieldsBySectionMap[sec]) fieldsBySectionMap[sec] = [];
-                // Hitung offset targets
-                const targets = (item.targets || []).map(t => {
-                    if (item.anchor_box && t.box) {
-                        return { ...t, offset_x: t.box.x - item.anchor_box.x, offset_y: t.box.y - item.anchor_box.y, width: t.box.width, height: t.box.height };
-                    }
-                    return t;
-                });
-                fieldsBySectionMap[sec].push({
-                    field_name: item.field_name, field_key: item.field_key,
-                    field_anchor: item.field_anchor, anchor_box: item.anchor_box, targets,
-                });
-            } else if (item.item_type === "table") {
-                tableGroups.push({
-                    group_type: "dynamic_table",
-                    group_anchor: item.table_name,
-                    group_key: item.json_key || "checklist",
-                    table_area: item.table_area,
-                    columns: item.columns,
-                    nodes: item.nodes,
-                });
+        if (!typeName.trim() || !pdfPath) return alert("Nama & PDF wajib.");
+        
+        // 1. Validasi Tabel (Production Grade)
+        for (const tab of items.filter(i => i.item_type === "table")) {
+            if (!tab.table_anchor.trim() || !tab.anchor_box || !tab.table_area) {
+                return alert(`Error: Tabel "${tab.table_name}" wajib memiliki Anchor (Poin 1) dan Area (Poin 2).`);
             }
-        });
+            if (!tab.columns || tab.columns.length === 0) {
+                return alert(`Error: Tabel "${tab.table_name}" tidak memiliki kolom.`);
+            }
+            if (!tab.columns.some(c => c.is_row_anchor)) {
+                return alert(`Error: Tabel "${tab.table_name}" wajib memiliki minimal satu kolom Anchor baris.`);
+            }
+            
+            // Overlap Validation (Jitter 10px)
+            const cols = tab.columns;
+            for (let i = 0; i < cols.length; i++) {
+                for (let j = i + 1; j < cols.length; j++) {
+                    const b1 = cols[i].box;
+                    const b2 = cols[j].box;
+                    if (b1 && b2) {
+                        const start = Math.max(b1.x, b2.x);
+                        const end = Math.min(b1.x + b1.width, b2.x + b2.width);
+                        const overlap = Math.max(0, end - start);
+                        if (overlap > 10) return alert(`Error: Kolom "${cols[i].label}" dan "${cols[j].label}" tumpang tindih (>10px). Harap rapikan.`);
+                    }
+                }
+            }
+        }
 
-        const fixedGroups = Object.entries(fieldsBySectionMap).map(([sec, fields]) => ({
-            group_type: "fixed", group_anchor: sec, group_key: sec, fields,
-        }));
+        // Helper to convert ratio box to pixel box
+        const getBoxPx = (box) => {
+            if (!box || !naturalSize) return box;
+            if (box.w !== undefined) {
+                return {
+                    x: Math.round(box.x * naturalSize.width),
+                    y: Math.round(box.y * naturalSize.height),
+                    width: Math.round(box.w * naturalSize.width),
+                    height: Math.round(box.h * naturalSize.height)
+                };
+            }
+            return box;
+        };
 
-        const groups = [...fixedGroups, ...tableGroups];
-
-        // Format khusus untuk mesin Python (Step 3 & 4)
-        const pythonFields = items.filter(i => i.item_type === "field" && i.anchor_box).flatMap(item =>
-            (item.targets || []).filter(t => t.box).map(t => ({
-                field_name: (t.label === "nilai_1" || t.label === "result") ? item.field_key : (item.targets.length > 1 ? `${item.field_key}_${t.key}` : t.label),
-                anchor_text: item.field_anchor,
-                offset_x: Math.round(t.box.x - (item.anchor_box?.x || 0)),
-                offset_y: Math.round(t.box.y - (item.anchor_box?.y || 0)),
-                width: Math.round(t.box.width),
-                height: Math.round(t.box.height),
-                type: t.text_type
-            }))
+        const pFields = items.filter(i => i.item_type === "field" && i.anchor_box).flatMap(item =>
+            (item.targets || []).filter(t => t.box).map(t => {
+                const aBox = getBoxPx(item.anchor_box);
+                const tBox = getBoxPx(t.box);
+                return {
+                    field_name: item.field_key + (item.targets.length > 1 ? `_${t.key}` : ""),
+                    anchor_text: item.field_anchor,
+                    offset_x: Math.round(tBox.x - aBox.x),
+                    offset_y: Math.round(tBox.y - aBox.y),
+                    width: tBox.width, height: tBox.height, type: t.text_type
+                };
+            })
         );
 
-        const pythonTables = items.filter(i => i.item_type === "table" && i.table_area).map(tab => {
-            const tableArea = tab.table_area;
+        const pTables = items.filter(i => i.item_type === "table" && i.table_area && i.anchor_box).map(tab => {
+            const rowAnchor = tab.columns.find(c => c.is_row_anchor);
+            const multiLineCols = tab.columns.filter(c => c.is_multi_line);
+            const fallbackCol = tab.columns.find(c => c.id === tab.fallback_row_anchor_id);
+            
+            const aBox = getBoxPx(tab.anchor_box);
+            const areaBox = getBoxPx(tab.table_area);
+
             return {
-                table_name: tab.table_name,
-                json_key: tab.json_key || "checklist",
-                table_anchor: tab.table_anchor || "",
-                table_area: tableArea,
-                // Hitung koordinat kolom relatif terhadap bibir kiri tabel
-                columns: (tab.columns || []).map(col => {
-                    if (!col.box) return { name: col.label, key: col.key, x_start: 0, x_end: 0 };
-                    return {
-                        name: col.label,
-                        key: col.key,
-                        x_start: Math.round(col.box.x - tableArea.x),
-                        x_end: Math.round((col.box.x + col.box.width) - tableArea.x),
-                        type: col.text_type
+                table_name: tab.table_name, json_key: tab.json_key,
+                anchor: { 
+                    texts: tab.table_anchor.split(",").map(s => s.trim()).filter(s => s), 
+                    match_type: tab.table_anchor_match_type || "contains" 
+                },
+                area: { offset_y: Math.round(areaBox.y - aBox.y), height: areaBox.height },
+                row_detection: { 
+                    method: "anchor_based", 
+                    primary_column: rowAnchor?.key || null,
+                    fallback_column: fallbackCol?.key || null,
+                    y_threshold: "auto" 
+                },
+                multi_line_handling: multiLineCols.map(c => ({
+                    column: c.key, group_by: "y", y_threshold: "auto", merge_by: "x", output_format: "list", sort_order: ["y_asc", "x_asc"]
+                })),
+                columns: tab.columns.map(col => {
+                    const cBox = getBoxPx(col.box);
+                    return { 
+                        name: col.label, key: col.key, 
+                        offset_x_start: Math.round((cBox?.x || 0) - aBox.x), 
+                        offset_x_end: Math.round(((cBox?.x || 0) + (cBox?.width || 0)) - aBox.x), 
+                        type: col.text_type || "printed",
+                        is_row_anchor: !!col.is_row_anchor,
+                        multi_line: !!col.is_multi_line
                     };
                 }),
-                nodes: tab.nodes || []
+                tolerance: { x_padding: 20, y_padding: 10 },
+                fallback: { on_anchor_not_found: "skip_table", on_empty_cell: "return_empty_string" }
             };
         });
 
-        const pythonConfig = { 
-            fields: pythonFields,
-            tables: pythonTables
-        };
-
-        setSaving(true); setSaveMsg(null);
+        setSaving(true);
         try {
-            const { data } = await axios.post("/internal-api/template/save", {
+            await axios.post("/internal-api/template/save", {
                 template_name: typeName.toLowerCase().replace(/\s+/g, "_"),
                 type_name: typeName,
                 identifier_text: identifierText,
                 pdf_path: pdfPath,
-                groups,
-                mapping_config: pythonConfig, // Simpan format Python ke DB sesuai request Step 3
-                ui_metadata: items,           // Metadata untuk UI agar editor bisa dibuka lagi dengan posisi kotak yang sama
-                ...(imagePath && { image_path: imagePath }),
-                ...(isEdit && { template_id: editingTemplate.id }),
+                mapping_config: { fields: pFields, tables: pTables },
+                ui_metadata: items,
+                image_path: imagePath,
+                ...(isEdit && { template_id: editingTemplate.id })
             });
             setSaveMsg("success");
-            // Berikan waktu lebih lama agar user bisa baca pesan n8n
-            setTimeout(() => router.visit("/master-template"), 2500);
-        } catch (err) {
-            console.error("Save error:", err.response?.data ?? err);
-            setSaveMsg("error");
-            setSaving(false);
-        } finally {
-            // Note: status saving tidak langsung false jika sukses agar loading tetap jalan sampai redirect
-            if (saveMsg !== "success") setSaving(false);
-        }
+            setTimeout(() => router.visit("/master-template"), 1500);
+        } catch (err) { 
+            setSaveMsg("error"); 
+            const msg = err.response?.data?.message || err.message;
+            alert("Gagal Simpan: " + msg);
+        } finally { setSaving(false); }
     };
 
-    const drawModeLabel = {
-        [DRAW.ANCHOR]: "Gambar Kotak ANCHOR (kuning) — klik & tarik di canvas",
-        [DRAW.TARGET]: "Gambar Kotak NILAI (biru) — klik & tarik di canvas",
-        [DRAW.TABLE_AREA]: "Gambar Area TABEL (oranye) — kotak besar seluruh tabel",
-        [DRAW.COLUMN]: "Gambar Kotak KOLOM (hijau) — kotak vertikal satu kolom",
-        [DRAW.NODE_ANCHOR]: "Gambar Kotak ANCHOR ROW (kuning) — teks label baris ini",
-        [DRAW.NODE_VALUE]: `Gambar Kotak NILAI "${activeValueKey}" (biru)`,
+    const dmLabel = {
+        [DRAW.ANCHOR]: "📍 DRAW FIELD ANCHOR",
+        [DRAW.TARGET]: "🎯 DRAW FIELD VALUE",
+        [DRAW.TABLE_ANCHOR]: "⚓ DRAW TABLE ANCHOR (0,0)",
+        [DRAW.TABLE_AREA]: "🔳 DRAW TABLE AREA",
+        [DRAW.COLUMN]: "🟩 DRAW COLUMN BOUNDARY",
     }[drawMode];
 
     return (
         <AuthenticatedLayout header={isEdit ? "Edit Template" : "Buat Template"}>
-            <Head title={isEdit ? "Edit Template" : "Buat Template"} />
-
-            <div className="flex flex-col gap-4">
-                {/* Topbar */}
+            <Head title="Editor Template" />
+            <div className="flex flex-col gap-4 max-w-[1600px] mx-auto px-4">
                 <div className="flex items-center justify-between">
-                    <Link href="/master-template" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
-                        <BackIcon /> Kembali
-                    </Link>
-                    <button onClick={handleSave} disabled={saving || !typeName.trim() || !pdfPath}
-                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition ${saveMsg === "success" ? "bg-emerald-500 text-white" :
-                            saving || !typeName.trim() || !pdfPath ? "bg-slate-200 text-slate-400 cursor-not-allowed" :
-                                "bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-90 shadow-sm"}`}>
-                        <SaveIcon />
-                        {saving ? "Mengirim ke n8n…" : saveMsg === "success" ? "✓ Dikirim!" : "Simpan Template"}
-                    </button>
+                    <Link href="/master-template" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition"><BackIcon /> Back</Link>
+                    <button onClick={handleSave} disabled={saving || !typeName.trim() || !pdfPath} className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${saveMsg === "success" ? "bg-emerald-500 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200"}`}>{saving ? "Saving..." : "Save Template"}</button>
                 </div>
 
-                {saveMsg === "error" && (
-                    <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
-                        Gagal menyimpan. Cek koneksi ke server.
-                    </div>
-                )}
-
-                <div className="flex gap-5 items-start">
-                    {/* ── CANVAS ── */}
-                    <div className="flex-1 min-w-0 flex flex-col gap-3">
-
-                        {/* Upload & Nama Template */}
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
-                            <input type="text" value={typeName} onChange={e => setTypeName(e.target.value)}
-                                placeholder="Nama Template (ex: Formulir PM UPS)"
-                                className="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition" />
+                <div className="flex gap-6">
+                    <div className="flex-1 space-y-4">
+                        <div className="bg-white rounded-2xl border border-slate-200 p-4 flex gap-4 shadow-sm items-center">
+                            <input type="text" value={typeName} onChange={e => setTypeName(e.target.value)} placeholder="Template Name..." className="flex-1 border-none bg-slate-50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-100" />
                             {!isEdit ? (
-                                // Mode create: tampilkan tombol upload PDF
-                                <>
-                                    <button onClick={() => fileInputRef.current?.click()} disabled={converting}
-                                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition disabled:opacity-60 whitespace-nowrap">
-                                        <UploadIcon />{converting ? "Memproses…" : "Upload PDF"}
-                                    </button>
-                                    <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
-                                </>
+                                <button onClick={() => fileInputRef.current.click()} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:translate-y-[-1px] active:translate-y-[0] transition-all"><UploadIcon /> {converting ? "..." : "Upload PDF"}</button>
                             ) : (
-                                // Mode edit: tampilkan info PDF yang sudah ada
-                                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm">
-                                    <span className="text-emerald-600 font-medium">✓ PDF tersimpan</span>
-                                    {pdfPath && <span className="text-xs text-slate-400 truncate max-w-[140px]" title={pdfPath}>{pdfPath.split('/').pop()}</span>}
-                                </div>
+                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">✓ PDF Attached</span>
                             )}
+                            <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
                         </div>
-
-                        {/* Mode Gambar Aktif */}
-                        {drawMode !== DRAW.NONE && (
-                            <div className="rounded-xl px-4 py-2.5 text-sm font-semibold flex items-center gap-2 bg-indigo-600 text-white shadow-sm">
-                                <BoxIcon />
-                                <span className="flex-1">{drawModeLabel}</span>
-                                <button onClick={() => setDrawMode(DRAW.NONE)} className="text-white/70 hover:text-white text-xs ml-auto">✕ Batal</button>
-                            </div>
-                        )}
-
-                        {/* Zoom */}
+                        {drawMode !== DRAW.NONE && <div className="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-xs flex justify-between items-center shadow-lg animate-pulse"><span>{dmLabel}</span> <button onClick={() => setDrawMode(DRAW.NONE)} className="opacity-60 hover:opacity-100">✕ CANCEL</button></div>}
+                        
                         {imageUrl && (
-                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-3 py-2 flex items-center gap-2">
-                                <span className="text-xs text-slate-500 mr-1">Zoom:</span>
-                                <button onClick={() => setZoom(z => Math.max(0.5, parseFloat((z - 0.25).toFixed(2))))} className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600">−</button>
-                                <span className="text-xs font-semibold text-slate-600 w-10 text-center">{Math.round(zoom * 100)}%</span>
-                                <button onClick={() => setZoom(z => Math.min(3, parseFloat((z + 0.25).toFixed(2))))} className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600">+</button>
+                            <div className="bg-white rounded-xl border border-slate-200 p-2 flex gap-2 w-fit mb-[-10px] ml-auto relative z-10 shadow-sm">
+                                <button onClick={() => setZoom(z => Math.max(0.5, z-0.25))} className="w-8 h-8 rounded bg-slate-50 inline-flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">-</button>
+                                <span className="text-[10px] font-bold text-slate-500 min-w-[40px] text-center flex items-center justify-center">{Math.round(zoom*100)}%</span>
+                                <button onClick={() => setZoom(z => Math.min(3, z+0.25))} className="w-8 h-8 rounded bg-slate-50 inline-flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">+</button>
                             </div>
                         )}
 
-                        {/* Canvas */}
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3">
-                            <CanvasEditor imageUrl={imageUrl} items={items} activeIdx={activeIdx}
-                                activeNodePath={activeNodePath} activeValueKey={activeValueKey}
-                                drawMode={drawMode} zoom={zoom} onBoxDrawn={handleBoxDrawn} />
-                        </div>
+                        <CanvasEditor imageUrl={imageUrl} items={items} activeIdx={activeIdx} drawMode={drawMode} zoom={zoom} onBoxDrawn={handleBoxDrawn} onImageLoad={setNaturalSize} />
                     </div>
 
-                    {/* ── SIDEBAR ── */}
-                    <div className="w-80 flex-shrink-0 flex flex-col gap-3 sticky top-0">
-
-                        {/* Tombol Tambah */}
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3">
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-2">Tambah Elemen</p>
-                            <div className="flex gap-2">
-                                <button onClick={addField}
-                                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
-                                    <FieldIcon /><PlusIcon /> Field
-                                </button>
-                                <button onClick={addTable}
-                                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold bg-orange-50 text-orange-700 hover:bg-orange-100 transition border border-orange-200">
-                                    <TableIcon /><PlusIcon /> Tabel
-                                </button>
+                    <div className="w-[360px] flex flex-col gap-4 sticky top-6 h-[calc(100vh-120px)] overflow-hidden">
+                        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Add Elements</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button onClick={addField} className="bg-slate-50 hover:bg-slate-100 p-3 rounded-xl flex flex-col items-center gap-1 transition-all group border border-slate-100"><FieldIcon /><span className="text-[10px] font-bold text-slate-600 group-hover:text-indigo-600">+ FIELD</span></button>
+                                <button onClick={addTable} className="bg-white hover:bg-rose-50 p-3 rounded-xl flex flex-col items-center gap-1 transition-all group border border-rose-50"><TableIcon /><span className="text-[10px] font-bold text-rose-600">+ TABLE</span></button>
                             </div>
                         </div>
 
-                        {/* Daftar Items */}
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                            <div className="px-4 py-2.5 border-b border-slate-100">
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                                    Daftar Elemen <span className="font-normal text-slate-400">({items.length} item)</span>
-                                </p>
+                        <div className="bg-white rounded-2xl border border-slate-200 flex-1 flex flex-col shadow-sm overflow-hidden">
+                            <div className="p-4 border-b border-slate-100 bg-slate-50/50"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Configuration List</p></div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                                {items.map((item, i) => (
+                                    item.item_type === "field" ? 
+                                    <FieldPanel key={i} item={item} idx={i} isActive={activeIdx === i} drawMode={drawMode} activeTargetIdx={activeTargetIdx} setActiveIdx={setActiveIdx} setDrawMode={setDrawMode} setActiveTargetIdx={setActiveTargetIdx} updateItem={updateItem} removeItem={removeItem} addTarget={addTarget} removeTarget={removeTarget} updateTarget={updateTarget} ocrPredicting={ocrPredicting} /> :
+                                    <TablePanel key={i} item={item} idx={i} isActive={activeIdx === i} drawMode={drawMode} activeColumnIdx={activeColumnIdx} setActiveIdx={setActiveIdx} setDrawMode={setDrawMode} setActiveColumnIdx={setActiveColumnIdx} updateItem={updateItem} removeItem={removeItem} addColumn={addColumn} removeColumn={removeColumn} updateColumn={updateColumn} ocrPredicting={ocrPredicting} />
+                                ))}
                             </div>
-                            <div className="max-h-[50vh] overflow-y-auto p-2 space-y-1.5 border-b border-slate-100">
-                                {items.length === 0 && (
-                                    <div className="text-center py-10 text-slate-400">
-                                        <p className="text-sm">Belum ada elemen.</p>
-                                        <p className="text-xs mt-1">Klik "+ Field" atau "+ Tabel" di atas.</p>
-                                    </div>
-                                )}
-                                {items.map((item, idx) => {
-                                    if (item.item_type === "field") {
-                                        return (
-                                            <FieldPanel key={idx} item={item} idx={idx} isActive={activeIdx === idx}
-                                                drawMode={drawMode} activeTargetIdx={activeTargetIdx}
-                                                setActiveIdx={setActiveIdx} setDrawMode={setDrawMode}
-                                                setActiveTargetIdx={setActiveTargetIdx}
-                                                updateItem={updateItem} removeItem={removeItem}
-                                                addTarget={addTarget} removeTarget={removeTarget} updateTarget={updateTarget} />
-                                        );
-                                    }
-                                    if (item.item_type === "table") {
-                                        return (
-                                            <TablePanel key={idx} item={item} idx={idx} isActive={activeIdx === idx}
-                                                drawMode={drawMode} activeColumnIdx={idx === activeIdx ? activeColumnIdx : null}
-                                                activeNodePath={activeIdx === idx ? activeNodePath : null}
-                                                activeValueKey={activeValueKey}
-                                                setActiveIdx={setActiveIdx} setDrawMode={setDrawMode}
-                                                setActiveColumnIdx={setActiveColumnIdx}
-                                                setActiveNodePath={setActiveNodePath}
-                                                setActiveValueKey={setActiveValueKey}
-                                                updateItem={updateItem} removeItem={removeItem}
-                                                addColumn={addColumn} removeColumn={removeColumn} updateColumn={updateColumn}
-                                                addRootNode={addRootNode} updateNode={updateNode}
-                                                removeNode={removeNode} addChildNode={addChildNode}
-                                                syncNodeValues={syncNodeValues} />
-                                        );
-                                    }
-                                    return null;
-                                })}
-                            </div>
+                            <div className="h-44 bg-slate-900 overflow-hidden flex flex-col border-t border-slate-800">
+                                <div className="p-3 border-b border-white/5 flex justify-between bg-white/[0.02]"><span className="text-[9px] font-bold text-slate-500 uppercase">Engine Live Preview (Generated JSON)</span><div className="flex gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span></div></div>
+                                <div className="flex-1 p-3 overflow-auto font-mono text-[9px] text-emerald-400/80">
+                                    <pre>{(() => {
+                                        const getBoxPx = (box) => {
+                                            if (!box || !naturalSize) return box;
+                                            if (box.w !== undefined) {
+                                                return {
+                                                    x: Math.round(box.x * naturalSize.width),
+                                                    y: Math.round(box.y * naturalSize.height),
+                                                    width: Math.round(box.w * naturalSize.width),
+                                                    height: Math.round(box.h * naturalSize.height)
+                                                };
+                                            }
+                                            return box;
+                                        };
 
-                            {/* Live JSON Preview */}
-                            <div className="bg-slate-900 overflow-hidden flex flex-col h-48">
-                                <div className="px-3 py-1.5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">
-                                        Python Engine JSON
-                                    </p>
-                                    <div className="flex gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-700"></span>
-                                    </div>
-                                </div>
-                                <div className="flex-1 overflow-auto p-3 font-mono text-[10px] text-emerald-400/90 leading-tight">
-                                    <pre>
-                                        {JSON.stringify({
-                                            fields: items.filter(i => i.item_type === "field" && i.anchor_box).flatMap(item =>
-                                                (item.targets || []).filter(t => t.box).map(t => ({
-                                                    field_name: (t.label === "nilai_1" || t.label === "result") ? item.field_key : (item.targets.length > 1 ? `${item.field_key}_${t.key}` : t.label),
-                                                    anchor_text: item.field_anchor,
-                                                    offset_x: Math.round(t.box.x - (item.anchor_box?.x || 0)),
-                                                    offset_y: Math.round(t.box.y - (item.anchor_box?.y || 0)),
-                                                    width: Math.round(t.box.width),
-                                                    height: Math.round(t.box.height),
-                                                    type: t.text_type
-                                                }))
+                                        return JSON.stringify({ 
+                                            fields: items.filter(i=>i.item_type==="field" && i.anchor_box).flatMap(item =>
+                                                (item.targets || []).filter(t => t.box).map(t => {
+                                                    const aBox = getBoxPx(item.anchor_box);
+                                                    const tBox = getBoxPx(t.box);
+                                                    return {
+                                                        field_name: item.field_key + (item.targets.length > 1 ? `_${t.key}` : ""),
+                                                        anchor_text: item.field_anchor,
+                                                        offset_x: Math.round(tBox.x - aBox.x),
+                                                        offset_y: Math.round(tBox.y - aBox.y),
+                                                        width: tBox.width, height: tBox.height, type: t.text_type
+                                                    };
+                                                })
                                             ),
-                                            tables: items.filter(i => i.item_type === "table" && i.table_area).map(tab => ({
-                                                table_name: tab.table_name,
-                                                json_key: tab.json_key,
-                                                table_anchor: tab.table_anchor || "",
-                                                columns: (tab.columns || []).map(c => ({
-                                                    name: c.label,
-                                                    x_start: c.box ? Math.round(c.box.x - tab.table_area.x) : 0,
-                                                    x_end: c.box ? Math.round((c.box.x + c.box.width) - tab.table_area.x) : 0
-                                                })),
-                                                node_count: (tab.nodes || []).length
-                                            }))
-                                        }, null, 2)}
-                                    </pre>
+                                            tables: items.filter(i => i.item_type === "table" && i.table_area && i.anchor_box).map(tab => {
+                                                const rowAnchor = (tab.columns || []).find(c => c.is_row_anchor);
+                                                const multiLineCols = (tab.columns || []).filter(c => c.is_multi_line);
+                                                const fallbackCol = (tab.columns || []).find(c => c.id === tab.fallback_row_anchor_id);
+                                                const aBox = getBoxPx(tab.anchor_box);
+                                                const areaBox = getBoxPx(tab.table_area);
+                                                return {
+                                                    table_name: tab.table_name,
+                                                    json_key: tab.json_key,
+                                                    anchor: { 
+                                                        texts: (tab.table_anchor || "").split(",").map(s => s.trim()).filter(s => s), 
+                                                        match_type: tab.table_anchor_match_type || "contains" 
+                                                    },
+                                                    area: { 
+                                                        offset_y: Math.round(areaBox.y - aBox.y), 
+                                                        height: areaBox.height 
+                                                    },
+                                                    row_detection: { 
+                                                        method: "anchor_based", 
+                                                        primary_column: rowAnchor?.key || "desc",
+                                                        fallback_column: fallbackCol?.key || null,
+                                                        y_threshold: "auto"
+                                                    },
+                                                    columns: (tab.columns || []).map(col => {
+                                                        const cBox = getBoxPx(col.box);
+                                                        return { 
+                                                            name: col.label, 
+                                                            key: col.key,
+                                                            offset_x_start: Math.round((cBox?.x || 0) - aBox.x), 
+                                                            offset_x_end: Math.round(((cBox?.x || 0) + (cBox?.width || 0)) - aBox.x),
+                                                            type: col.text_type || "printed",
+                                                            is_row_anchor: !!col.is_row_anchor,
+                                                            multi_line: !!col.is_multi_line
+                                                        };
+                                                    }),
+                                                    multi_line_handling: multiLineCols.map(c => ({ 
+                                                        column: c.key, group_by: "y", y_threshold: "auto", sort_order: ["y_asc", "x_asc"]
+                                                    })),
+                                                    tolerance: { x_padding: 20, y_padding: 10 }
+                                                };
+                                            }) 
+                                        }, null, 2);
+                                    })()}</pre>
                                 </div>
                             </div>
                         </div>
+                    </div>
                 </div>
-            </div>
             </div>
         </AuthenticatedLayout>
     );

@@ -216,6 +216,47 @@ def extract():
         }), 500
 
 
+# ── 4. Predict OCR (Real-time Feedback) ───────────────────────
+@api_bp.route("/predict-ocr", methods=["POST"])
+def predict_ocr():
+    """
+    Endpoint untuk OCR cepat pada area tertentu (crop).
+    Dipanggil Laravel saat Admin menggambar kotak di editor.
+
+    Request JSON:
+        {
+            "image_path": "storage/pages/namafile/page_1.png",
+            "box": { "x": 0.1, "y": 0.2, "w": 0.05, "h": 0.02 }
+        }
+    """
+    from app.services.ocr_service import predict_text
+    from config.settings import BASE_DIR
+
+    data = request.get_json()
+    rel_path = data.get("image_path")
+    box = data.get("box")
+
+    if not rel_path:
+        return jsonify({"error": "image_path wajib diisi"}), 400
+
+    # Pastikan path absolut
+    if "storage/" in rel_path:
+        # Jika dikirim path relatif dari Laravel (storage/pages/...)
+        full_path = BASE_DIR / rel_path
+    else:
+        full_path = Path(rel_path)
+
+    if not full_path.exists():
+        return jsonify({"error": f"Gambar tidak ditemukan: {rel_path}"}), 404
+
+    text = predict_text(str(full_path), box)
+
+    return jsonify({
+        "status": "ok",
+        "text": text
+    })
+
+
 # ── Register semua blueprint ke Flask app ─────────────────────
 def register_routes(app):
     """

@@ -27,6 +27,7 @@ import numpy as np
 
 from app.services.template_mapper import FieldConfig
 from app.services.table_extractor import extract_dynamic_table
+from app.services.rule_based_extractor import process_rule_based_table
 from app.services.json_builder import build_hierarchical_json
 
 logger = logging.getLogger(__name__)
@@ -166,7 +167,11 @@ def extract_document(image_paths: list[str], template_config: list[dict]) -> dic
     """
     logger.info("Memulai Algoritma Ekstraksi Dokumen Hybrid IDP.")
 
-    # Hasil mentah per grup
+    # Jika mapping_config dalam format Baru (Rule-Based)
+    if isinstance(mapping_config, dict) and ('tables' in mapping_config or 'fields' in mapping_config):
+        return _extract_rule_based(image_paths, mapping_config)
+
+    # ELSE: Jalankan Legacy Pipeline...
     fixed_results: list[dict] = []
     table_results: list[dict] = []
 
@@ -244,3 +249,29 @@ def extract_document(image_paths: list[str], template_config: list[dict]) -> dic
     final_output = build_hierarchical_json(fixed_results, table_results)
 
     return final_output
+
+
+def _extract_rule_based(image_paths: list[str], config: dict) -> dict:
+    """
+    Internal orkestrator untuk format Rule-Based baru.
+    """
+    results = {
+        "fields": {},
+        "tables": {}
+    }
+    
+    # PaddleOCR full page placeholder (nanti ditarik dari service sesungguhnya)
+    # ocr_results = run_full_page_ocr(image_paths[0])
+    ocr_results: list = [] 
+
+    for table_cfg in config.get('tables', []):
+        t_key = table_cfg.get('key', 'table')
+        # TAHAP 2: Rule-Based Extraction
+        table_data = process_rule_based_table(None, table_cfg, ocr_results, hybrid_ocr_router)
+        results["tables"][t_key] = table_data
+
+    # Dummy confidence score
+    return {
+        "confidence_score": 95.0,
+        "extracted_data": results
+    }

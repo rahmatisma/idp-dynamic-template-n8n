@@ -30,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ── Upload Dokumen ────────────────────────────────────────
     Route::get('/upload-dokumen',  [DocumentController::class, 'create'])->name('upload-dokumen');
     Route::post('/upload-dokumen', [DocumentController::class, 'store'])->name('upload-dokumen.store');
+    Route::delete('/dokumen/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
     // ── Validasi Dokumen ──────────────────────────────────────
     Route::get('/validasi-dokumen',                      [ValidationController::class, 'index'])->name('validasi-dokumen');
@@ -58,6 +59,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Convert PDF → PNG untuk Canvas Editor template
         Route::post('/template/convert-pdf', [TemplateController::class, 'convertPdf'])->name('template.convert-pdf');
+        
+        // OCR cepat untuk crop area di editor
+        Route::post('/template/ocr-predict', [TemplateController::class, 'ocrPredict'])->name('template.ocr-predict');
 
         // Simpan konfigurasi template (JSON mapping_config) ke database
         Route::post('/template/save',        [TemplateController::class, 'save'])->name('template.save');
@@ -91,6 +95,10 @@ Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken
         // Node 6: status = "need_validation" + extracted_data + confidence_score
         Route::patch('/api/webhook/ocr-result', [DocumentController::class, 'receiveOcrResult'])
             ->name('webhook.ocr-result');
+
+        // Alias sesuai request Step 4
+        Route::patch('/api/documents/{document}', [DocumentController::class, 'receiveOcrResult'])
+            ->name('webhook.ocr-result-alias');
 
         // n8n Template Workflow — INSERT/UPDATE template ke database
         Route::post('/api/webhook/create-template', [TemplateController::class, 'createFromN8n'])

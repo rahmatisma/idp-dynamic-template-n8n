@@ -135,62 +135,29 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
     const [uploading, setUploading] = useState(false);
     const inputRef = useRef(null);
 
-    // ── Realtime & Init ──────────────────────────────────────────────
+    // ── Auto-Refresh Logic (Polling) ──
+    // Karena n8n proses di background, kita cek setiap 4 detik 
+    // apakah ada perubahan status atau dokumen baru.
     useEffect(() => {
-        // 1. Fetch Latest Templates (ensure fresh data)
-        const fetchTemplates = async () => {
-            const { data } = await supabase
-                .from('document_templates')
-                .select('id, type_name, template_code')
-                .eq('is_active', true)
-                .order('type_name');
-            if (data) setTemplates(data);
-        };
-        fetchTemplates();
+        const interval = setInterval(() => {
+            // Kita cuma reload data 'documents' saja, biar enteng
+            router.reload({ 
+                only: ['documents'], 
+                preserveScroll: true,
+                preserveState: true 
+            });
+        }, 4000);
 
-        // 2. Fetch Initial Documents from Supabase (History)
-        const fetchDocuments = async () => {
-            const { data } = await supabase
-                .from('documents')
-                .select('*')
-                .eq('user_id', auth.user.id)
-                .order('created_at', { ascending: false })
-                .limit(50);
-            if (data) setDocuments(data);
-        };
-        fetchDocuments();
+        return () => clearInterval(interval);
+    }, []);
 
-        // 3. Realtime Subscription for Documents
-        const channel = supabase
-            .channel('documents-changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'documents',
-                    filter: `user_id=eq.${auth.user.id}`
-                },
-                (payload) => {
-                    if (payload.eventType === 'INSERT') {
-                        setDocuments(prev => [payload.new, ...prev]);
-                    } else if (payload.eventType === 'UPDATE') {
-                        setDocuments(prev => prev.map(d => d.id === payload.new.id ? { ...d, ...payload.new } : d));
-                    } else if (payload.eventType === 'DELETE') {
-                        setDocuments(prev => prev.filter(d => d.id !== payload.old.id));
-                    }
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [auth.user.id]);
+    // Update local state when prop changes
+    useEffect(() => {
+        setDocuments(initialDocuments);
+    }, [initialDocuments]);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         documents:   [],
-        template_id: "",
         notes:       "",
     });
 
@@ -215,78 +182,21 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
     const onDrop      = (e) => { e.preventDefault(); setDragging(false); addFiles(e.dataTransfer.files); };
     const onFileInput = (e) => addFiles(e.target.files);
 
-    const handleDelete = async (id, filePath) => {
+    const handleDelete = (id) => {
         if (!confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) return;
-
-        try {
-            // 1. Hapus file dari Supabase Storage
-            if (filePath) {
-                await supabase.storage.from('documents').remove([filePath]);
-            }
-
-            // 2. Hapus record dari database
-            const { error } = await supabase
-                .from('documents')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
-
-            // UI akan terupdate otomatis via Realtime subscription
-        } catch (error) {
-            console.error("Gagal menghapus:", error);
-            alert("Terjadi kesalahan saat menghapus dokumen.");
-        }
+        router.delete(`/dokumen/${id}`);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-        if (files.length === 0 || uploading) return;
+        if (files.length === 0 || processing) return;
 
-        setUploading(true);
-
-        try {
-            for (const file of files) {
-                // 1. Upload ke Supabase Storage
-                // Format: documents/[timestamp]_[filename]
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-                const filePath = `uploads/${fileName}`;
-
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('documents')
-                    .upload(filePath, file);
-
-                if (uploadError) throw uploadError;
-
-                // 2. Simpan Metadata ke Supabase Database
-                const { error: dbError } = await supabase
-                    .from('documents')
-                    .insert([{
-                        user_id: auth.user.id,
-                        template_id: data.template_id || null,
-                        original_name: file.name,
-                        file_path: filePath,
-                        status: 'queued',
-                        metadata: {
-                            notes: data.notes,
-                            size: file.size,
-                            type: file.type
-                        }
-                    }]);
-
-                if (dbError) throw dbError;
-            }
-
-            setFiles([]);
-            reset();
-            // Optional: Notification success
-        } catch (error) {
-            console.error("Upload error:", error);
-            alert("Gagal mengupload dokumen: " + error.message);
-        } finally {
-            setUploading(false);
-        }
+        post("/upload-dokumen", {
+            onSuccess: () => {
+                setFiles([]);
+                reset();
+            },
+        });
     };
 
     return (
@@ -366,38 +276,18 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
                             </div>
                         )}
 
-                        {/* Baris bawah: Template + Catatan */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {/* Pilih Jenis Template */}
-                            <div className="space-y-1.5">
-                                <label className="block text-sm font-semibold text-slate-700">
-                                    Jenis Dokumen <span className="font-normal text-slate-400">(opsional)</span>
-                                </label>
-                                <select
-                                    value={data.template_id}
-                                    onChange={(e) => setData("template_id", e.target.value)}
-                                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition text-slate-600"
-                                >
-                                    <option value="">— Deteksi otomatis —</option>
-                                    {templates.map((t) => (
-                                        <option key={t.id} value={t.id}>{t.type_name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Catatan */}
-                            <div className="space-y-1.5">
-                                <label className="block text-sm font-semibold text-slate-700">
-                                    Catatan <span className="font-normal text-slate-400">(opsional)</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={data.notes}
-                                    onChange={(e) => setData("notes", e.target.value)}
-                                    placeholder="Tambahkan keterangan singkat…"
-                                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition placeholder-slate-300"
-                                />
-                            </div>
+                        {/* Catatan */}
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-semibold text-slate-700">
+                                Catatan <span className="font-normal text-slate-400">(opsional)</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={data.notes}
+                                onChange={(e) => setData("notes", e.target.value)}
+                                placeholder="Tambahkan keterangan singkat (misal: Lokasi Site, Nama Engineer)..."
+                                className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition placeholder-slate-300"
+                            />
                         </div>
 
                         {errors.documents && (

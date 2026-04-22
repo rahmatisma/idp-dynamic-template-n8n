@@ -67,34 +67,29 @@ class DocumentController extends Controller
         $request->validate([
             'documents'   => 'required|array|min:1',
             'documents.*' => 'required|file|mimes:pdf|max:10240',
-            'template_id' => 'nullable|exists:document_templates,id',
             'notes'       => 'nullable|string|max:500',
         ]);
-
-        // Ambil template_code dari template yang dipilih
-        $templateCode = null;
-        if ($request->template_id) {
-            $template     = DocumentTemplate::find($request->template_id);
-            $templateCode = $template?->template_code;
-        }
 
         $count = 0;
 
         foreach ($request->file('documents') as $file) {
-
-            // 1. Simpan PDF ke storage — hanya ini yang dilakukan Laravel
+            // 1. Simpan PDF ke storage lokal (public/documents)
             $filePath = $file->store('documents', 'public');
 
-            // 2. Kirim ke n8n — n8n yang akan INSERT ke DB dan jalankan OCR
+            // 2. TRIGGER n8n — n8n yang akan INSERT ke DB (Sesuai request lu)
             try {
-                Http::timeout(5)->post(config('services.n8n.webhook_url'), [
-                    'user_id'       => Auth::id(),
-                    'file_path'     => Storage::disk('public')->path($filePath),
-                    'storage_path'  => $filePath,
-                    'template_id'   => $request->template_id ?: null,
-                    'template_code' => $templateCode,
-                    'original_name' => $file->getClientOriginalName(),
-                ]);
+                $n8nUrl = config('services.n8n.webhook_url');
+                if ($n8nUrl) {
+                    Http::timeout(5)->post($n8nUrl, [
+                        'user_id'       => Auth::id(), // WAJIB ada buat n8n INSERT
+                        'original_name' => $file->getClientOriginalName(),
+                        'file_path'     => Storage::disk('public')->path($filePath),
+                        'storage_path'  => $filePath,
+                        'status'        => 'queued',
+                        'notes'         => $request->notes,
+                        'file_size'     => $file->getSize(),
+                    ]);
+                }
             } catch (\Exception $e) {
                 \Log::warning("Gagal trigger n8n untuk file '{$file->getClientOriginalName()}': " . $e->getMessage());
             }
@@ -102,7 +97,28 @@ class DocumentController extends Controller
             $count++;
         }
 
-        return back()->with('success', "{$count} dokumen berhasil diupload dan masuk dalam antrian pemrosesan.");
+        return back()->with('success', "{$count} dokumen berhasil diupload. n8n akan segera memprosesnya.");
+    }
+
+    /**
+     * Hapus dokumen.
+     */
+    public function destroy(Document $document)
+    {
+        // 1. Pastikan user cuma bisa hapus dokumen miliknya
+        if ($document->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        // 2. Hapus file fisik dari storage
+        if ($document->file_path) {
+            Storage::disk('public')->delete($document->file_path);
+        }
+
+        // 3. Hapus record dari database
+        $document->delete();
+
+        return back()->with('success', "Dokumen berhasil dihapus.");
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -163,26 +179,34 @@ class DocumentController extends Controller
      * Method: PATCH
      * URL: /api/webhook/ocr-result
      */
-    public function receiveOcrResult(Request $request)
+    public function receiveOcrResult(Request $request, Document $document = null)
     {
+        // Jika tidak di-inject dari URL, cari dari body document_id
+        if (!$document) {
+            $document = Document::findOrFail($request->document_id);
+        }
+
         $validated = $request->validate([
-            'document_id'      => 'required|exists:documents,id',
-            'status'           => 'required|in:processing,need_validation,failed',
-            'extracted_data'   => 'nullable|array',
-            'confidence_score' => 'nullable|numeric|min:0|max:100',
+            'status'                => 'required|in:processing,need_validation,completed,failed',
+            'template_id'           => 'nullable|exists:document_templates,id',
+            'extracted_data'        => 'nullable|array',
+            'confidence_score'      => 'nullable|numeric|min:0|max:100',
+            'processing_started_at' => 'nullable|date',
+            'processing_ended_at'   => 'nullable|date',
         ]);
 
-        $document = Document::findOrFail($validated['document_id']);
-
         $document->update([
-            'status'           => $validated['status'],
-            'extracted_data'   => $validated['extracted_data'] ?? null,
-            'confidence_score' => $validated['confidence_score'] ?? null,
+            'status'                => $validated['status'],
+            'template_id'           => $validated['template_id'] ?? $document->template_id,
+            'extracted_data'        => $validated['extracted_data'] ?? $document->extracted_data,
+            'confidence_score'      => $validated['confidence_score'] ?? $document->confidence_score,
+            'processing_started_at' => $validated['processing_started_at'] ?? $document->processing_started_at,
+            'processing_ended_at'   => $validated['processing_ended_at'] ?? $document->processing_ended_at,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => "Dokumen #{$document->id} diperbarui ke status '{$validated['status']}'.",
+            'message' => "Dokumen #{$document->id} berhasil diperbarui.",
         ]);
     }
 
