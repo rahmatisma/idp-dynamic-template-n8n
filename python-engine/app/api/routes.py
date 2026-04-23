@@ -9,12 +9,14 @@ Endpoint yang tersedia:
     POST /extract         → jalankan OCR pada dokumen
 """
 
+import logging
 from flask import Blueprint, request, jsonify
 from pathlib import Path
 from app.services.pdf_converter import convert_if_not_exists
 from app.services.ocr_engine import extract_document
 from config.settings import INPUT_DIR
 
+logger = logging.getLogger(__name__)
 api_bp = Blueprint("api", __name__)
 
 

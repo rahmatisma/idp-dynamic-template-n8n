@@ -5,6 +5,9 @@ Entry point Flask untuk Python Engine.
 Jalankan dengan: python main.py
 """
 
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables dari .env
+
 from flask import Flask
 from flask_cors import CORS
 from app.api.routes import register_routes

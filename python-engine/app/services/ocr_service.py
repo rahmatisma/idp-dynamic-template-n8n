@@ -101,7 +101,7 @@ def read_header(image_path: str) -> dict:
             y_coord = box[0][1]
             y_ratio = y_coord / h_img
             
-            # Kita pake area sedikit lebih luas (20%) buat nyari label No Dokumen
+            # Area scan 20% (Fokus area header atas)
             if y_ratio < 0.20:
                 box_height = box[2][1] - box[0][1]
                 x_center = ((box[0][0] + box[1][0]) / 2) / w_img
@@ -109,59 +109,97 @@ def read_header(image_path: str) -> dict:
                     "text": text,
                     "height": box_height,
                     "x_center": x_center,
-                    "y": y_coord
+                    "y": y_coord,
+                    "conf": conf
                 })
 
         if not header_candidates:
-            return {"title": "", "doc_number": None}
+            return {"title": "", "doc_number": None, "confidence": 0}
 
-        # --- 1. EKSTRAK JUDUL (Visual Center & Vertical Cluster) ---
-        # Cari yang skor "Centeredness" paling tinggi
-        primary = max(header_candidates, key=lambda c: c['height'] / (abs(c['x_center'] - 0.5) + 0.1))
+        # --- 1. EKSTRAK JUDUL (Robust Seed Clustering) ---
+        # Seed: Prioritas yang GEDE, PANJANG, dan di TENGAH
+        # Filter minimal 4 karakter biar nggak ketipu noise/logo
+        potential_seeds = [c for c in header_candidates if len(c['text'].strip()) >= 4]
+        if not potential_seeds: potential_seeds = header_candidates
+        
+        primary = max(potential_seeds, key=lambda c: (c['height'] * len(c['text'])) / (abs(c['x_center'] - 0.5) + 0.1))
         target_x_center = primary['x_center']
-        max_h = primary['height']
         
-        # Ambil semua yang sejajar vertikal sama yang paling gede
-        potential_title_lines = [c for c in header_candidates 
-                                if abs(c['x_center'] - target_x_center) < 0.15 
-                                and c['height'] >= (max_h * 0.6)]
+        # Ambil yang 'sejajar' alignment-nya sama si Raja
+        all_aligned = [c for c in header_candidates if abs(c['x_center'] - target_x_center) < 0.18]
+        all_aligned.sort(key=lambda c: c['y'])
         
-        # Urutkan berdasarkan Y (dari atas ke bawah)
-        potential_title_lines.sort(key=lambda c: c['y'])
-        
-        title_parts = []
-        last_y = None
-        for c in potential_title_lines:
-            if last_y is not None:
-                # Jika jarak antar baris terlalu jauh (gap > 1.5x tinggi font)
-                # Berarti sudah keluar dari kluster judul
-                if (c['y'] - last_y) > (c['height'] * 1.5):
-                    break
+        try:
+            p_idx = all_aligned.index(primary)
+        except ValueError:
+            p_idx = 0
             
-            title_parts.append(c['text'])
-            # Update last_y ke bagian bawah kotak teks ini
-            last_y = c['y'] + c['height']
-
-        title = " ".join(title_parts).strip()
-
+        title_indices = {p_idx}
+        
+        # Expand 1.5x -> Toleran buat judul yang agak renggang
+        for direction in [1, -1]:
+            curr = p_idx
+            while 0 <= curr + direction < len(all_aligned):
+                next_node = all_aligned[curr + direction]
+                this_node = all_aligned[curr]
+                
+                if direction == 1:
+                    gap = next_node['y'] - (this_node['y'] + this_node['height'])
+                else:
+                    gap = this_node['y'] - (next_node['y'] + next_node['height'])
+                    
+                if gap < (max(this_node['height'], next_node['height']) * 1.5):
+                    curr += direction
+                    title_indices.add(curr)
+                else:
+                    break
+        
+        selected_lines = [all_aligned[i] for i in sorted(list(title_indices))]
+        title = " ".join([c['text'] for c in selected_lines]).strip()
+        
+        conf_scores = [c.get('conf', 0.95) for c in selected_lines]
+        avg_conf = sum(conf_scores) / len(conf_scores) if conf_scores else 0
+ 
         # --- 2. EKSTRAK NO DOKUMEN ---
         doc_number = None
+        keywords = ["DOK", "NO.", "NOMOR", "REF", "CODE", "KODE"]
         for c in header_candidates:
-            t = c['text'].upper().replace(" ", "")
-            if "NO.DOK" in t:
+            t = c['text'].upper()
+            if any(k in t for k in keywords):
                 raw = c['text']
+                # Cari titik pisah paling belakang dari label (biasanya : atau .)
                 if ":" in raw:
                     doc_number = raw.split(":", 1)[1].strip()
                 elif "Dok." in raw:
                     doc_number = raw.split("Dok.", 1)[1].strip()
+                elif "No." in raw:
+                    doc_number = raw.split("No.", 1)[1].strip()
                 else:
-                    doc_number = raw.replace("No. Dok", "").replace("No.Dok", "").strip()
-                break
+                    # Jika tidak ada pemisah jelas, hapus keywords-nya saja
+                    temp = raw
+                    for k in ["No. Dok.", "No. Dok", "No.Dok", "Dok.", "No."]:
+                        temp = temp.replace(k, "").replace(k.upper(), "")
+                    doc_number = temp.strip()
+                
+                if doc_number:
+                    # Pembersihan Akhir: Buang label nempel (Versi/Hal) dan simbol awal
+                    doc_number = doc_number.split("Versi")[0].split("Hal")[0].strip()
+                    doc_number = doc_number.lstrip(":.- ").strip()
+                    break
+                
+        if not doc_number:
+            import re
+            for c in header_candidates:
+                if re.search(r'[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+', c['text']):
+                    doc_number = c['text'].strip().split("Versi")[0].split("Hal")[0].strip()
+                    doc_number = doc_number.lstrip(":.- ").strip()
+                    break
 
-        logger.info(f"[OCR] Analysis Result -> Title: '{title}', DocNum: '{doc_number}'")
+        logger.info(f"[OCR] Header Final -> Title: '{title}', DocNum: '{doc_number}', Conf: {avg_conf:.2f}")
         return {
             "title": title,
-            "doc_number": doc_number
+            "doc_number": doc_number,
+            "confidence": round(avg_conf, 4)
         }
 
     except Exception as e:

@@ -435,16 +435,16 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
                                                 <div className="flex items-center justify-center gap-2">
                                                     {/* Tombol Detail/Lihat */}
                                                     <Link
-                                                        href={`/validasi-dokumen/${doc.id}`}
+                                                        href={`/dokumen/${doc.id}/detail`}
                                                         className={[
                                                             "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition",
-                                                            doc.status === "completed" 
-                                                                ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" 
+                                                            doc.status === "completed"
+                                                                ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
                                                                 : "text-indigo-600 bg-indigo-50 hover:bg-indigo-100"
                                                         ].join(" ")}
-                                                        title="Lihat Detail"
+                                                        title="Lihat Hasil Ekstraksi"
                                                     >
-                                                        <EyeIcon /> 
+                                                        <EyeIcon />
                                                         <span className="hidden sm:inline">Detail</span>
                                                     </Link>
 

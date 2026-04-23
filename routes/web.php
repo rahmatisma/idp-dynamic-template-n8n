@@ -31,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/upload-dokumen',  [DocumentController::class, 'create'])->name('upload-dokumen');
     Route::post('/upload-dokumen', [DocumentController::class, 'store'])->name('upload-dokumen.store');
     Route::delete('/dokumen/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
+    Route::get('/dokumen/{document}/detail', [DocumentController::class, 'detail'])->name('documents.detail');
 
     // ── Validasi Dokumen ──────────────────────────────────────
     Route::get('/validasi-dokumen',                      [ValidationController::class, 'index'])->name('validasi-dokumen');

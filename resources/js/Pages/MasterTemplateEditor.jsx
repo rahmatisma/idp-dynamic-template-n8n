@@ -259,6 +259,42 @@ function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx, setActiveI
                             <input type="text" value={item.field_key} readOnly={!editKeys[item.id]} onChange={e => updateItem(idx, "field_key", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} className={`w-full text-xs rounded-lg p-1.5 border ${editKeys[item.id] ? "border-indigo-300 ring-2 ring-indigo-50" : "border-slate-200 bg-slate-50 text-slate-400"}`} />
                         </div>
                     </div>
+
+                    {/* Jenis Tulisan (Level Field) */}
+                    <div className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50/60">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Jenis Tulisan</p>
+                            <p className="text-[9px] text-slate-400 mt-0.5">Pilih metode OCR untuk field ini</p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                onClick={() => updateItem(idx, "text_type", "printed")}
+                                className={`text-[9px] px-2.5 py-1 rounded-lg font-bold border transition ${
+                                    (item.text_type || "printed") === "printed"
+                                        ? "bg-indigo-600 text-white border-indigo-700 shadow-sm"
+                                        : "bg-white text-slate-400 border-slate-200 hover:border-indigo-200"
+                                }`}
+                            >
+                                🖨️ Cetak
+                            </button>
+                            <button
+                                onClick={() => updateItem(idx, "text_type", "handwritten")}
+                                className={`text-[9px] px-2.5 py-1 rounded-lg font-bold border transition ${
+                                    item.text_type === "handwritten"
+                                        ? "bg-amber-500 text-white border-amber-600 shadow-sm"
+                                        : "bg-white text-slate-400 border-slate-200 hover:border-amber-200"
+                                }`}
+                            >
+                                ✍️ Tulis Tangan
+                            </button>
+                        </div>
+                    </div>
+                    {item.text_type === "handwritten" && (
+                        <p className="text-[9px] text-amber-600 font-medium bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 flex items-center gap-1">
+                            ⚠️ Field ini akan diproses menggunakan TrOCR (model tulisan tangan)
+                        </p>
+                    )}
+
                     <div>
                         <div className="flex justify-between items-center mb-1">
                             <label className="text-[10px] text-slate-500 font-bold uppercase flex items-center gap-1">
@@ -286,6 +322,29 @@ function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx, setActiveI
                                 {editKeys[t.id] && (
                                     <input type="text" value={t.key} onChange={e => updateTarget(idx, ti, "key", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))} className="text-[9px] p-1 border-indigo-200 rounded bg-white text-indigo-600" placeholder="Technical Key" />
                                 )}
+                                {/* Jenis tulisan per-target */}
+                                <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                                    <span className="text-[9px] text-slate-400 font-medium">OCR:</span>
+                                    <button
+                                        onClick={() => updateTarget(idx, ti, "text_type", "printed")}
+                                        className={`text-[9px] px-2 py-0.5 rounded border font-bold transition ${
+                                            (t.text_type || item.text_type || "printed") === "printed"
+                                                ? "bg-indigo-100 text-indigo-700 border-indigo-200"
+                                                : "bg-white text-slate-300 border-slate-100"
+                                        }`}
+                                    >🖨️ Cetak</button>
+                                    <button
+                                        onClick={() => updateTarget(idx, ti, "text_type", "handwritten")}
+                                        className={`text-[9px] px-2 py-0.5 rounded border font-bold transition ${
+                                            (t.text_type || item.text_type) === "handwritten"
+                                                ? "bg-amber-100 text-amber-700 border-amber-200"
+                                                : "bg-white text-slate-300 border-slate-100"
+                                        }`}
+                                    >✍️ Tulis</button>
+                                    {(t.text_type || item.text_type) === "handwritten" && (
+                                        <span className="text-[9px] text-amber-500 font-bold ml-auto">→ TrOCR</span>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -483,11 +542,14 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
         } catch (err) { alert("Fail: " + err.message); } finally { setConverting(false); }
     };
 
+    const [confScore, setConfScore] = useState(null);
+
     const handleAutoDetectHeader = async (forcedPath = null) => {
         const targetPath = forcedPath || pdfPath;
         if (!targetPath) return alert("Upload PDF dulu Bang!");
         
         setDetectingHeader(true);
+        setConfScore(null); // Reset score
         try {
             const { data } = await axios.post("/internal-api/template/detect-header", {
                 file_path: targetPath
@@ -499,7 +561,10 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                     setIdentifierText(data.header.doc_number);
                 } else {
                     setIdentifierText(""); 
-                    console.log("No. Dok tidak ditemukan.");
+                }
+                
+                if (data.header.confidence) {
+                    setConfScore(Math.round(data.header.confidence * 100));
                 }
             }
         } catch (err) {
@@ -646,7 +711,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
             const item = { ...u[idx] };
             const t = [...(item.targets || [])];
             const kn = `val_${t.length + 1}`;
-            t.push({ id: `v-${Date.now()}`, label: kn, key: kn, text_type: "handwritten", box: null, manual_key: false });
+            t.push({ id: `v-${Date.now()}`, label: kn, key: kn, text_type: "printed", box: null, manual_key: false });
             item.targets = t;
             u[idx] = item;
             return u;
@@ -889,10 +954,17 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                                         <input type="text" value={typeName} onChange={e => setTypeName(e.target.value)} placeholder="ex: Formulir PM UPS..." className="w-full border-none bg-slate-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-100 font-medium text-sm text-slate-700" />
                                     </div>
                                     {pdfPath && (
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 w-fit px-3 py-1 rounded-full border border-emerald-100 animate-in fade-in slide-in-from-left-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            MASTER PDF LOADED 
-                                            <button onClick={() => setPdfPath(null)} className="ml-2 text-slate-400 hover:text-rose-500 transition-colors uppercase">[Change File]</button>
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 w-fit px-3 py-1 rounded-full border border-emerald-100 animate-in fade-in slide-in-from-left-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                MASTER PDF LOADED 
+                                            </div>
+                                            {confScore && (
+                                                <div className={`text-[10px] font-black px-2 py-0.5 rounded border ${confScore > 90 ? 'text-indigo-600 bg-indigo-50 border-indigo-100' : 'text-amber-600 bg-amber-50 border-amber-100'}`}>
+                                                    {confScore}% AI Confidence
+                                                </div>
+                                            )}
+                                            <button onClick={() => {setPdfPath(null); setConfScore(null);}} className="text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors uppercase">[Change File]</button>
                                         </div>
                                     )}
                                 </div>

@@ -46,6 +46,28 @@ class DocumentController extends Controller
         ]);
     }
 
+    /**
+     * Halaman Detail Hasil Ekstraksi.
+     * Menampilkan extracted_data JSON dari dokumen yang dipilih.
+     */
+    public function detail(Document $document)
+    {
+        // Pastikan user hanya bisa lihat dokumen miliknya
+        abort_unless($document->user_id === Auth::id(), 403);
+
+        return Inertia::render('DocumentDetail', [
+            'document' => [
+                'id'             => $document->id,
+                'original_name'  => $document->original_name,
+                'status'         => $document->status,
+                'confidence_score' => $document->confidence_score,
+                'uploaded_at'    => $document->created_at->format('d M Y, H:i'),
+                'template_name'  => $document->template?->type_name ?? null,
+                'extracted_data' => $document->extracted_data ?? [],
+            ],
+        ]);
+    }
+
     // ──────────────────────────────────────────────────────────────
     // UPLOAD — Laravel hanya simpan file, n8n yang urus database
     // ──────────────────────────────────────────────────────────────
@@ -205,16 +227,46 @@ class DocumentController extends Controller
             'confidence_score'      => 'nullable|numeric|min:0|max:100',
             'processing_started_at' => 'nullable|date',
             'processing_ended_at'   => 'nullable|date',
-            'error'                 => 'nullable|string', // Tambahan buat Error Handler
+            'error'                 => 'nullable|string',
             'tp'                    => 'nullable|integer',
             'fp'                    => 'nullable|integer',
             'fn'                    => 'nullable|integer',
+            // Format baru dari Python (bisa dikirim terpisah oleh n8n)
+            'pages'                 => 'nullable|array',
+            'fields'                => 'nullable|array',
+            'tables'                => 'nullable|array',
+            'total_pages'           => 'nullable|integer',
         ]);
+
+        // ── Normalisasi extracted_data ──────────────────────────────
+        // Terima format apapun yang n8n kirim:
+        //   Format A: { extracted_data: { pages: [...] } }  ← format lama
+        //   Format B: { pages: [...] }                      ← Python langsung
+        //   Format C: { fields: {...}, tables: {...} }       ← n8n flatten
+        $extractedData = $validated['extracted_data'] ?? $document->extracted_data ?? [];
+
+        if (!empty($validated['pages'])) {
+            // Python kirim full response lewat n8n
+            $extractedData = [
+                'pages'       => $validated['pages'],
+                'total_pages' => $validated['total_pages'] ?? count($validated['pages']),
+            ];
+        } elseif (!empty($validated['fields']) || !empty($validated['tables'])) {
+            // n8n flatten fields & tables (ambil dari page pertama)
+            $extractedData = [
+                'pages' => [[
+                    'page'   => 1,
+                    'fields' => $validated['fields'] ?? [],
+                    'tables' => $validated['tables'] ?? [],
+                ]],
+                'total_pages' => 1,
+            ];
+        }
 
         $updateData = [
             'status'                => $validated['status'],
             'template_id'           => $validated['template_id'] ?? $document->template_id,
-            'extracted_data'        => $validated['extracted_data'] ?? $document->extracted_data,
+            'extracted_data'        => $extractedData,
             'confidence_score'      => $validated['confidence_score'] ?? $document->confidence_score,
             'processing_started_at' => $validated['processing_started_at'] ?? $document->processing_started_at,
             'processing_ended_at'   => $validated['processing_ended_at'] ?? $document->processing_ended_at,
@@ -235,6 +287,11 @@ class DocumentController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Dokumen #{$document->id} berhasil diperbarui.",
+            'saved'   => [
+                'status'           => $updateData['status'],
+                'confidence_score' => $updateData['confidence_score'],
+                'has_data'         => !empty($extractedData),
+            ],
         ]);
     }
 

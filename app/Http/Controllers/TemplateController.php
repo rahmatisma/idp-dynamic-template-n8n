@@ -287,44 +287,35 @@ class TemplateController extends Controller
 
         $templateCode = Str::slug($validated['template_name'], '_');
 
-        // 1. KIRIM KE n8n (Delegasi Penyimpanan)
-        // Laravel hanya sebagai pengirim pesan, DB akan diupdate n8n via webhook
+        // 1. SIMPAN LANGSUNG KE DATABASE (Bypass n8n)
         try {
-            $n8nUrl = config('services.n8n.template_webhook_url');
+            $template = DocumentTemplate::updateOrCreate(
+                ['id' => $validated['template_id'] ?? null],
+                [
+                    'template_code'     => $templateCode,
+                    'type_name'         => $validated['type_name'],
+                    'identifier_text'   => $validated['identifier_text'] ?? null,
+                    'master_file_path'  => $validated['pdf_path'],
+                    'master_image_path' => $validated['image_path'] ?? null,
+                    'mapping_config'    => $validated['mapping_config'],
+                    'ui_metadata'       => $validated['ui_metadata'] ?? [],
+                    'created_by'        => Auth::id() ?? 1,
+                    'is_active'         => \Illuminate\Support\Facades\DB::raw('true'),
+                ]
+            );
             
-            if (!$n8nUrl) {
-                throw new \Exception("Konfigurasi services.n8n.template_webhook_url belum diset.");
-            }
-
-            $response = Http::timeout(10)->post($n8nUrl, [
-                'event'           => isset($validated['template_id']) ? 'update' : 'create',
-                'template_id'     => $validated['template_id'] ?? null,
-                'template_name'   => $validated['template_name'],
-                'template_code'   => $templateCode,
-                'type_name'       => $validated['type_name'],
-                'identifier_text' => $validated['identifier_text'] ?? null,
-                'pdf_path'        => $validated['pdf_path'],
-                'image_path'      => $validated['image_path'] ?? null,
-                'mapping_config'  => $validated['mapping_config'],
-                'ui_metadata'     => $validated['ui_metadata'] ?? [],
-                'created_by'      => Auth::id() ?? 1,
-            ]);
-
-            if ($response->failed()) {
-                throw new \Exception("n8n merespon dengan status: " . $response->status());
-            }
-
             return response()->json([
                 'success' => true,
-                'message' => 'Permintaan simpan telah dikirim ke n8n. Tunggu sesaat hingga data muncul di daftar.',
+                'message' => 'Template berhasil disimpan langsung ke database.',
+                'template_id' => $template->id
             ]);
 
         } catch (\Exception $e) {
-            \Log::error("Gagal mengirim data template ke n8n: " . $e->getMessage());
+            \Log::error("Gagal menyimpan data template: " . $e->getMessage());
             
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal terhubung ke n8n: ' . $e->getMessage()
+                'message' => 'Gagal menyimpan ke database: ' . $e->getMessage()
             ], 500);
         }
     }
