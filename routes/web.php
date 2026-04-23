@@ -63,6 +63,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // OCR cepat untuk crop area di editor
         Route::post('/template/ocr-predict', [TemplateController::class, 'ocrPredict'])->name('template.ocr-predict');
 
+        // Deteksi Header otomatis untuk Identifier
+        Route::post('/template/detect-header', [TemplateController::class, 'detectHeader'])->name('template.detect-header');
+
         // Simpan konfigurasi template (JSON mapping_config) ke database
         Route::post('/template/save',        [TemplateController::class, 'save'])->name('template.save');
 
@@ -96,9 +99,12 @@ Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken
         Route::patch('/api/webhook/ocr-result', [DocumentController::class, 'receiveOcrResult'])
             ->name('webhook.ocr-result');
 
-        // Alias sesuai request Step 4
+        // Alias sesuai request Step 4 & 5
         Route::patch('/api/documents/{document}', [DocumentController::class, 'receiveOcrResult'])
             ->name('webhook.ocr-result-alias');
+
+        Route::post('/api/documents', [DocumentController::class, 'createFromN8n'])
+            ->name('webhook.create-document-alias');
 
         // n8n Template Workflow — INSERT/UPDATE template ke database
         Route::post('/api/webhook/create-template', [TemplateController::class, 'createFromN8n'])

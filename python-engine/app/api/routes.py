@@ -120,8 +120,8 @@ def convert_pdf():
 
 
 # ── 3. Ekstraksi OCR ───────────────────────────────────────────
-@api_bp.route("/extract", methods=["POST"])
-def extract():
+@api_bp.route("/process", methods=["POST"])
+def process():
     """
     Endpoint utama OCR — menerima info dokumen dan template,
     menjalankan seluruh pipeline ekstraksi, mengembalikan hasil JSON.
@@ -170,50 +170,107 @@ def extract():
     document_id   = data.get("document_id")
     file_path     = data.get("file_path")
     template_code = data.get("template_code")
+    all_templates = data.get("all_templates", []) # Data baru dari n8n Step 5
 
     # Validasi input wajib
     if not file_path:
         return jsonify({"status": "failed", "error": "file_path wajib diisi"}), 400
-    if not template_code:
-        return jsonify({"status": "failed", "error": "template_code wajib diisi"}), 400
+    
+    # template_code bersifat opsional (jika kosong -> Auto-Detect)
 
-    pdf_path = Path(file_path)
+    # Resolusi Path Otomatis (Pro Level sesuai diskusi)
+    # Jika n8n kirim "documents/abc.pdf", kita arahkan ke storage Laravel
+    from config.settings import BASE_DIR
+    
+    input_path = Path(file_path)
+    if not input_path.is_absolute():
+        # Path relatif dari Laravel (naik satu tingkat dari python-engine ke root project)
+        pdf_path = BASE_DIR.parent / "storage" / "app" / "public" / file_path
+    else:
+        pdf_path = input_path
+
     if not pdf_path.exists():
         return jsonify({
             "status":      "failed",
             "document_id": document_id,
-            "error":       f"File PDF tidak ditemukan: {file_path}"
+            "error":       f"File PDF tidak ditemukan: {pdf_path}"
         }), 404
 
     try:
         # Jalankan pipeline OCR lengkap
-        # extract_document ada di app/services/ocr_engine.py
         result = extract_document(
             pdf_path=str(pdf_path),
             template_code=template_code,
             document_id=document_id,
+            all_templates=all_templates,
         )
 
-        return jsonify({
-            "status":           "ok",
-            "document_id":      document_id,
-            "confidence_score": result["confidence_score"],
-            "extracted_data":   result["extracted_data"],
-        })
+        # Kembalikan seluruh hasil (termasuk array pages & total_pages)
+        return jsonify(result)
 
     except FileNotFoundError as e:
         return jsonify({
             "status":      "failed",
             "document_id": document_id,
             "error":       str(e)
-        }), 404
+        }), 200
 
     except Exception as e:
+        logger.error(f"Error dalam process: {str(e)}", exc_info=True)
         return jsonify({
             "status":      "failed",
             "document_id": document_id,
             "error":       f"Kesalahan saat ekstraksi: {str(e)}"
-        }), 500
+        }), 200 # Kembalikan 200 agar n8n bisa memproses percabangan IF dengan mudah
+
+
+# ── 4. Detect Header (Auto-Detect Helper) ─────────────────────
+@api_bp.route("/detect-header", methods=["POST"])
+def detect_header():
+    """
+    Endpoint untuk membantu Admin mendeteksi header secara otomatis 
+    saat membuat template baru di Canvas Editor.
+    
+    Request JSON: { "file_path": "path/to/master.pdf" }
+    """
+    data = request.get_json()
+    file_path = data.get("file_path")
+
+    if not file_path:
+        return jsonify({"error": "file_path wajib diisi"}), 400
+
+    from config.settings import BASE_DIR
+    from app.services.pdf_converter import convert_if_not_exists
+    from app.services.ocr_service import read_header
+
+    # Resolusi path
+    input_path = Path(file_path)
+    if not input_path.is_absolute():
+        pdf_path = BASE_DIR.parent / "storage" / "app" / "public" / file_path
+    else:
+        pdf_path = input_path
+
+    if not pdf_path.exists():
+        return jsonify({"error": f"File tidak ditemukan: {pdf_path}"}), 404
+
+    try:
+        # 1. Pastikan sudah jadi image
+        pages = convert_if_not_exists(str(pdf_path))
+        if not pages:
+            return jsonify({"error": "Gagal konversi PDF"}), 500
+
+        # 2. Baca header (Kembaliannya sekarang DICT {title, doc_number})
+        header_data = read_header(str(pages[0]))
+
+        return jsonify({
+            "status": "ok",
+            "header": header_data,
+            "suggestion": header_data['title'][:50] if header_data.get('title') else ""
+        })
+
+    except Exception as e:
+        print(f"Error dalam detect-header: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 # ── 4. Predict OCR (Real-time Feedback) ───────────────────────
@@ -285,6 +342,6 @@ def register_routes(app):
     print("[Routes] Semua endpoint terdaftar:")
     print("  GET  /health")
     print("  POST /convert-pdf")
-    print("  POST /extract")
+    print("  POST /process")
     print("  GET  /static/pages/<filename>")
     print("  GET  /static/crops/<filename>")

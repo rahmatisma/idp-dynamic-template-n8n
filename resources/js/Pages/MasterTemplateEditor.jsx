@@ -444,6 +444,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
     const [naturalSize, setNaturalSize] = useState(null);
     const [pythonImagePath, setPythonImagePath] = useState(editingTemplate?.python_image_path ?? null);
     const [ocrPredicting, setOcrPredicting] = useState(false);
+    const [detectingHeader, setDetectingHeader] = useState(false);
     const [items, setItems] = useState(() => {
         if (editingTemplate?.ui_metadata && Array.isArray(editingTemplate.ui_metadata)) {
             // Lock all existing keys
@@ -475,8 +476,37 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                 setPdfPath(data.pdf_path);
                 setImagePath(data.image_path || null);
                 setPythonImagePath(data.python_image_path || null);
+                
+                // OTOMATIS DETEKSI HEADER SETELAH UPLOAD
+                handleAutoDetectHeader(data.pdf_path);
             }
         } catch (err) { alert("Fail: " + err.message); } finally { setConverting(false); }
+    };
+
+    const handleAutoDetectHeader = async (forcedPath = null) => {
+        const targetPath = forcedPath || pdfPath;
+        if (!targetPath) return alert("Upload PDF dulu Bang!");
+        
+        setDetectingHeader(true);
+        try {
+            const { data } = await axios.post("/internal-api/template/detect-header", {
+                file_path: targetPath
+            });
+            
+            if (data.header) {
+                if (data.header.title) setTypeName(data.header.title);
+                if (data.header.doc_number) {
+                    setIdentifierText(data.header.doc_number);
+                } else {
+                    setIdentifierText(""); 
+                    console.log("No. Dok tidak ditemukan.");
+                }
+            }
+        } catch (err) {
+            console.error("Error Auto-Detect:", err.message);
+        } finally {
+            setDetectingHeader(false);
+        }
     };
 
     const slugify = (v) => v.toLowerCase().replace(/[^a-z0-9_]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
@@ -830,13 +860,61 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
 
                 <div className="flex gap-6">
                     <div className="flex-1 space-y-4">
-                        <div className="bg-white rounded-2xl border border-slate-200 p-4 flex gap-4 shadow-sm items-center">
-                            <input type="text" value={typeName} onChange={e => setTypeName(e.target.value)} placeholder="Template Name..." className="flex-1 border-none bg-slate-50 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-100" />
-                            {!isEdit ? (
-                                <button onClick={() => fileInputRef.current.click()} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:translate-y-[-1px] active:translate-y-[0] transition-all"><UploadIcon /> {converting ? "..." : "Upload PDF"}</button>
-                            ) : (
-                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">✓ PDF Attached</span>
-                            )}
+                        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                            <div className={`grid gap-8 items-start transition-all duration-500 ${pdfPath ? "grid-cols-1" : "grid-cols-2"}`}>
+                                {/* KOLOM KIRI: INPUT KONFIGURASI */}
+                                <div className="space-y-4">
+                                    <div className="relative">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block tracking-wider flex justify-between items-center">
+                                            <span>Document Identifier</span>
+                                            {detectingHeader && (
+                                                <span className="flex items-center gap-1.5 text-indigo-600 animate-pulse lowercase font-bold tracking-normal italic">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.6)]"></span>
+                                                    AI Scanning Header...
+                                                </span>
+                                            )}
+                                        </label>
+                                        <div className="relative">
+                                            <input 
+                                                type="text" 
+                                                value={identifierText} 
+                                                onChange={e => setIdentifierText(e.target.value)} 
+                                                placeholder={detectingHeader ? "Reading document..." : "Teks unik di header..."} 
+                                                className={`w-full border-none bg-slate-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-100 font-medium text-sm text-slate-700 transition-all ${detectingHeader ? "opacity-50" : ""}`} 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block tracking-wider">Template Name</label>
+                                        <input type="text" value={typeName} onChange={e => setTypeName(e.target.value)} placeholder="ex: Formulir PM UPS..." className="w-full border-none bg-slate-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-100 font-medium text-sm text-slate-700" />
+                                    </div>
+                                    {pdfPath && (
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 w-fit px-3 py-1 rounded-full border border-emerald-100 animate-in fade-in slide-in-from-left-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            MASTER PDF LOADED 
+                                            <button onClick={() => setPdfPath(null)} className="ml-2 text-slate-400 hover:text-rose-500 transition-colors uppercase">[Change File]</button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* KOLOM KANAN: UPLOAD (Hanya muncul kalau belum ada file) */}
+                                {!pdfPath && (
+                                    <div className="h-full flex flex-col justify-center animate-in fade-in zoom-in-95 duration-300">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-wider text-center">Master Document Source</label>
+                                        <div className="flex-1 flex items-center justify-center border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/30 p-4 transition-all hover:border-indigo-100">
+                                            <button 
+                                                onClick={() => fileInputRef.current.click()} 
+                                                className="w-full h-full min-h-[100px] bg-white border border-slate-200 text-slate-600 px-6 py-4 rounded-xl font-bold text-sm shadow-sm hover:shadow-md hover:border-indigo-400 hover:text-indigo-600 transition-all flex flex-col items-center justify-center gap-2 group"
+                                            >
+                                                <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-indigo-50 transition-colors">
+                                                    <UploadIcon />
+                                                </div>
+                                                <span>{converting ? "Processing..." : "Upload Master PDF"}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
                         </div>
                         {drawMode !== DRAW.NONE && <div className="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-xs flex justify-between items-center shadow-lg animate-pulse"><span>{dmLabel}</span> <button onClick={() => setDrawMode(DRAW.NONE)} className="opacity-60 hover:opacity-100">✕ CANCEL</button></div>}

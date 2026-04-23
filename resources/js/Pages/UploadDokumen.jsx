@@ -53,8 +53,8 @@ function formatBytes(bytes) {
 
 // ── Status Badge ───────────────────────────────────────────────
 const STATUS_MAP = {
-    queued:          { label: "Antrian",       cls: "bg-slate-100 text-slate-600",     dot: "bg-slate-400" },
-    processing:      { label: "Diproses",      cls: "bg-blue-50 text-blue-600",        dot: "bg-blue-500 animate-pulse" },
+    queued:          { label: "Antrian",       cls: "bg-blue-50 text-blue-600",        dot: "bg-blue-400" },
+    processing:      { label: "Diproses",      cls: "bg-indigo-50 text-indigo-700 border-indigo-100", dot: "bg-indigo-500 animate-pulse" },
     need_validation: { label: "Perlu Validasi",cls: "bg-amber-50 text-amber-600",      dot: "bg-amber-500" },
     completed:       { label: "Selesai",       cls: "bg-emerald-50 text-emerald-600",  dot: "bg-emerald-500" },
     failed:          { label: "Gagal",         cls: "bg-red-50 text-red-600",          dot: "bg-red-500" },
@@ -133,7 +133,10 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
     const [files, setFiles]   = useState([]);
     const [dragging, setDragging] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
     const inputRef = useRef(null);
+
 
     // ── Auto-Refresh Logic (Polling) ──
     // Karena n8n proses di background, kita cek setiap 4 detik 
@@ -183,8 +186,20 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
     const onFileInput = (e) => addFiles(e.target.files);
 
     const handleDelete = (id) => {
-        if (!confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) return;
-        router.delete(`/dokumen/${id}`);
+        setConfirmModal({ isOpen: true, id });
+    };
+
+    const confirmDelete = () => {
+        const id = confirmModal.id;
+        setConfirmModal({ isOpen: false, id: null });
+        
+        setDeletingId(id);
+        router.delete(`/dokumen/${id}`, {
+            onSuccess: () => {
+                setDeletingId(null);
+            },
+            onFinish: () => setDeletingId(null)
+        });
     };
 
     const handleSubmit = (e) => {
@@ -203,13 +218,36 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
         <AuthenticatedLayout header="Upload Dokumen">
             <Head title="Upload Dokumen" />
 
-            <div className="max-w-4xl mx-auto space-y-6">
+            <div className="max-w-4xl mx-auto space-y-6 relative">
 
-                {/* Flash */}
-                {flash.success && (
-                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
-                        <CheckIcon />
-                        {flash.success}
+                {/* ── Custom Confirmation Modal ── */}
+                {confirmModal.isOpen && (
+                    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-300">
+                            <div className="p-8 text-center">
+                                <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                                    <TrashIcon />
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-2">Hapus Dokumen?</h3>
+                                <p className="text-slate-400 text-sm leading-relaxed">
+                                    Tindakan ini tidak dapat dibatalkan. File dan data ekstraksi akan dihapus permanen.
+                                </p>
+                            </div>
+                            <div className="flex border-t border-slate-800">
+                                <button 
+                                    onClick={() => setConfirmModal({ isOpen: false, id: null })}
+                                    className="flex-1 px-6 py-4 text-sm font-semibold text-slate-400 hover:bg-slate-800 transition border-r border-slate-800"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    onClick={confirmDelete}
+                                    className="flex-1 px-6 py-4 text-sm font-semibold text-red-500 hover:bg-red-500 hover:text-white transition"
+                                >
+                                    Ya, Hapus
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 

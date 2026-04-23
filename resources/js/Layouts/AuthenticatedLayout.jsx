@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
+import Toast from "../Components/Toast";
 
 // ─────────────────────────────────────────────
 // ICONS
@@ -388,6 +389,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     </main>
                 </div>
             </div>
+            <Toast />
         </>
     );
 }

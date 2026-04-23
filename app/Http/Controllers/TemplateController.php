@@ -224,6 +224,31 @@ class TemplateController extends Controller
     }
 
     /**
+     * API: Auto-Detect Header dari PDF Master.
+     * Digunakan untuk menyarankan 'Identifier Text' secara otomatis di Editor.
+     */
+    public function detectHeader(Request $request)
+    {
+        $request->validate([
+            'file_path' => 'required|string',
+        ]);
+
+        try {
+            $response = Http::timeout(20)->post(config('services.python_engine.url') . '/detect-header', [
+                'file_path' => $request->file_path,
+            ]);
+
+            if ($response->failed()) {
+                return response()->json(['error' => 'Gagal mendeteksi header'], 500);
+            }
+
+            return response()->json($response->json());
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 503);
+        }
+    }
+
+    /**
      * API: Simpan konfigurasi template ke database.
      * Dipanggil dari MasterTemplate.jsx setelah Admin selesai gambar kotak.
      *
@@ -399,7 +424,7 @@ class TemplateController extends Controller
      */
     public function list()
     {
-        $templates = DocumentTemplate::where('is_active', true)
+        $templates = DocumentTemplate::whereRaw('is_active = true')
             ->orderBy('type_name')
             ->get(['id', 'type_name', 'template_code', 'identifier_text']);
 
@@ -427,8 +452,8 @@ class TemplateController extends Controller
      */
     public function listApi()
     {
-        $templates = DocumentTemplate::where('is_active', true)
-            ->get(['id', 'type_name', 'template_code', 'identifier_text']);
+        $templates = DocumentTemplate::whereRaw('is_active = true')
+            ->get(['id', 'type_name', 'template_code', 'identifier_text', 'mapping_config']);
 
         return response()->json([
             'success' => true,

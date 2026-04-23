@@ -76,3 +76,94 @@ def predict_text(image_path: str, box: dict = None) -> str:
         print(f"[OCR] Exception: {str(e)}")
         logger.error(f"Error during OCR prediction: {str(e)}")
         return ""
+
+def read_header(image_path: str) -> dict:
+    """
+    Membaca Header secara cerdas:
+    1. Title: Teks besar di tengah.
+    2. Doc Number: Teks yang diawali 'No. Dok'.
+    """
+    try:
+        img = cv2.imread(image_path)
+        if img is None:
+            return {"title": "", "doc_number": None}
+        
+        h_img, w_img = img.shape[:2]
+        ocr_engine = get_ocr_instance()
+        result = ocr_engine.ocr(img, cls=True)
+        
+        if not result or not result[0]:
+            return {"title": "", "doc_number": None}
+            
+        header_candidates = []
+        for line in result[0]:
+            box, (text, conf) = line
+            y_coord = box[0][1]
+            y_ratio = y_coord / h_img
+            
+            # Kita pake area sedikit lebih luas (20%) buat nyari label No Dokumen
+            if y_ratio < 0.20:
+                box_height = box[2][1] - box[0][1]
+                x_center = ((box[0][0] + box[1][0]) / 2) / w_img
+                header_candidates.append({
+                    "text": text,
+                    "height": box_height,
+                    "x_center": x_center,
+                    "y": y_coord
+                })
+
+        if not header_candidates:
+            return {"title": "", "doc_number": None}
+
+        # --- 1. EKSTRAK JUDUL (Visual Center & Vertical Cluster) ---
+        # Cari yang skor "Centeredness" paling tinggi
+        primary = max(header_candidates, key=lambda c: c['height'] / (abs(c['x_center'] - 0.5) + 0.1))
+        target_x_center = primary['x_center']
+        max_h = primary['height']
+        
+        # Ambil semua yang sejajar vertikal sama yang paling gede
+        potential_title_lines = [c for c in header_candidates 
+                                if abs(c['x_center'] - target_x_center) < 0.15 
+                                and c['height'] >= (max_h * 0.6)]
+        
+        # Urutkan berdasarkan Y (dari atas ke bawah)
+        potential_title_lines.sort(key=lambda c: c['y'])
+        
+        title_parts = []
+        last_y = None
+        for c in potential_title_lines:
+            if last_y is not None:
+                # Jika jarak antar baris terlalu jauh (gap > 1.5x tinggi font)
+                # Berarti sudah keluar dari kluster judul
+                if (c['y'] - last_y) > (c['height'] * 1.5):
+                    break
+            
+            title_parts.append(c['text'])
+            # Update last_y ke bagian bawah kotak teks ini
+            last_y = c['y'] + c['height']
+
+        title = " ".join(title_parts).strip()
+
+        # --- 2. EKSTRAK NO DOKUMEN ---
+        doc_number = None
+        for c in header_candidates:
+            t = c['text'].upper().replace(" ", "")
+            if "NO.DOK" in t:
+                raw = c['text']
+                if ":" in raw:
+                    doc_number = raw.split(":", 1)[1].strip()
+                elif "Dok." in raw:
+                    doc_number = raw.split("Dok.", 1)[1].strip()
+                else:
+                    doc_number = raw.replace("No. Dok", "").replace("No.Dok", "").strip()
+                break
+
+        logger.info(f"[OCR] Analysis Result -> Title: '{title}', DocNum: '{doc_number}'")
+        return {
+            "title": title,
+            "doc_number": doc_number
+        }
+
+    except Exception as e:
+        logger.error(f"Error in read_header: {str(e)}")
+        return {"title": "", "doc_number": None}

@@ -22,7 +22,7 @@ class DocumentController extends Controller
      */
     public function create()
     {
-        $templates = DocumentTemplate::where('is_active', true)
+        $templates = DocumentTemplate::whereRaw('is_active = true')
             ->orderBy('type_name')
             ->get(['id', 'type_name', 'template_code']);
 
@@ -97,7 +97,7 @@ class DocumentController extends Controller
             $count++;
         }
 
-        return back()->with('success', "{$count} dokumen berhasil diupload. n8n akan segera memprosesnya.");
+        return back()->with('success', 'Dokumen berhasil diunggah.');
     }
 
     /**
@@ -115,10 +115,21 @@ class DocumentController extends Controller
             Storage::disk('public')->delete($document->file_path);
         }
 
-        // 3. Hapus record dari database
+        // 3. Pemicu n8n buat hapus baris di DB (Centralized logic)
+        try {
+            Http::post(env('N8N_WEBHOOK_URL'), [
+                'action'      => 'delete',
+                'document_id' => $document->id,
+                'user_id'     => Auth::id(),
+            ]);
+        } catch (\Exception $e) {
+            // Log error if needed
+        }
+
+        // 4. Hapus di lokal biar UI langsung update (Fail-safe)
         $document->delete();
 
-        return back()->with('success', "Dokumen berhasil dihapus.");
+        return back()->with('success', 'Berhasil dihapus.');
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -137,17 +148,18 @@ class DocumentController extends Controller
      */
     public function createFromN8n(Request $request)
     {
-        // Paksa konversi tipe data sebelum validasi
+        // Paksa konversi tipe data & alias path
         $request->merge([
-            'user_id'     => intval($request->user_id),
-            'template_id' => $request->template_id ? intval($request->template_id) : null,
-            'status'      => $request->status ?: 'queued',
+            'user_id'      => intval($request->user_id),
+            'template_id'  => $request->template_id ? intval($request->template_id) : null,
+            'status'       => $request->status ?: 'queued',
+            // Jika n8n kirim file_path (relatif), kita pake itu buat storage_path
+            'storage_path' => $request->storage_path ?: $request->file_path,
         ]);
 
         $validated = $request->validate([
             'user_id'       => 'required|integer|exists:users,id',
-            'file_path'     => 'required|string',
-            'storage_path'  => 'required|string',
+            'storage_path'  => 'required|string', // Lokasi relatif
             'template_id'   => 'nullable|integer|exists:document_templates,id',
             'original_name' => 'required|string|max:255',
             'status'        => 'required|in:queued,processing',
@@ -193,16 +205,32 @@ class DocumentController extends Controller
             'confidence_score'      => 'nullable|numeric|min:0|max:100',
             'processing_started_at' => 'nullable|date',
             'processing_ended_at'   => 'nullable|date',
+            'error'                 => 'nullable|string', // Tambahan buat Error Handler
+            'tp'                    => 'nullable|integer',
+            'fp'                    => 'nullable|integer',
+            'fn'                    => 'nullable|integer',
         ]);
 
-        $document->update([
+        $updateData = [
             'status'                => $validated['status'],
             'template_id'           => $validated['template_id'] ?? $document->template_id,
             'extracted_data'        => $validated['extracted_data'] ?? $document->extracted_data,
             'confidence_score'      => $validated['confidence_score'] ?? $document->confidence_score,
             'processing_started_at' => $validated['processing_started_at'] ?? $document->processing_started_at,
             'processing_ended_at'   => $validated['processing_ended_at'] ?? $document->processing_ended_at,
-        ]);
+            'tp_count'              => $validated['tp'] ?? $document->tp_count,
+            'fp_count'              => $validated['fp'] ?? $document->fp_count,
+            'fn_count'              => $validated['fn'] ?? $document->fn_count,
+        ];
+
+        // Simpan pesan error ke metadata kalau ada
+        if (isset($validated['error'])) {
+            $currentMetadata = $document->metadata ?? [];
+            $currentMetadata['last_error'] = $validated['error'];
+            $updateData['metadata'] = $currentMetadata;
+        }
+
+        $document->update($updateData);
 
         return response()->json([
             'success' => true,
