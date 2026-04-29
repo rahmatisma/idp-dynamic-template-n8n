@@ -11,9 +11,13 @@ from rapidfuzz import fuzz
 logger = logging.getLogger(__name__)
 
 
-def find_anchor(ocr_results: list, anchor_text: str, threshold: int = 75) -> dict | None:
+def find_anchor(ocr_results: list, anchor_text: str, threshold: int = 65) -> dict | None:
     """
     Cari posisi anchor_text dalam hasil global OCR menggunakan fuzzy matching.
+
+    Strategi dua lapis:
+      - partial_ratio     : tahan terhadap teks yang lebih panjang dari anchor
+      - token_sort_ratio  : tahan terhadap urutan kata yang berbeda
 
     Kalau ada banyak match → ambil yang:
       1. Skor tertinggi
@@ -21,8 +25,8 @@ def find_anchor(ocr_results: list, anchor_text: str, threshold: int = 75) -> dic
 
     Args:
         ocr_results : list of dict [{text, x, y, w, h, confidence}]
-        anchor_text : kata kunci yang dicari (misal: "Location")
-        threshold   : minimum fuzzy score (0–100), default 75
+        anchor_text : kata kunci yang dicari (misal: "Location", "Date/time")
+        threshold   : minimum fuzzy score (0–100), default 65
 
     Returns:
         dict {text, x, y, w, h, score} atau None kalau tidak ketemu
@@ -41,17 +45,24 @@ def find_anchor(ocr_results: list, anchor_text: str, threshold: int = 75) -> dic
         if not item_text:
             continue
 
-        score = fuzz.partial_ratio(anchor_lower, item_text.lower())
+        item_lower = item_text.lower()
+
+        # Strategi dua lapis: partial match + token sort (robust vs typo & urutan)
+        score = max(
+            fuzz.partial_ratio(anchor_lower, item_lower),
+            fuzz.token_sort_ratio(anchor_lower, item_lower),
+        )
+
         if score >= threshold:
             matches.append({**item, 'score': score})
 
     if not matches:
-        logger.debug(f"[Mapper] Anchor '{anchor_text}' tidak ketemu (threshold={threshold})")
+        logger.warning(f"[Mapper] Anchor '{anchor_text}' tidak ketemu (threshold={threshold})")
         return None
 
     # Skor tertinggi dulu, kalau sama → pilih yang paling atas (Y terkecil)
     best = sorted(matches, key=lambda x: (-x['score'], x['y']))[0]
-    logger.debug(f"[Mapper] Anchor '{anchor_text}' ketemu di ({best['x']},{best['y']}) score={best['score']}")
+    logger.info(f"[Mapper] Anchor '{anchor_text}' → '{best['text']}' di ({best['x']},{best['y']}) score={best['score']}")
     return best
 
 

@@ -40,24 +40,34 @@ def preprocess_image(image_path: str) -> str:
             logger.warning(f"[Preprocessor] Gagal baca gambar: {image_path}. Pakai gambar asli.")
             return image_path
 
+        p = Path(image_path)
+
         # ── Step 1: Grayscale ─────────────────────────────────────
         # Kurangi kompleksitas channel warna, OCR lebih fokus ke teks
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        cv2.imwrite(str(p.parent / f"{p.stem}_1_grayscale{p.suffix}"), gray)
 
         # ── Step 2: Denoise ───────────────────────────────────────
         # fastNlMeansDenoising: efektif untuk noise grain dari scanner
         # h=10: kekuatan filter (lebih tinggi = lebih halus tapi bisa blur)
         denoised = cv2.fastNlMeansDenoising(gray, h=10, templateWindowSize=7, searchWindowSize=21)
+        cv2.imwrite(str(p.parent / f"{p.stem}_2_denoised{p.suffix}"), denoised)
 
-        # ── Step 3: CLAHE (Contrast Limited Adaptive Histogram Equalization)
+        # ── Step 3: Gaussian Blur ─────────────────────────────────
+        # Menghaluskan gambar untuk menghilangkan bintik halus (noise)
+        # kernel (3,3) memberikan blur tipis yang pas untuk dokumen
+        blurred = cv2.GaussianBlur(denoised, (3, 3), 0)
+        cv2.imwrite(str(p.parent / f"{p.stem}_3_blurred{p.suffix}"), blurred)
+
+        # ── Step 4: CLAHE (Contrast Limited Adaptive Histogram Equalization)
         # Tingkatkan kontras secara lokal — bagian gelap tetap terbaca
         # clipLimit=2.0: batas amplifikasi kontras (cegah over-expose)
         # tileGridSize=(8,8): ukuran grid adaptif
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        enhanced = clahe.apply(denoised)
+        enhanced = clahe.apply(blurred)
+        cv2.imwrite(str(p.parent / f"{p.stem}_4_clahe{p.suffix}"), enhanced)
 
-        # ── Simpan hasil ──────────────────────────────────────────
-        p = Path(image_path)
+        # ── Simpan hasil akhir (tetap pakai _pre agar pipeline sistem tidak rusak) ──
         output_path = str(p.parent / (p.stem + "_pre" + p.suffix))
         cv2.imwrite(output_path, enhanced)
 

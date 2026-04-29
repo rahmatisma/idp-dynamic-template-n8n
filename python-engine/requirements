@@ -2,6 +2,7 @@
 # 1. WEB FRAMEWORK & CONFIGURATION
 # ==========================================
 Flask>=3.0.0
+Flask-Cors>=4.0.0
 Werkzeug>=3.0.0
 requests>=2.31.0
 python-dotenv>=1.0.0
@@ -24,7 +25,8 @@ torchvision==0.17.1
 transformers==4.38.2
 
 # ==========================================
-# 4. EVALUATION METRICS (TUGAS AKHIR)
+# 4. EVALUATION METRICS & UTILITIES
 # ==========================================
 Levenshtein>=0.25.0
 scikit-learn>=1.4.1
+rapidfuzz>=3.8.0

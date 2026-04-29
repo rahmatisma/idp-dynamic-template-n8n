@@ -252,8 +252,8 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         fields_config  = mapping_config.get('fields', [])
         tables_config  = mapping_config.get('tables', [])
 
-        # 3. Ekstrak field header (Anchor-based, TANPA OCR ulang)
-        fields_data = extract_fields(ocr_results, fields_config)
+        # 3. Ekstrak field header — printed via global OCR, handwritten via TrOCR crop
+        fields_data = extract_fields(ocr_results, fields_config, image_path=clean_img_path)
 
         # 4. Ekstrak tiap tabel (group_by_y + split_by_x, TANPA OCR ulang)
         tables_data = {}
@@ -261,7 +261,7 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
             anchor_texts = table_cfg.get('anchor', {}).get('texts', [])
             anchor_text  = anchor_texts[0] if anchor_texts else ''
             anchor       = find_anchor(ocr_results, anchor_text) if anchor_text else None
-            rows         = extract_table(ocr_results, table_cfg, anchor)
+            rows         = extract_table(ocr_results, table_cfg, anchor, image_path=clean_img_path)
             tables_data[table_cfg.get('json_key', table_cfg.get('table_name'))] = rows
 
         # 5. Susun output terstruktur via json_builder

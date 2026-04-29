@@ -14,6 +14,7 @@ from flask import Blueprint, request, jsonify
 from pathlib import Path
 from app.services.pdf_converter import convert_if_not_exists
 from app.services.ocr_engine import extract_document
+from app.services.processor import HybridProcessor
 from config.settings import INPUT_DIR
 
 logger = logging.getLogger(__name__)
@@ -199,15 +200,15 @@ def process():
         }), 404
 
     try:
-        # Jalankan pipeline OCR lengkap
-        result = extract_document(
+        # Jalankan pipeline OCR hybrid + evaluasi TP/FP/FN via HybridProcessor
+        result = HybridProcessor.process(
             pdf_path=str(pdf_path),
             template_code=template_code,
             document_id=document_id,
             all_templates=all_templates,
         )
 
-        # Kembalikan seluruh hasil (termasuk array pages & total_pages)
+        # Kembalikan seluruh hasil (termasuk array pages, total_pages, TP/FP/FN)
         return jsonify(result)
 
     except FileNotFoundError as e:
