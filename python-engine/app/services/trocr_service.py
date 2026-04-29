@@ -77,23 +77,32 @@ def _load_trocr():
     _trocr_loading = True  # Set flag: sedang loading, jangan blocking request
 
     try:
+        import torch
         from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
-        print("[TrOCR] ⏳ Sedang memuat model ke RAM (0/2)...")
+        # Deteksi otomatis: pakai GPU (CUDA) jika ada, kalau tidak fallback ke CPU
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        global _trocr_device
+        _trocr_device = device
+
+        print(f"[TrOCR] ⏳ Sedang memuat model ke RAM (0/2)...")
         _trocr_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-large-handwritten")
         
-        print("[TrOCR] ⏳ Sedang memuat weights model (1/2)...")
-        _trocr_model     = VisionEncoderDecoderModel.from_pretrained(
+        print(f"[TrOCR] ⏳ Sedang memuat weights model ke {device.type.upper()} (1/2)...")
+        _trocr_model = VisionEncoderDecoderModel.from_pretrained(
             "microsoft/trocr-large-handwritten",
             use_safetensors=True
         )
+        
+        # Pindahkan model ke GPU/CPU
+        _trocr_model.to(device)
 
         print("[TrOCR] ⏳ Finalisasi model (2/2)...")
         _trocr_model.eval()
         _trocr_ready   = True
         _trocr_loading = False
-        print("[TrOCR] ✅ MODEL SIAP! Sekarang bisa baca tulisan tangan.")
-        logger.info("[TrOCR] ✅ Model siap digunakan! Field handwritten akan dibaca TrOCR.")
+        print(f"[TrOCR] ✅ MODEL SIAP di {device.type.upper()}! Sekarang bisa baca tulisan tangan.")
+        logger.info(f"[TrOCR] ✅ Model siap digunakan di {device.type.upper()}! Field handwritten akan dibaca TrOCR.")
 
     except Exception as e:
         _trocr_failed  = True
@@ -149,6 +158,9 @@ def read_handwritten(image_crop) -> str:
                 images=image_crop,
                 return_tensors="pt"
             ).pixel_values
+            
+            # Pindahkan input gambar ke device yang sama dengan model (GPU/CPU)
+            pixel_values = pixel_values.to(_trocr_device)
 
             # Generate teks
             generated_ids = _trocr_model.generate(
