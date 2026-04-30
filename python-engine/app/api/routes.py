@@ -78,10 +78,31 @@ def convert_pdf():
         if not file_path:
             return jsonify({"error": "file_path wajib diisi"}), 400
 
-        pdf_path = Path(file_path)
+        file_path = str(file_path).strip()
+
+        # Resolusi Path Otomatis (Supabase vs Lokal)
+        from config.settings import BASE_DIR
+        if file_path.lower().startswith("http"):
+            filename = Path(file_path).name
+            pdf_path = INPUT_DIR / f"temp_{document_id}_{filename}"
+            if not pdf_path.exists():
+                try:
+                    from app.services.supabase_storage import download_from_supabase
+                    download_from_supabase(file_path, str(pdf_path))
+                except Exception as e:
+                    logger.error(f"[Supabase] Gagal download: {str(e)}")
+                    return jsonify({"error": f"Gagal mendownload dari Supabase: {str(e)}"}), 500
+        else:
+            # Fallback lokal untuk testing atau Laragon
+            pdf_path = Path(file_path)
+            if not pdf_path.exists():
+                 pdf_path = BASE_DIR.parent / "storage" / "app" / "public" / file_path
+
         if not pdf_path.exists():
+            logger.error(f"[Convert] File tidak ditemukan di path: {pdf_path}")
             return jsonify({"error": f"File tidak ditemukan: {file_path}"}), 404
 
+        # ── Jalankan Konversi ──
         try:
             pages = convert_if_not_exists(str(pdf_path))
             page_paths = [str(p) for p in pages]
@@ -91,10 +112,11 @@ def convert_pdf():
                 "document_id": document_id,
                 "total_pages": len(pages),
                 "pages":       page_paths,
-                # Halaman pertama untuk preview di canvas template editor
+                # Halaman pertama untuk preview
                 "image_url":   f"http://localhost:5000/static/pages/{pdf_path.stem}/page_1.png",
             })
         except Exception as e:
+            logger.error(f"[Convert] Gagal konversi: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
     # ── Kasus 2: Dipanggil Laravel TemplateController via form-data ──
@@ -173,35 +195,39 @@ def process():
     document_id   = data.get("document_id")
     file_path     = data.get("file_path")
     template_code = data.get("template_code")
-    all_templates = data.get("all_templates", []) # Data baru dari n8n Step 5
+    
+    # Sanitasi template_code dari n8n (seringkali mengirim string 'null' atau 'undefined')
+    if template_code in ["", "null", "undefined", "None", "[object Object]"] or not isinstance(template_code, str):
+        template_code = None
+        
+    all_templates = data.get("all_templates", [])
 
-    # Validasi input wajib
     if not file_path:
         return jsonify({"status": "failed", "error": "file_path wajib diisi"}), 400
-    
-    # template_code bersifat opsional (jika kosong -> Auto-Detect)
 
-    # Resolusi Path Otomatis (Pro Level sesuai diskusi)
-    # Jika n8n kirim "documents/abc.pdf", kita arahkan ke storage Laravel
+    # Resolusi Path Otomatis (Supabase vs Lokal)
     from config.settings import BASE_DIR
-    
-    input_path = Path(file_path)
-    if not input_path.is_absolute():
-        # Path relatif dari Laravel (naik satu tingkat dari python-engine ke root project)
-        pdf_path = BASE_DIR.parent / "storage" / "app" / "public" / file_path
+    if file_path.startswith("http://") or file_path.startswith("https://"):
+        filename = Path(file_path).name
+        pdf_path = INPUT_DIR / f"temp_{document_id}_{filename}"
+        if not pdf_path.exists():
+            try:
+                from app.services.supabase_storage import download_from_supabase
+                download_from_supabase(file_path, str(pdf_path))
+            except Exception as e:
+                return jsonify({"error": f"Gagal mendownload dari Supabase: {str(e)}"}), 500
     else:
-        pdf_path = input_path
+        # Fallback lokal untuk testing atau Laragon
+        pdf_path = Path(file_path)
+        if not pdf_path.exists():
+             pdf_path = BASE_DIR.parent / "storage" / "app" / "public" / file_path
 
     if not pdf_path.exists():
-        return jsonify({
-            "status":      "failed",
-            "document_id": document_id,
-            "error":       f"File PDF tidak ditemukan: {pdf_path}"
-        }), 404
+        return jsonify({"status": "failed", "error": f"File PDF tidak ditemukan: {pdf_path}"}), 404
 
     try:
-        # Jalankan pipeline OCR hybrid + evaluasi TP/FP/FN via HybridProcessor
-        result = HybridProcessor.process(
+        from app.services.ocr_engine import extract_document
+        result = extract_document(
             pdf_path=str(pdf_path),
             template_code=template_code,
             document_id=document_id,

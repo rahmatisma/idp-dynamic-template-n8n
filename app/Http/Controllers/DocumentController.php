@@ -93,27 +93,45 @@ class DocumentController extends Controller
         ]);
 
         $count = 0;
+        $supabaseUrl = config('services.supabase.url');
+        $supabaseKey = config('services.supabase.anon_key');
 
         foreach ($request->file('documents') as $file) {
-            // 1. Simpan PDF ke storage lokal (public/documents)
-            $filePath = $file->store('documents', 'public');
+            // 1. Simpan PDF ke Supabase Storage (idp_documents/documents/)
+            $filename = uniqid() . '_' . $file->getClientOriginalName();
+            $filePath = 'documents/' . $filename;
+            
+            $fileContent = file_get_contents($file->getRealPath());
+            $response = Http::timeout(60)
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $supabaseKey,
+                    'apikey'        => $supabaseKey,
+                ])
+                ->withBody($fileContent, $file->getMimeType())
+                ->post("$supabaseUrl/storage/v1/object/idp_documents/$filePath");
 
-            // 2. TRIGGER n8n — n8n yang akan INSERT ke DB (Sesuai request lu)
-            try {
-                $n8nUrl = config('services.n8n.webhook_url');
-                if ($n8nUrl) {
-                    Http::timeout(5)->post($n8nUrl, [
-                        'user_id'       => Auth::id(), // WAJIB ada buat n8n INSERT
-                        'original_name' => $file->getClientOriginalName(),
-                        'file_path'     => Storage::disk('public')->path($filePath),
-                        'storage_path'  => $filePath,
-                        'status'        => 'queued',
-                        'notes'         => $request->notes,
-                        'file_size'     => $file->getSize(),
-                    ]);
+            if ($response->successful()) {
+                $publicUrl = "$supabaseUrl/storage/v1/object/public/idp_documents/$filePath";
+
+                // 2. TRIGGER n8n — n8n yang akan INSERT ke DB
+                try {
+                    $n8nUrl = config('services.n8n.webhook_url');
+                    if ($n8nUrl) {
+                        Http::timeout(5)->post($n8nUrl, [
+                            'user_id'       => Auth::id(), // WAJIB ada buat n8n INSERT
+                            'original_name' => $file->getClientOriginalName(),
+                            'file_path'     => $publicUrl, // MENGIRIM URL SUPABASE KE N8N
+                            'storage_path'  => $publicUrl,
+                            'status'        => 'queued',
+                            'notes'         => $request->notes,
+                            'file_size'     => $file->getSize(),
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning("Gagal trigger n8n untuk file '{$file->getClientOriginalName()}': " . $e->getMessage());
                 }
-            } catch (\Exception $e) {
-                \Log::warning("Gagal trigger n8n untuk file '{$file->getClientOriginalName()}': " . $e->getMessage());
+            } else {
+                \Log::error("Gagal upload PDF ke Supabase: " . $response->body());
             }
 
             $count++;

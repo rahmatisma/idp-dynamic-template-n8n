@@ -46,4 +46,10 @@ return [
         'template_webhook_url' => env('N8N_TEMPLATE_WEBHOOK_URL', 'http://localhost:5678/webhook/template-sync'),
     ],
 
+    // ── Supabase ──────────────────────────────────────────────
+    'supabase' => [
+        'url'      => env('VITE_SUPABASE_URL'),
+        'anon_key' => env('VITE_SUPABASE_ANON_KEY'),
+    ],
+
 ];

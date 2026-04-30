@@ -101,8 +101,8 @@ def read_header(image_path: str) -> dict:
             y_coord = box[0][1]
             y_ratio = y_coord / h_img
             
-            # Area scan 20% (Fokus area header atas)
-            if y_ratio < 0.20:
+            # Area scan 30% (Fokus area header atas, diperbesar karena kadang margin besar)
+            if y_ratio < 0.30:
                 box_height = box[2][1] - box[0][1]
                 x_center = ((box[0][0] + box[1][0]) / 2) / w_img
                 header_candidates.append({

@@ -70,9 +70,13 @@ CROP_MARGIN = 8
 FLASK_PORT = 5000
 FLASK_DEBUG = True  # Ganti False saat production
 
-# Alamat Laravel untuk ambil daftar template aktif
+# Alamat Laravel untuk ambil daftar template aktif (legacy, tidak dipakai Colab)
 import os
 LARAVEL_API_URL = os.getenv("LARAVEL_API_URL", "http://localhost:8000")
+
+# ─── Supabase Settings ────────────────────────────────────────────
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
 
 # ─── Auto-create folders saat settings diimport ──────────────────

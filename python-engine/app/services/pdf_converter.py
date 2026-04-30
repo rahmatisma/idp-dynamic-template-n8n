@@ -89,11 +89,16 @@ def get_existing_pages(doc_name: str) -> list[Path]:
     if not output_dir.exists():
         return []
 
-    # Ambil semua PNG dan urutkan berdasarkan nomor halaman
-    pages = sorted(
-        output_dir.glob("page_*.png"),
-        key=lambda p: int(p.stem.split("_")[1])
-    )
+    # Ambil semua PNG dengan format page_X.png (dimana X hanya angka)
+    import re
+    pages = []
+    for p in output_dir.glob("page_*.png"):
+        match = re.match(r"^page_(\d+)\.png$", p.name)
+        if match:
+            pages.append(p)
+            
+    # Urutkan berdasarkan angka halaman
+    pages = sorted(pages, key=lambda p: int(re.match(r"^page_(\d+)\.png$", p.name).group(1)))
 
     return pages
 

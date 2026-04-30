@@ -36,31 +36,38 @@ from config.settings import LARAVEL_API_URL
 # ══════════════════════════════════════════════════════════════
 def fetch_active_templates():
     """
-    Mengambil daftar template aktif dari API Laravel secara mandiri.
+    Mengambil daftar template aktif langsung dari Supabase.
+    Wajib pakai Supabase karena Colab tidak bisa akses Laravel lokal.
     """
-    url = f"{LARAVEL_API_URL}/api/templates"
-    
+    from config.settings import SUPABASE_URL, SUPABASE_KEY
+
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        logger.warning("[Fetcher] Kredensial Supabase tidak dikonfigurasi di .env!")
+        return []
+
+    url = f"{SUPABASE_URL}/rest/v1/document_templates?is_active=eq.true&select=*"
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+    }
+
     try:
-        logger.info(f"[Fetcher] Target: {url}")
-        # verify=False buat lingkungan lokal yang pake https/self-signed cert
-        response = requests.get(url, timeout=5, verify=False)
-        
+        logger.info(f"[Fetcher] Mengambil template dari Supabase...")
+        response = requests.get(url, headers=headers, timeout=10)
+
         if response.status_code == 200:
-            data = response.json()
-            templates = data.get('data', [])
-            logger.info(f"[Fetcher] Berhasil! Dapat {len(templates)} template.")
-            if len(templates) > 0:
-                for t in templates:
-                    logger.info(f"  - Template: {t.get('type_name')} | ID: {t.get('identifier_text')}")
-            else:
-                logger.warning("[Fetcher] Laravel kasih data 200 OK tapi list template-nya KOSONG.")
+            templates = response.json()
+            logger.info(f"[Fetcher] ✅ Berhasil! Dapat {len(templates)} template dari Supabase.")
+            for t in templates:
+                logger.info(f"  - {t.get('type_name')} | identifier: '{t.get('identifier_text')}'")
             return templates
         else:
-            logger.error(f"[Fetcher] Gagal! Laravel jawab status {response.status_code}")
+            logger.error(f"[Fetcher] ❌ Supabase jawab status {response.status_code}: {response.text[:100]}")
             return []
     except Exception as e:
-        logger.error(f"[Fetcher] ERROR KONEKSI: Tidak bisa nyambung ke {url}. Pesan: {str(e)}")
+        logger.error(f"[Fetcher] ❌ ERROR KONEKSI ke Supabase: {str(e)}")
         return []
+
 
 # ══════════════════════════════════════════════════════════════
 # TAHAP 2: GLOBAL OCR SCAN (1x per halaman)
@@ -113,8 +120,10 @@ def detect_template(image_path: str, all_templates: list) -> dict:
 
     # Gabungkan Title dan Doc Number untuk pencarian yang lebih luas
     title = header_data.get('title', '')
-    doc_no = header_data.get('doc_number', '')
-    searchable_text = f"{title} {doc_no}".strip()
+    doc_no = header_data.get('doc_number')
+    
+    doc_no_str = doc_no if doc_no else ""
+    searchable_text = f"{title} {doc_no_str}".strip()
     
     if not searchable_text:
         return {"template": None, "score": 0, "status": "unknown", "header": ""}
@@ -212,8 +221,14 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
     logger.info(f"--- Memulai Ekstraksi ID #{document_id} ---")
 
     # JEMPUT BOLA: Jika n8n tidak kasih template, cari sendiri ke Laravel
+    # JEMPUT BOLA: Jika n8n tidak kasih template, cari sendiri ke Supabase
     if not all_templates:
         all_templates = fetch_active_templates()
+
+    # FALLBACK SAKTI: Jika di database cuma ada 1 template aktif, langsung pakai itu tanpa nebak-nebak!
+    if not template_code and all_templates and len(all_templates) == 1:
+        template_code = all_templates[0].get("template_code")
+        logger.info(f"[Auto-Bypass] Hanya ada 1 template di DB. Langsung menggunakan: {template_code}")
 
     from app.services.pdf_converter import convert_if_not_exists
     images = convert_if_not_exists(pdf_path)
@@ -226,14 +241,30 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         page_num = i + 1
         logger.info(f"[Page {page_num}] Processing...")
 
-        # Deteksi Template (Taktis)
-        match_result = detect_template(str(img_path), all_templates)
-        selected_template = match_result['template']
-        
-        if match_result['status'] == "unknown":
+        # 1. Preprocess: Bersihkan gambar dulu (CLAHE + denoise) SEBELUM DETEKSI TEMPLATE
+        from app.services.preprocessor import preprocess_image
+        clean_img_path = preprocess_image(str(img_path))
+
+        selected_template = None
+        match_result = {"status": "matched", "score": 100, "header": "Manual Bypass"}
+
+        # 2. Jika n8n/Laravel memberikan template_code secara spesifik (Manual Mode)
+        if template_code:
+            for t in all_templates:
+                if t.get("template_code") == template_code:
+                    selected_template = t
+                    break
+            if not selected_template:
+                match_result = {"status": "unknown", "score": 0, "header": "None"}
+        else:
+            # 3. Jika tidak ada template_code, gunakan Auto-Detect pada gambar yang sudah bersih
+            match_result = detect_template(str(clean_img_path), all_templates)
+            selected_template = match_result.get('template')
+
+        if not selected_template or match_result['status'] == "unknown":
             results_per_page.append({
                 "page": page_num,
-                "header": match_result['header'],
+                "header": match_result.get('header', 'None'),
                 "status": "failed",
                 "error": "Template tidak dikenali (Score < 60%)",
                 "confidence": 0
@@ -241,10 +272,9 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
             continue
 
         # ── Ekstraksi Data Nyata ──────────────────────────────────
-        # 1. Preprocess: Bersihkan gambar dulu (CLAHE + denoise)
-        clean_img_path = preprocess_image(str(img_path))
+        # (Gambar sudah dibersihkan di atas)
 
-        # 2. Global OCR: Scan gambar yang sudah bersih — SATU KALI
+        # 4. Global OCR: Scan gambar yang sudah bersih — SATU KALI
         ocr_results = run_global_ocr(clean_img_path)
 
         # 2. Ambil mapping_config dari template yang terdeteksi
