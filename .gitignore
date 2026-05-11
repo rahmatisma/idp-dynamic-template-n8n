@@ -22,3 +22,13 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Large files - jangan push ke GitHub
+python-engine/dataset.zip
+python-engine/Lintasarta/
+python-engine/storage/
+python-engine/Dataset/crops/
+python-engine/debug_crops/
+*.pt
+*.pth
+*.bin
