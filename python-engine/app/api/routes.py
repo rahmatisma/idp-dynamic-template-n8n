@@ -312,22 +312,22 @@ def predict_ocr():
     Request JSON:
         {
             "image_path": "storage/pages/namafile/page_1.png",
-            "box": { "x": 0.1, "y": 0.2, "w": 0.05, "h": 0.02 }
+            "box": { "x": 0.1, "y": 0.2, "w": 0.05, "h": 0.02 },
+            "text_type": "printed" | "handwritten"  ← opsional, default: printed
         }
     """
-    from app.services.ocr_service import predict_text
     from config.settings import BASE_DIR
 
-    data = request.get_json()
-    rel_path = data.get("image_path")
-    box = data.get("box")
+    data      = request.get_json()
+    rel_path  = data.get("image_path")
+    box       = data.get("box")
+    text_type = data.get("text_type", "printed")
 
     if not rel_path:
         return jsonify({"error": "image_path wajib diisi"}), 400
 
     # Pastikan path absolut
     if "storage/" in rel_path:
-        # Jika dikirim path relatif dari Laravel (storage/pages/...)
         full_path = BASE_DIR / rel_path
     else:
         full_path = Path(rel_path)
@@ -335,11 +335,61 @@ def predict_ocr():
     if not full_path.exists():
         return jsonify({"error": f"Gambar tidak ditemukan: {rel_path}"}), 404
 
-    text = predict_text(str(full_path), box)
+    # ── Routing ke engine yang tepat ──────────────────────────────
+    print(f"[PredictOCR] text_type diterima: '{text_type}' | image: {rel_path}")
+
+    if text_type == "handwritten":
+        # Pakai TrOCR untuk tulisan tangan
+        try:
+            import app.services.trocr_service as trocr_svc
+            from PIL import Image as PILImage
+
+            print(f"[PredictOCR] TrOCR status → ready={trocr_svc._trocr_ready} | loading={trocr_svc._trocr_loading} | failed={trocr_svc._trocr_failed}")
+
+            # Konversi box ratio → koordinat pixel absolut
+            img = PILImage.open(str(full_path))
+            img_w, img_h = img.size
+            x1 = int(box['x'] * img_w)
+            y1 = int(box['y'] * img_h)
+            x2 = int((box['x'] + box['w']) * img_w)
+            y2 = int((box['y'] + box['h']) * img_h)
+
+            crop = trocr_svc.crop_image_for_trocr(str(full_path), (x1, y1, x2, y2))
+
+            if trocr_svc._trocr_loading:
+                from app.services.ocr_service import predict_text
+                text   = predict_text(str(full_path), box)
+                engine = "PaddleOCR (TrOCR masih loading...)"
+            elif crop is not None:
+                text, _conf = trocr_svc.read_handwritten(crop)
+                engine = "TrOCR"
+                if not text and not trocr_svc._trocr_ready:
+                    from app.services.ocr_service import predict_text
+                    text   = predict_text(str(full_path), box)
+                    engine = "PaddleOCR (TrOCR belum siap)"
+            else:
+                text   = ""
+                engine = "TrOCR (crop gagal)"
+
+            print(f"[PredictOCR] Hasil TrOCR: engine={engine} | text='{text}'")
+
+        except Exception as e:
+            logger.error(f"[PredictOCR] TrOCR error: {e}")
+            from app.services.ocr_service import predict_text
+            text   = predict_text(str(full_path), box)
+            engine = f"PaddleOCR (TrOCR error: {str(e)[:50]})"
+    else:
+        # Pakai PaddleOCR untuk teks cetak (default)
+        from app.services.ocr_service import predict_text
+        text   = predict_text(str(full_path), box)
+        engine = "PaddleOCR"
+
+    print(f"[PredictOCR] Final → engine={engine} | text='{text[:30]}'")
 
     return jsonify({
         "status": "ok",
-        "text": text
+        "text":   text,
+        "engine": engine
     })
 
 

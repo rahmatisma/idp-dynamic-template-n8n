@@ -206,18 +206,26 @@ class TemplateController extends Controller
         ]);
 
         try {
-            // Python Engine butuh path relatif terhadap BASE_DIR nya
-            // Laravel kirim path dari image_path preview
-            $response = Http::timeout(15)->post(config('services.python_engine.url') . '/predict-ocr', [
-                'image_path' => $request->image_path,
-                'box'        => $request->box,
-            ]);
+            // Tentukan timeout berdasarkan text_type
+            // TrOCR di CPU butuh lebih lama dari PaddleOCR
+            $textType = $request->input('text_type', 'printed');
+            $timeout  = $textType === 'handwritten' ? 60 : 15;
+
+            $response = Http::timeout($timeout)->post(
+                config('services.python_engine.url') . '/predict-ocr', 
+                [
+                    'image_path' => $request->image_path,
+                    'box'        => $request->box,
+                    'text_type'  => $textType,
+                ]
+            );
 
             if ($response->failed()) {
                 return response()->json(['error' => 'OCR Engine error'], 500);
             }
 
             return response()->json($response->json());
+
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 503);
         }

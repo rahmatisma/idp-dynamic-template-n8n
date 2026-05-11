@@ -3,13 +3,15 @@ app/services/field_extractor.py
 ---------------------------------
 Ekstraksi field header dokumen menggunakan anchor-based coordinate mapping.
 
-Mendukung dua mode OCR berdasarkan field.type:
+Mendukung tiga mode berdasarkan field.type:
     - "printed"     → get_text_in_bbox() dari global PaddleOCR scan (cepat)
     - "handwritten" → TrOCR crop-and-read (akurat untuk tulisan tangan)
+    - "checkbox"    → pixel darkness detection (untuk kolom centang/checklist)
 
 Prinsip utama: Global OCR hanya jalan SATU KALI per halaman.
 Untuk field printed, hasilnya di-filter spasial.
 Untuk field handwritten, gambar di-crop dan dikasih ke TrOCR.
+Untuk field checkbox, tidak pakai OCR — analisis rasio piksel gelap.
 """
 
 import logging
@@ -59,7 +61,10 @@ def extract_fields(ocr_results: list, fields_config: list, image_path: str = Non
         bbox = calculate_target_box(anchor, offset_x, offset_y, width, height)
 
         # ── Step 3: Baca teks sesuai jenis tulisan ───────────────
-        if field_type == "handwritten":
+        if field_type == "checkbox":
+            value = _detect_checkbox_field(image_path, bbox, field)
+            engine_log = "Checkbox Detection"
+        elif field_type == "handwritten":
             value = _read_handwritten_field(image_path, bbox, field_name)
             if value:
                 engine_log = "TrOCR (Handwritten)"
@@ -77,6 +82,52 @@ def extract_fields(ocr_results: list, fields_config: list, image_path: str = Non
 
     logger.info(f"[FieldExtractor] Selesai. {len(result)} field diekstrak.")
     return result
+
+
+def _detect_checkbox_field(image_path: str, bbox: tuple, field_config: dict) -> str:
+    """
+    Deteksi centang berdasarkan rasio piksel gelap di area bbox.
+
+    Tidak menggunakan OCR — centang meninggalkan tinta signifikan
+    yang bisa diukur dari grayscale darkness ratio.
+
+    Returns:
+        checkbox_checked_value (default "OK")  jika dark_ratio > threshold
+        checkbox_empty_value   (default "")    jika kosong
+    """
+    if not image_path:
+        return ""
+    try:
+        from PIL import Image
+        import numpy as np
+
+        checked_val = field_config.get('checkbox_checked_value', 'OK')
+        empty_val   = field_config.get('checkbox_empty_value', '')
+        threshold   = float(field_config.get('checkbox_threshold', 0.12))
+
+        img_gray = np.array(Image.open(image_path).convert('L'))
+        img_h, img_w = img_gray.shape
+
+        x1, y1, x2, y2 = [int(v) for v in bbox]
+        x1 = max(0, x1);       y1 = max(0, y1 + 3)
+        x2 = min(img_w, x2);   y2 = min(img_h, y2 - 3)
+
+        if x2 <= x1 or y2 <= y1:
+            return empty_val
+
+        crop = img_gray[y1:y2, x1:x2]
+        dark_ratio = float((crop < 180).mean())
+        is_checked = dark_ratio > threshold
+
+        logger.info(
+            f"[FieldExtractor] Checkbox dark={dark_ratio:.3f} threshold={threshold} "
+            f"→ '{'checked' if is_checked else 'empty'}'"
+        )
+        return checked_val if is_checked else empty_val
+
+    except Exception as e:
+        logger.error(f"[FieldExtractor] Error deteksi checkbox: {e}")
+        return ""
 
 
 def _read_handwritten_field(image_path: str, bbox: tuple, field_name: str) -> str:
@@ -101,7 +152,8 @@ def _read_handwritten_field(image_path: str, bbox: tuple, field_name: str) -> st
             logger.warning(f"[FieldExtractor] Gagal crop untuk field '{field_name}'.")
             return ""
 
-        return read_handwritten(crop)
+        text, _conf = read_handwritten(crop)
+        return text
 
     except Exception as e:
         logger.error(f"[FieldExtractor] TrOCR error untuk '{field_name}': {e}")

@@ -57,13 +57,19 @@ class DocumentController extends Controller
 
         return Inertia::render('DocumentDetail', [
             'document' => [
-                'id'             => $document->id,
-                'original_name'  => $document->original_name,
-                'status'         => $document->status,
+                'id'               => $document->id,
+                'original_name'    => $document->original_name,
+                'status'           => $document->status,
                 'confidence_score' => $document->confidence_score,
-                'uploaded_at'    => $document->created_at->format('d M Y, H:i'),
-                'template_name'  => $document->template?->type_name ?? null,
-                'extracted_data' => $document->extracted_data ?? [],
+                'uploaded_at'      => $document->created_at->format('d M Y, H:i'),
+                'template_name'    => $document->template?->type_name ?? null,
+                'extracted_data'   => $document->extracted_data ?? [],
+                'tp_count'         => $document->tp_count,
+                'fp_count'         => $document->fp_count,
+                'fn_count'         => $document->fn_count,
+                'processing_ended_at' => $document->processing_ended_at
+                    ? \Carbon\Carbon::parse($document->processing_ended_at)->format('d M Y, H:i')
+                    : null,
             ],
         ]);
     }
@@ -270,19 +276,49 @@ class DocumentController extends Controller
                 'total_pages' => $validated['total_pages'] ?? count($validated['pages']),
             ];
         } elseif (!empty($validated['fields']) || !empty($validated['tables'])) {
-            // n8n flatten fields & tables (ambil dari page pertama)
+            // n8n flatten fields & tables (ambil dari page pertama).
+            // n8n tidak mengirim page.confidence secara terpisah, jadi kita inject
+            // dari confidence_score keseluruhan agar ConfidenceAlert di frontend bisa muncul.
             $extractedData = [
                 'pages' => [[
-                    'page'   => 1,
-                    'fields' => $validated['fields'] ?? [],
-                    'tables' => $validated['tables'] ?? [],
+                    'page'       => 1,
+                    'confidence' => $validated['confidence_score'] ?? null,
+                    'fields'     => $validated['fields'] ?? [],
+                    'tables'     => $validated['tables'] ?? [],
                 ]],
                 'total_pages' => 1,
             ];
         }
 
+        // ── Override status ke need_validation jika ada sel low-confidence ──
+        // n8n hanya melihat confidence_score keseluruhan (average),
+        // tapi bisa terjadi kasus: overall 85% tapi beberapa sel TrOCR hanya 40%.
+        // Laravel cek sendiri per sel untuk memastikan dokumen tidak lolos validasi.
+        $finalStatus = $validated['status'];
+        if ($finalStatus === 'completed' && !empty($extractedData['pages'])) {
+            $CELL_CONF_THRESHOLD = 75; // sel di bawah ini → wajib divalidasi
+            $hasLowConfCell = false;
+            foreach ($extractedData['pages'] as $page) {
+                $tables = $page['tables'] ?? [];
+                foreach ($tables as $rows) {
+                    if (!is_array($rows)) continue;
+                    foreach ($rows as $row) {
+                        foreach ($row as $key => $value) {
+                            if (str_starts_with($key, '_conf_') && is_numeric($value) && $value < $CELL_CONF_THRESHOLD) {
+                                $hasLowConfCell = true;
+                                break 3;
+                            }
+                        }
+                    }
+                }
+            }
+            if ($hasLowConfCell) {
+                $finalStatus = 'need_validation';
+            }
+        }
+
         $updateData = [
-            'status'                => $validated['status'],
+            'status'                => $finalStatus,
             'template_id'           => $validated['template_id'] ?? $document->template_id,
             'extracted_data'        => $extractedData,
             'confidence_score'      => $validated['confidence_score'] ?? $document->confidence_score,

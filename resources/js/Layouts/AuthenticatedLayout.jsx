@@ -309,11 +309,300 @@ function Topbar({ setMobileOpen, header }) {
 }
 
 // ─────────────────────────────────────────────
+// SKELETON SYSTEM
+// ─────────────────────────────────────────────
+function Sk({ className }) {
+    return <div className={`bg-slate-200 rounded-full ${className}`} />;
+}
+
+// Deteksi jenis skeleton dari URL tujuan
+function detectSkeletonType(pathname) {
+    if (/^\/documents\//.test(pathname))        return "document-detail";
+    if (pathname.startsWith("/user-management")) return "user-management";
+    if (/^\/master-template\/.+/.test(pathname))return "editor";
+    if (pathname.startsWith("/master-template")) return "master-template";
+    if (pathname.startsWith("/upload-dokumen"))  return "upload-dokumen";
+    if (pathname.startsWith("/validasi-dokumen"))return "table-list";
+    return "simple";
+}
+
+// ── Skeleton: Document Detail ─────────────────
+function SkeletonDocumentDetail() {
+    return (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-5">
+            <Sk className="h-4 w-32" />
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-5 flex items-start gap-4">
+                    <div className="w-11 h-11 bg-slate-100 rounded-xl flex-shrink-0" />
+                    <div className="flex-1 space-y-2.5 pt-1">
+                        <Sk className="h-4 w-2/3" />
+                        <Sk className="h-3 w-1/3 bg-slate-100" />
+                    </div>
+                    <div className="h-6 w-20 bg-slate-100 rounded-full flex-shrink-0" />
+                </div>
+                <div className="px-6 pb-5 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-100 pt-4">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="space-y-2">
+                            <Sk className="h-2 w-16 bg-slate-100" />
+                            <Sk className="h-4 w-3/4" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className="h-10 w-52 bg-slate-100 rounded-xl" />
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-slate-800 px-6 py-5 space-y-2.5">
+                    <Sk className="h-2.5 w-20 bg-slate-700" />
+                    <Sk className="h-5 w-72 bg-slate-600" />
+                </div>
+                <div className="p-6 space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="p-3 rounded-lg bg-slate-50 border border-slate-100 space-y-2">
+                                <Sk className="h-2 w-14" />
+                                <Sk className="h-4 w-32" />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="h-px bg-slate-100" />
+                    <div>
+                        <Sk className="h-2.5 w-28 mb-3" />
+                        <div className="rounded-xl border border-slate-200 overflow-hidden">
+                            <div className="h-9 bg-slate-700" />
+                            {[...Array(6)].map((_, i) => (
+                                <div key={i} className={`flex gap-4 px-4 py-3 border-t border-slate-100 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/60"}`}>
+                                    <Sk className="h-3 w-6 flex-shrink-0" />
+                                    <Sk className="h-3 flex-1" />
+                                    <Sk className="h-3 w-16 flex-shrink-0" />
+                                    <Sk className="h-3 w-12 flex-shrink-0" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Skeleton: User Management ─────────────────
+function SkeletonUserManagement() {
+    return (
+        <div className="space-y-5">
+            <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                    <Sk className="h-5 w-48" />
+                    <Sk className="h-3 w-72 bg-slate-100" />
+                </div>
+                <div className="h-9 w-36 bg-slate-100 rounded-xl" />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 space-y-2">
+                        <Sk className="h-2.5 w-24 bg-slate-100" />
+                        <Sk className="h-8 w-14" />
+                        <Sk className="h-2 w-20 bg-slate-100" />
+                    </div>
+                ))}
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 flex gap-3">
+                <div className="h-9 flex-1 bg-slate-100 rounded-xl" />
+                <div className="h-9 w-28 bg-slate-100 rounded-xl" />
+                <div className="h-9 w-28 bg-slate-100 rounded-xl" />
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="h-11 bg-slate-50 border-b border-slate-100" />
+                {[...Array(6)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 px-6 py-4 border-b border-slate-50 last:border-0">
+                        <div className="w-9 h-9 bg-slate-200 rounded-full flex-shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                            <Sk className="h-3.5 w-40" />
+                            <Sk className="h-2.5 w-48 bg-slate-100" />
+                        </div>
+                        <div className="h-5 w-16 bg-slate-100 rounded-full" />
+                        <div className="h-5 w-16 bg-slate-100 rounded-full" />
+                        <div className="flex gap-2">
+                            <div className="h-7 w-7 bg-slate-100 rounded-lg" />
+                            <div className="h-7 w-7 bg-slate-100 rounded-lg" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ── Skeleton: Master Template list ───────────
+function SkeletonMasterTemplate() {
+    return (
+        <div className="space-y-5">
+            <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                    <Sk className="h-5 w-40" />
+                    <Sk className="h-3 w-56 bg-slate-100" />
+                </div>
+                <div className="h-9 w-36 bg-indigo-100 rounded-xl" />
+            </div>
+            <div className="flex gap-3">
+                <div className="h-9 flex-1 bg-white border border-slate-200 rounded-xl" />
+                <div className="h-9 w-32 bg-white border border-slate-200 rounded-xl" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-slate-100 rounded-xl flex-shrink-0" />
+                            <div className="flex-1 space-y-2 pt-0.5">
+                                <Sk className="h-4 w-full" />
+                                <Sk className="h-3 w-3/4 bg-slate-100" />
+                            </div>
+                        </div>
+                        <div className="h-px bg-slate-100" />
+                        <div className="flex items-center justify-between">
+                            <div className="h-5 w-14 bg-slate-100 rounded-full" />
+                            <div className="flex gap-2">
+                                <div className="h-7 w-7 bg-slate-100 rounded-lg" />
+                                <div className="h-7 w-7 bg-slate-100 rounded-lg" />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ── Skeleton: Upload Dokumen ──────────────────
+function SkeletonUploadDokumen() {
+    return (
+        <div className="space-y-5">
+            <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 flex flex-col items-center gap-4">
+                <div className="w-16 h-16 bg-slate-100 rounded-2xl" />
+                <div className="space-y-2 text-center">
+                    <Sk className="h-4 w-48 mx-auto" />
+                    <Sk className="h-3 w-64 mx-auto bg-slate-100" />
+                </div>
+                <div className="h-9 w-32 bg-slate-100 rounded-xl" />
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <Sk className="h-4 w-36" />
+                    <Sk className="h-3 w-20 bg-slate-100" />
+                </div>
+                {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 px-6 py-4 border-b border-slate-50 last:border-0">
+                        <div className="w-10 h-10 bg-slate-100 rounded-xl flex-shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                            <Sk className="h-3.5 w-3/4" />
+                            <Sk className="h-2.5 w-1/3 bg-slate-100" />
+                        </div>
+                        <div className="h-5 w-20 bg-slate-100 rounded-full" />
+                        <div className="w-24 space-y-1.5">
+                            <div className="h-1.5 bg-slate-100 rounded-full w-full" />
+                            <Sk className="h-2.5 w-8 bg-slate-100" />
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="h-7 w-7 bg-slate-100 rounded-lg" />
+                            <div className="h-7 w-7 bg-slate-100 rounded-lg" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ── Skeleton: Table list (validasi, dll) ──────
+function SkeletonTableList() {
+    return (
+        <div className="space-y-5">
+            <div className="flex items-center justify-between">
+                <Sk className="h-5 w-44" />
+                <div className="h-9 w-32 bg-slate-100 rounded-xl" />
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex gap-3">
+                    <div className="h-9 flex-1 bg-slate-100 rounded-xl" />
+                    <div className="h-9 w-28 bg-slate-100 rounded-xl" />
+                </div>
+                <div className="h-11 bg-slate-50 border-b border-slate-100" />
+                {[...Array(7)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 px-6 py-4 border-b border-slate-50 last:border-0">
+                        <div className="w-9 h-9 bg-slate-100 rounded-lg flex-shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                            <Sk className="h-3.5 w-2/3" />
+                            <Sk className="h-2.5 w-1/4 bg-slate-100" />
+                        </div>
+                        <div className="h-5 w-24 bg-slate-100 rounded-full" />
+                        <div className="h-5 w-14 bg-slate-100 rounded-full" />
+                        <div className="h-7 w-16 bg-slate-100 rounded-lg" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ── Skeleton: Simple (dashboard, profile, dll) ─
+function SkeletonSimple() {
+    return (
+        <div className="space-y-5">
+            <div className="space-y-2">
+                <Sk className="h-5 w-40" />
+                <Sk className="h-3 w-64 bg-slate-100" />
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <Sk className="h-4 w-full" />
+                <Sk className="h-4 w-3/4" />
+                <Sk className="h-4 w-1/2" />
+            </div>
+        </div>
+    );
+}
+
+// ── Skeleton: Editor (template editor) ────────
+function SkeletonEditor() {
+    return (
+        <div className="space-y-4 h-full">
+            <div className="flex items-center justify-between">
+                <Sk className="h-5 w-48" />
+                <div className="flex gap-2">
+                    <div className="h-9 w-24 bg-slate-100 rounded-xl" />
+                    <div className="h-9 w-24 bg-indigo-100 rounded-xl" />
+                </div>
+            </div>
+            <div className="grid grid-cols-[280px_1fr] gap-4 h-[calc(100vh-12rem)]">
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+                    {[...Array(8)].map((_, i) => (
+                        <div key={i} className="h-10 bg-slate-100 rounded-xl" />
+                    ))}
+                </div>
+                <div className="bg-white rounded-2xl border border-slate-200 flex items-center justify-center">
+                    <div className="w-64 h-80 bg-slate-100 rounded-xl" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+const SKELETON_MAP = {
+    "document-detail": SkeletonDocumentDetail,
+    "user-management": SkeletonUserManagement,
+    "master-template": SkeletonMasterTemplate,
+    "upload-dokumen":  SkeletonUploadDokumen,
+    "table-list":      SkeletonTableList,
+    "editor":          SkeletonEditor,
+    "simple":          SkeletonSimple,
+};
+
+// ─────────────────────────────────────────────
 // MAIN LAYOUT
 // ─────────────────────────────────────────────
 export default function AuthenticatedLayout({ header, children }) {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [skeletonType, setSkeletonType] = useState(null);
+    const navigatingRef = useRef(null);
     const { url } = usePage();
 
     useEffect(() => { setMobileOpen(false); }, [url]);
@@ -321,6 +610,26 @@ export default function AuthenticatedLayout({ header, children }) {
         const handler = (e) => { if (e.key === "Escape") setMobileOpen(false); };
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
+    }, []);
+
+    useEffect(() => {
+        const removeStart = router.on("start", (event) => {
+            const visit = event.detail.visit;
+
+            // Skip skeleton untuk partial reload (auto-refresh polling, filter, dsb)
+            if (visit.only && visit.only.length > 0) return;
+            // Skip skeleton untuk navigasi ke URL yang sama (refresh manual)
+            if (visit.url.pathname === window.location.pathname
+                && visit.url.search === window.location.search) return;
+
+            const type = detectSkeletonType(visit.url.pathname);
+            navigatingRef.current = setTimeout(() => setSkeletonType(type), 200);
+        });
+        const removeFinish = router.on("finish", () => {
+            clearTimeout(navigatingRef.current);
+            setSkeletonType(null);
+        });
+        return () => { removeStart(); removeFinish(); };
     }, []);
 
     return (
@@ -385,7 +694,10 @@ export default function AuthenticatedLayout({ header, children }) {
                 <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
                     <Topbar setMobileOpen={setMobileOpen} header={header} />
                     <main className="flex-1 overflow-y-auto p-4 md:p-6">
-                        {children}
+                        {skeletonType
+                            ? (() => { const Skel = SKELETON_MAP[skeletonType] ?? SkeletonSimple; return <div className="animate-pulse"><Skel /></div>; })()
+                            : children
+                        }
                     </main>
                 </div>
             </div>

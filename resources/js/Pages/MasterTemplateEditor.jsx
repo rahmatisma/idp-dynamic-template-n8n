@@ -227,7 +227,7 @@ function CanvasEditor({ imageUrl, items, activeIdx, drawMode, zoom = 1, onBoxDra
 // ══════════════════════════════════════════════════════════════
 // SIDEBAR PANELS
 // ══════════════════════════════════════════════════════════════
-function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx, setActiveIdx, setDrawMode, setActiveTargetIdx, updateItem, removeItem, addTarget, removeTarget, updateTarget, ocrPredicting }) {
+function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx, setActiveIdx, setDrawMode, setActiveTargetIdx, updateItem, removeItem, addTarget, removeTarget, updateTarget, ocrPredicting, targetPreview }) {
     const [editKeys, setEditKeys] = useState({});
     const toggleKeyEdit = (id) => {
         if (!editKeys[id] && !confirm("Warning: Mengubah Key teknis akan merusak integrasi database/n8n. Lanjutkan?")) return;
@@ -287,11 +287,26 @@ function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx, setActiveI
                             >
                                 ✍️ Tulis Tangan
                             </button>
+                            <button
+                                onClick={() => updateItem(idx, "text_type", "checkbox")}
+                                className={`text-[9px] px-2.5 py-1 rounded-lg font-bold border transition ${
+                                    item.text_type === "checkbox"
+                                        ? "bg-green-600 text-white border-green-700 shadow-sm"
+                                        : "bg-white text-slate-400 border-slate-200 hover:border-green-200"
+                                }`}
+                            >
+                                ☑ Centang
+                            </button>
                         </div>
                     </div>
                     {item.text_type === "handwritten" && (
                         <p className="text-[9px] text-amber-600 font-medium bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 flex items-center gap-1">
                             ⚠️ Field ini akan diproses menggunakan TrOCR (model tulisan tangan)
+                        </p>
+                    )}
+                    {item.text_type === "checkbox" && (
+                        <p className="text-[9px] text-green-700 font-medium bg-green-50 border border-green-100 rounded-lg px-2 py-1.5 flex items-center gap-1">
+                            ☑ Field ini akan dideteksi sebagai centang (pixel-based, tanpa OCR)
                         </p>
                     )}
 
@@ -341,10 +356,52 @@ function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx, setActiveI
                                                 : "bg-white text-slate-300 border-slate-100"
                                         }`}
                                     >✍️ Tulis</button>
+                                    <button
+                                        onClick={() => updateTarget(idx, ti, "text_type", "checkbox")}
+                                        className={`text-[9px] px-2 py-0.5 rounded border font-bold transition ${
+                                            (t.text_type || item.text_type) === "checkbox"
+                                                ? "bg-green-100 text-green-700 border-green-200"
+                                                : "bg-white text-slate-300 border-slate-100"
+                                        }`}
+                                    >☑ Centang</button>
                                     {(t.text_type || item.text_type) === "handwritten" && (
                                         <span className="text-[9px] text-amber-500 font-bold ml-auto">→ TrOCR</span>
                                     )}
+                                    {(t.text_type || item.text_type) === "checkbox" && (
+                                        <span className="text-[9px] text-green-600 font-bold ml-auto">→ Pixel</span>
+                                    )}
                                 </div>
+                                {/* ── Preview OCR Target ── */}
+                                {targetPreview &&
+                                 targetPreview.itemIdx === idx &&
+                                 targetPreview.targetIdx === ti && (
+                                    <div className={`mt-1 text-[10px] px-2 py-1.5 rounded-lg border flex items-start gap-1.5 ${
+                                        targetPreview.status === "loading"
+                                            ? "bg-slate-50 border-slate-200 text-slate-400"
+                                            : targetPreview.status === "ok"
+                                                ? "bg-green-50 border-green-200 text-green-700"
+                                                : "bg-amber-50 border-amber-200 text-amber-700"
+                                    }`}>
+                                        <span className="mt-0.5 flex-shrink-0">
+                                            {targetPreview.status === "loading" && <span className="inline-block w-2 h-2 rounded-full bg-slate-400 animate-ping" />}
+                                            {targetPreview.status === "ok" && "✅"}
+                                            {targetPreview.status === "empty" && "⚠️"}
+                                        </span>
+                                        <span className="leading-tight">
+                                            {targetPreview.status === "loading" && "Membaca area..."}
+                                            {targetPreview.status === "ok" && (
+                                                <>
+                                                    <span className="font-medium">Preview: </span>
+                                                    <span className="font-mono">"{targetPreview.text}"</span>
+                                                    {targetPreview.engine && (
+                                                        <span className="text-[8px] text-slate-400 ml-1 font-normal">via {targetPreview.engine}</span>
+                                                    )}
+                                                </>
+                                            )}
+                                            {targetPreview.status === "empty" && "Area kosong atau tidak terbaca — coba geser atau perbesar kotak"}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -354,7 +411,7 @@ function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx, setActiveI
     );
 }
 
-function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, setActiveIdx, setDrawMode, setActiveColumnIdx, updateItem, removeItem, addColumn, removeColumn, updateColumn, ocrPredicting }) {
+function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, setActiveIdx, setDrawMode, setActiveColumnIdx, updateItem, removeItem, addColumn, removeColumn, updateColumn, ocrPredicting, targetPreview }) {
     const hasArea = !!item.table_area;
     const [editKeys, setEditKeys] = useState({});
     const toggleKeyEdit = (id) => {
@@ -452,8 +509,52 @@ function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, setActiveI
                                             <select value={col.text_type || "printed"} onChange={e => updateColumn(idx, ci, "text_type", e.target.value)} className="text-[9px] border-none bg-slate-50 rounded ml-auto p-0">
                                                 <option value="printed">Teks</option>
                                                 <option value="handwritten">Tulis</option>
+                                                <option value="checkbox">Centang</option>
                                             </select>
                                         </div>
+                                        {col.text_type === "checkbox" && (
+                                            <div className="flex items-center gap-2 mt-1.5 px-1">
+                                                <span className="text-[9px] text-green-600 font-medium">Nilai jika tercentang:</span>
+                                                <input
+                                                    type="text"
+                                                    value={col.checkbox_checked_value || "OK"}
+                                                    onChange={e => updateColumn(idx, ci, "checkbox_checked_value", e.target.value)}
+                                                    className="text-[9px] w-14 px-1.5 py-0.5 border border-green-200 rounded bg-green-50 text-green-700 font-bold"
+                                                    placeholder="OK"
+                                                />
+                                            </div>
+                                        )}
+                                        {/* ── Preview OCR Kolom ── */}
+                                        {targetPreview &&
+                                         targetPreview.itemIdx === idx &&
+                                         targetPreview.targetIdx === ci && (
+                                            <div className={`mt-1.5 text-[10px] px-2 py-1.5 rounded-lg border flex items-start gap-1.5 ${
+                                                targetPreview.status === "loading"
+                                                    ? "bg-slate-50 border-slate-200 text-slate-400"
+                                                    : targetPreview.status === "ok"
+                                                        ? "bg-green-50 border-green-200 text-green-700"
+                                                        : "bg-amber-50 border-amber-200 text-amber-700"
+                                            }`}>
+                                                <span className="mt-0.5 flex-shrink-0">
+                                                    {targetPreview.status === "loading" && <span className="inline-block w-2 h-2 rounded-full bg-slate-400 animate-ping" />}
+                                                    {targetPreview.status === "ok" && "✅"}
+                                                    {targetPreview.status === "empty" && "⚠️"}
+                                                </span>
+                                                <span className="leading-tight">
+                                                    {targetPreview.status === "loading" && "Membaca area..."}
+                                                    {targetPreview.status === "ok" && (
+                                                        <>
+                                                            <span className="font-medium">Preview: </span>
+                                                            <span className="font-mono">"{targetPreview.text}"</span>
+                                                            {targetPreview.engine && (
+                                                                <span className="text-[8px] text-slate-400 ml-1 font-normal">via {targetPreview.engine}</span>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                    {targetPreview.status === "empty" && "Area kosong — coba geser atau perbesar kotak"}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -504,6 +605,9 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
     const [pythonImagePath, setPythonImagePath] = useState(editingTemplate?.python_image_path ?? null);
     const [ocrPredicting, setOcrPredicting] = useState(false);
     const [detectingHeader, setDetectingHeader] = useState(false);
+    // State untuk menyimpan hasil preview OCR target/kolom
+    // Format: { itemIdx, targetIdx, text, status: "loading"|"ok"|"empty" }
+    const [targetPreview, setTargetPreview] = useState(null);
     const [items, setItems] = useState(() => {
         if (editingTemplate?.ui_metadata && Array.isArray(editingTemplate.ui_metadata)) {
             // Lock all existing keys
@@ -521,6 +625,11 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
     const [activeTargetIdx, setActiveTargetIdx] = useState(null);
     const [activeColumnIdx, setActiveColumnIdx] = useState(null);
     const fileInputRef = useRef(null);
+
+    // Reset preview OCR saat admin pindah ke item lain
+    useEffect(() => {
+        setTargetPreview(null);
+    }, [activeIdx]);
 
     const handlePdfUpload = async (e) => {
         const file = e.target.files[0];
@@ -617,6 +726,38 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
         }
     };
 
+    // Preview OCR untuk kotak target/kolom tanpa mengubah state items
+    const previewTargetOCR = async (box, itemIdx, targetIdx, textType = "printed") => {
+        if (!pythonImagePath) return;
+
+        // textType diterima sebagai parameter langsung dari handleBoxDrawn
+        // (TIDAK dibaca dari items state karena bisa stale/belum terupdate)
+
+        setTargetPreview({ itemIdx, targetIdx, text: "", status: "loading", engine: null });
+        try {
+            const { data } = await axios.post("/internal-api/template/ocr-predict", {
+                image_path: pythonImagePath,
+                box: box,
+                text_type: textType  // ← kirim jenis tulisan ke backend
+            });
+            if (data.status === "ok") {
+                const text = (data.text || "").trim();
+                setTargetPreview({
+                    itemIdx,
+                    targetIdx,
+                    text,
+                    status: text.length > 0 ? "ok" : "empty",
+                    engine: data.engine || null   // ← simpan nama engine
+                });
+            } else {
+                setTargetPreview({ itemIdx, targetIdx, text: "", status: "empty", engine: null });
+            }
+        } catch (err) {
+            console.error("Target OCR preview failed:", err);
+            setTargetPreview({ itemIdx, targetIdx, text: "", status: "empty", engine: null });
+        }
+    };
+
     const handleBoxDrawn = (box, mode) => {
         if (activeIdx === null) return;
         setItems(prev => {
@@ -648,10 +789,44 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
             setActiveTargetIdx(0);
             setDrawMode(DRAW.TARGET);
             performAutoOCR(box, activeIdx);
+            setTargetPreview(null); // Reset preview lama
         } else if (mode === DRAW.TABLE_ANCHOR) {
             // Langsung masuk mode area tabel
             setDrawMode(DRAW.TABLE_AREA);
             performAutoOCR(box, activeIdx);
+            setTargetPreview(null);
+        } else if (mode === DRAW.TARGET && activeTargetIdx !== null) {
+            let textType = "printed";
+            setItems(prev => {
+                const freshItem   = prev[activeIdx];
+                const freshTarget = freshItem?.targets?.[activeTargetIdx];
+                textType = freshTarget?.text_type || freshItem?.text_type || "printed";
+
+                // === DEBUG ===
+                console.log("=== DEBUG TARGET OCR ===");
+                console.log("activeIdx:", activeIdx, "| activeTargetIdx:", activeTargetIdx);
+                console.log("freshTarget:", JSON.stringify(freshTarget));
+                console.log("freshTarget.text_type:", freshTarget?.text_type);
+                console.log("textType yang akan dikirim:", textType);
+                console.log("========================");
+                // =============
+
+                return prev;
+            });
+            setTimeout(() => previewTargetOCR(box, activeIdx, activeTargetIdx, textType), 0);
+        } else if (mode === DRAW.COLUMN && activeColumnIdx !== null) {
+            let textType = "printed";
+            setItems(prev => {
+                const freshItem = prev[activeIdx];
+                const freshCol  = freshItem?.columns?.[activeColumnIdx];
+                textType = freshCol?.text_type || "printed";
+
+                console.log("=== DEBUG COLUMN OCR ===");
+                console.log("freshCol.text_type:", freshCol?.text_type, "| textType:", textType);
+
+                return prev;
+            });
+            setTimeout(() => previewTargetOCR(box, activeIdx, activeColumnIdx, textType), 0);
         }
     };
 
@@ -840,7 +1015,11 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                     anchor_text: item.field_anchor,
                     offset_x: Math.round(tBox.x - aBox.x),
                     offset_y: Math.round(tBox.y - aBox.y),
-                    width: tBox.width, height: tBox.height, type: t.text_type
+                    width: tBox.width, height: tBox.height, type: t.text_type,
+                    ...(t.text_type === "checkbox" ? {
+                        checkbox_checked_value: t.checkbox_checked_value || "OK",
+                        checkbox_empty_value: ""
+                    } : {})
                 };
             })
         );
@@ -871,14 +1050,19 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                 })),
                 columns: tab.columns.map(col => {
                     const cBox = getBoxPx(col.box);
-                    return { 
-                        name: col.label, key: col.key, 
-                        offset_x_start: Math.round((cBox?.x || 0) - aBox.x), 
-                        offset_x_end: Math.round(((cBox?.x || 0) + (cBox?.width || 0)) - aBox.x), 
+                    const colData = {
+                        name: col.label, key: col.key,
+                        offset_x_start: Math.round((cBox?.x || 0) - aBox.x),
+                        offset_x_end: Math.round(((cBox?.x || 0) + (cBox?.width || 0)) - aBox.x),
                         type: col.text_type || "printed",
                         is_row_anchor: !!col.is_row_anchor,
                         multi_line: !!col.is_multi_line
                     };
+                    if (col.text_type === "checkbox") {
+                        colData.checkbox_checked_value = col.checkbox_checked_value || "OK";
+                        colData.checkbox_empty_value = "";
+                    }
+                    return colData;
                 }),
                 tolerance: { x_padding: 20, y_padding: 10 },
                 fallback: { on_anchor_not_found: "skip_table", on_empty_cell: "return_empty_string" }
@@ -1016,8 +1200,8 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                                 {items.map((item, i) => (
                                     item.item_type === "field" ? 
-                                    <FieldPanel key={i} item={item} idx={i} isActive={activeIdx === i} drawMode={drawMode} activeTargetIdx={activeTargetIdx} setActiveIdx={setActiveIdx} setDrawMode={setDrawMode} setActiveTargetIdx={setActiveTargetIdx} updateItem={updateItem} removeItem={removeItem} addTarget={addTarget} removeTarget={removeTarget} updateTarget={updateTarget} ocrPredicting={ocrPredicting} /> :
-                                    <TablePanel key={i} item={item} idx={i} isActive={activeIdx === i} drawMode={drawMode} activeColumnIdx={activeColumnIdx} setActiveIdx={setActiveIdx} setDrawMode={setDrawMode} setActiveColumnIdx={setActiveColumnIdx} updateItem={updateItem} removeItem={removeItem} addColumn={addColumn} removeColumn={removeColumn} updateColumn={updateColumn} ocrPredicting={ocrPredicting} />
+                                    <FieldPanel key={i} item={item} idx={i} isActive={activeIdx === i} drawMode={drawMode} activeTargetIdx={activeTargetIdx} setActiveIdx={setActiveIdx} setDrawMode={setDrawMode} setActiveTargetIdx={setActiveTargetIdx} updateItem={updateItem} removeItem={removeItem} addTarget={addTarget} removeTarget={removeTarget} updateTarget={updateTarget} ocrPredicting={ocrPredicting} targetPreview={targetPreview} /> :
+                                    <TablePanel key={i} item={item} idx={i} isActive={activeIdx === i} drawMode={drawMode} activeColumnIdx={activeColumnIdx} setActiveIdx={setActiveIdx} setDrawMode={setDrawMode} setActiveColumnIdx={setActiveColumnIdx} updateItem={updateItem} removeItem={removeItem} addColumn={addColumn} removeColumn={removeColumn} updateColumn={updateColumn} ocrPredicting={ocrPredicting} targetPreview={targetPreview} />
                                 ))}
                             </div>
                             <div className="h-44 bg-slate-900 overflow-hidden flex flex-col border-t border-slate-800">
@@ -1047,7 +1231,8 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                                                         anchor_text: item.field_anchor,
                                                         offset_x: Math.round(tBox.x - aBox.x),
                                                         offset_y: Math.round(tBox.y - aBox.y),
-                                                        width: tBox.width, height: tBox.height, type: t.text_type
+                                                        width: tBox.width, height: tBox.height, type: t.text_type,
+                                                        ...(t.text_type === "checkbox" ? { checkbox_checked_value: t.checkbox_checked_value || "OK", checkbox_empty_value: "" } : {})
                                                     };
                                                 })
                                             ),
@@ -1076,15 +1261,17 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                                                     },
                                                     columns: (tab.columns || []).map(col => {
                                                         const cBox = getBoxPx(col.box);
-                                                        return { 
-                                                            name: col.label, 
+                                                        const cd = {
+                                                            name: col.label,
                                                             key: col.key,
-                                                            offset_x_start: Math.round((cBox?.x || 0) - aBox.x), 
+                                                            offset_x_start: Math.round((cBox?.x || 0) - aBox.x),
                                                             offset_x_end: Math.round(((cBox?.x || 0) + (cBox?.width || 0)) - aBox.x),
                                                             type: col.text_type || "printed",
                                                             is_row_anchor: !!col.is_row_anchor,
-                                                            multi_line: !!col.is_multi_line
+                                                            multi_line: !!col.is_multi_line,
+                                                            ...(col.text_type === "checkbox" ? { checkbox_checked_value: col.checkbox_checked_value || "OK", checkbox_empty_value: "" } : {})
                                                         };
+                                                        return cd;
                                                     }),
                                                     multi_line_handling: multiLineCols.map(c => ({ 
                                                         column: c.key, group_by: "y", y_threshold: "auto", sort_order: ["y_asc", "x_asc"]

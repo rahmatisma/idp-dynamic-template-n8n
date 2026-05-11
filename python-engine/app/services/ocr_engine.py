@@ -246,7 +246,7 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         clean_img_path = preprocess_image(str(img_path))
 
         selected_template = None
-        match_result = {"status": "matched", "score": 100, "header": "Manual Bypass"}
+        match_result = {"status": "matched", "score": 100, "header": "Manual Bypass (template_code dikirim langsung)"}
 
         # 2. Jika n8n/Laravel memberikan template_code secara spesifik (Manual Mode)
         if template_code:
@@ -277,6 +277,19 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         # 4. Global OCR: Scan gambar yang sudah bersih — SATU KALI
         ocr_results = run_global_ocr(clean_img_path)
 
+        # ── Hitung kualitas baca OCR dari PaddleOCR word confidence ─────────
+        # Dihitung SEKARANG dari global scan; nanti akan digabung dengan
+        # TrOCR table-confidence setelah tabel diekstrak.
+        word_confidences = [
+            item['confidence'] * 100 for item in ocr_results
+            if item.get('confidence') is not None
+        ]
+        paddle_avg = round(sum(word_confidences) / len(word_confidences), 1) if word_confidences else 0.0
+        logger.info(
+            f"[Page {page_num}] PaddleOCR avg confidence: {paddle_avg:.1f}% "
+            f"({len(word_confidences)} kata) | Template match: {match_result['score']:.0f}%"
+        )
+
         # 2. Ambil mapping_config dari template yang terdeteksi
         mapping_config = selected_template.get('mapping_config', {})
         fields_config  = mapping_config.get('fields', [])
@@ -286,38 +299,63 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         fields_data = extract_fields(ocr_results, fields_config, image_path=clean_img_path)
 
         # 4. Ekstrak tiap tabel (group_by_y + split_by_x, TANPA OCR ulang)
-        tables_data = {}
+        tables_data      = {}
+        table_confidences = []  # confidence per tabel untuk rata-rata akhir
         for table_cfg in tables_config:
             anchor_texts = table_cfg.get('anchor', {}).get('texts', [])
             anchor_text  = anchor_texts[0] if anchor_texts else ''
             anchor       = find_anchor(ocr_results, anchor_text) if anchor_text else None
-            rows         = extract_table(ocr_results, table_cfg, anchor, image_path=clean_img_path)
-            tables_data[table_cfg.get('json_key', table_cfg.get('table_name'))] = rows
+            rows, tbl_conf = extract_table(ocr_results, table_cfg, anchor, image_path=clean_img_path)
+            table_key = table_cfg.get('json_key', table_cfg.get('table_name'))
+            tables_data[table_key] = rows
+            if tbl_conf is not None:
+                table_confidences.append(tbl_conf)
 
         # 5. Susun output terstruktur via json_builder
         fixed_results  = _fields_to_fixed_results(fields_data)
         table_results  = _tables_to_table_results(tables_data)
         structured_out = build_hierarchical_json(fixed_results, table_results)
 
+        # ── Gabungkan PaddleOCR avg + TrOCR table confidence ─────────────
+        # Jika ada data dari tabel (yang mencakup TrOCR handwritten):
+        #   ocr_confidence = rata-rata tertimbang paddle (bobot 40%) + tabel (bobot 60%)
+        # Alasan: tabel = isian utama dokumen → lebih representatif dari kata-kata umum
+        if table_confidences:
+            tbl_avg = round(sum(table_confidences) / len(table_confidences), 1)
+            ocr_confidence = round(paddle_avg * 0.4 + tbl_avg * 0.6, 1)
+            logger.info(
+                f"[Page {page_num}] OCR confidence: {ocr_confidence:.1f}% "
+                f"(paddle={paddle_avg}% × 40% + tabel={tbl_avg}% × 60%)"
+            )
+        else:
+            ocr_confidence = paddle_avg
+            logger.info(f"[Page {page_num}] OCR confidence: {ocr_confidence:.1f}% (paddle only, tidak ada tabel)")
+
         results_per_page.append({
-            "page":          page_num,
-            "status":        match_result['status'],
-            "confidence":    match_result['score'],
-            "template_id":   selected_template.get('id'),
-            "template_name": selected_template.get('type_name'),
-            "header":        match_result['header'],
-            "fields":        structured_out,  # ← sudah terstruktur via json_builder
-            "tables":        tables_data       # ← raw table rows untuk akses langsung
+            "page":                 page_num,
+            "status":               match_result['status'],
+            "confidence":           ocr_confidence,        # ← kualitas baca (PaddleOCR + TrOCR blended)
+            "template_match_score": match_result['score'],  # ← kecocokan header ke template
+            "template_id":          selected_template.get('id'),
+            "template_name":        selected_template.get('type_name'),
+            "header":               match_result['header'],
+            "fields":               structured_out,
+            "tables":               tables_data
         })
 
-    # Summary
-    all_scores = [p['confidence'] for p in results_per_page if 'confidence' in p]
-    avg_confidence = sum(all_scores) / len(all_scores) if all_scores else 0
+    # ── Summary: hitung rata-rata OCR confidence seluruh halaman ────
+    # confidence di sini = kualitas baca OCR (PaddleOCR per-kata), BUKAN template match
+    all_ocr_scores  = [p['confidence'] for p in results_per_page if 'confidence' in p]
+    avg_ocr_score   = round(sum(all_ocr_scores) / len(all_ocr_scores), 1) if all_ocr_scores else 0.0
+
+    all_match_scores = [p.get('template_match_score', 0) for p in results_per_page]
+    avg_match_score  = round(sum(all_match_scores) / len(all_match_scores), 1) if all_match_scores else 0.0
 
     return {
-        "status": "ok",
-        "document_id": document_id,
-        "confidence_score": avg_confidence,
-        "pages": results_per_page,
-        "total_pages": len(images)
+        "status":                "ok",
+        "document_id":           document_id,
+        "confidence_score":      avg_ocr_score,    # ← kualitas baca OCR (yang dikirim ke Laravel)
+        "template_match_score":  avg_match_score,  # ← kecocokan template (informasi tambahan)
+        "pages":                 results_per_page,
+        "total_pages":           len(images)
     }

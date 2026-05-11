@@ -4,7 +4,8 @@ app/services/trocr_service.py
 Singleton loader dan runner untuk model TrOCR (Microsoft).
 
 Model yang digunakan:
-    microsoft/trocr-large-handwritten
+    microsoft/trocr-base-handwritten
+    → Versi base (lebih ringan, cocok untuk CPU lokal)
     → Dilatih khusus untuk tulisan tangan (handwritten text recognition)
     → Arsitektur: ViT encoder (vision) + RoBERTa decoder (language)
 
@@ -85,23 +86,23 @@ def _load_trocr():
         global _trocr_device
         _trocr_device = device
 
-        print(f"[TrOCR] ⏳ Sedang memuat model ke RAM (0/2)...")
-        _trocr_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-large-handwritten")
-        
-        print(f"[TrOCR] ⏳ Sedang memuat weights model ke {device.type.upper()} (1/2)...")
+        print("[TrOCR] Sedang memuat model ke RAM (0/2)...")
+        _trocr_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
+
+        print(f"[TrOCR] Sedang memuat weights model ke {device.type.upper()} (1/2)...")
         _trocr_model = VisionEncoderDecoderModel.from_pretrained(
-            "microsoft/trocr-large-handwritten",
+            "microsoft/trocr-base-handwritten",
             use_safetensors=True
         )
-        
+
         # Pindahkan model ke GPU/CPU
         _trocr_model.to(device)
 
-        print("[TrOCR] ⏳ Finalisasi model (2/2)...")
+        print("[TrOCR] Finalisasi model (2/2)...")
         _trocr_model.eval()
         _trocr_ready   = True
         _trocr_loading = False
-        print(f"[TrOCR] ✅ MODEL SIAP di {device.type.upper()}! Sekarang bisa baca tulisan tangan.")
+        print(f"[TrOCR] MODEL SIAP di {device.type.upper()}! Sekarang bisa baca tulisan tangan.")
         logger.info(f"[TrOCR] ✅ Model siap digunakan di {device.type.upper()}! Field handwritten akan dibaca TrOCR.")
 
     except Exception as e:
@@ -126,16 +127,16 @@ def read_handwritten(image_crop) -> str:
     # Kalau masih loading di background → jangan tunggu, langsung fallback
     if _trocr_loading:
         logger.info("[TrOCR] Masih loading di background, field ini fallback ke PaddleOCR.")
-        return ""
+        return "", 0.0
 
     # Kalau belum pernah dicoba sama sekali (TROCR_ENABLED=false) → skip quietly
     if not _trocr_ready and not _trocr_failed:
         logger.debug("[TrOCR] Disabled via env, fallback ke PaddleOCR.")
-        return ""
+        return "", 0.0
 
     # Model gagal load atau tidak aktif → fallback
     if _trocr_failed or not _trocr_ready:
-        return ""
+        return "", 0.0
 
     try:
         from PIL import Image
@@ -150,7 +151,17 @@ def read_handwritten(image_crop) -> str:
         w, h = image_crop.size
         if w < 10 or h < 10:
             logger.warning(f"[TrOCR] Crop terlalu kecil ({w}x{h}), skip.")
-            return ""
+            return "", 0.0
+
+        # ── DEBUG: simpan crop ke disk untuk inspeksi ─────────────
+        import time, os
+        from config.settings import BASE_DIR
+        debug_dir = BASE_DIR / "storage" / "debug_crops"
+        debug_dir.mkdir(parents=True, exist_ok=True)
+        debug_path = debug_dir / f"crop_{int(time.time() * 1000)}.png"
+        image_crop.save(str(debug_path))
+        logger.info(f"[TrOCR DEBUG] Crop disimpan ({w}x{h}px): {debug_path}")
+        # ──────────────────────────────────────────────────────────
 
         # Proses gambar → tensor
         with torch.no_grad():
@@ -162,24 +173,40 @@ def read_handwritten(image_crop) -> str:
             # Pindahkan input gambar ke device yang sama dengan model (GPU/CPU)
             pixel_values = pixel_values.to(_trocr_device)
 
-            # Generate teks
-            generated_ids = _trocr_model.generate(
+            # Generate teks + scores untuk menghitung confidence
+            outputs = _trocr_model.generate(
                 pixel_values,
-                max_new_tokens=64       # Batasi panjang output
+                max_new_tokens=64,
+                output_scores=True,
+                return_dict_in_generate=True,
             )
 
         # Decode token ID → string
+        generated_ids = outputs.sequences
         text = _trocr_processor.batch_decode(
             generated_ids,
             skip_special_tokens=True
         )[0].strip()
 
-        logger.debug(f"[TrOCR] Hasil baca: '{text}'")
-        return text
+        # Hitung rata-rata probabilitas per token sebagai confidence score
+        confidence = 0.0
+        if outputs.scores:
+            import torch as _torch
+            probs = []
+            for i, score_t in enumerate(outputs.scores):
+                token_id = generated_ids[0, i + 1]          # +1: offset BOS
+                p = _torch.softmax(score_t, dim=-1)[0, token_id].item()
+                probs.append(p)
+            confidence = round((sum(probs) / len(probs)) * 100, 1) if probs else 50.0
+        else:
+            confidence = 50.0  # fallback jika scores tidak tersedia
+
+        logger.info(f"[TrOCR] Crop {w}x{h}px → '{text}' (conf={confidence:.1f}%)")
+        return text, confidence
 
     except Exception as e:
         logger.error(f"[TrOCR] Error saat baca: {e}")
-        return ""
+        return "", 0.0
 
 
 def crop_cell_for_trocr(image_path: str, x1: int, y1: int, x2: int, y2: int, padding: int = 4) -> object:
