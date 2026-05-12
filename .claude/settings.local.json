@@ -37,7 +37,9 @@
       "Bash(taskkill /F /IM python.exe)",
       "Bash(taskkill /F /IM python3.exe)",
       "Bash(.venv/Scripts/python -c \"from PIL import Image, ImageFilter, ImageEnhance; import numpy; print\\('Pillow:', __import__\\('PIL'\\).__version__\\); print\\('numpy:', numpy.__version__\\)\")",
-      "Bash(.venv/Scripts/python augment_dataset.py)"
+      "Bash(.venv/Scripts/python augment_dataset.py)",
+      "Bash(Get-ChildItem \"D:\\\\laragon\\\\www\\\\idp-lintasarta\\\\python-engine\\\\models\\\\trocr-finetuned\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object Name, Length, LastWriteTime)"
     ]
   }
 }

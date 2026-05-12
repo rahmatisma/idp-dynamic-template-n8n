@@ -39,16 +39,17 @@ const ChevronRightIcon = () => (
 
 // ── Confidence Bar ─────────────────────────────────────────────
 function ConfidenceBar({ score }) {
-    if (score == null) return <span className="text-xs text-slate-300">—</span>;
+    if (score == null) return <span className="text-xs text-zinc-500">—</span>;
     const pct = Math.round(score);
-    const color = pct >= 80 ? "bg-emerald-500" : pct >= 60 ? "bg-amber-500" : "bg-red-400";
-    const textColor = pct >= 80 ? "text-emerald-700" : pct >= 60 ? "text-amber-700" : "text-red-600";
+    const trackColor = "#2a2a2a";
+    const barColor = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
+    const textColor = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
     return (
         <div className="flex items-center gap-2">
-            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+            <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: trackColor }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: barColor }} />
             </div>
-            <span className={`text-xs font-bold ${textColor}`}>{pct}%</span>
+            <span className="text-xs font-bold" style={{ color: textColor }}>{pct}%</span>
         </div>
     );
 }
@@ -57,12 +58,14 @@ function ConfidenceBar({ score }) {
 function UrgencyBadge({ score }) {
     if (score == null) return null;
     if (score < 60) return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 text-[10px] font-semibold">
-            <WarningIcon className="w-3 h-3" /> Kritis
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+            style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}>
+            <span className="w-3 h-3 inline-flex"><WarningIcon /></span> Kritis
         </span>
     );
     if (score < 80) return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-semibold">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+            style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#fbbf24" }}>
             Perlu Cek
         </span>
     );
@@ -80,10 +83,9 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
 
     const goToPage = (url) => { if (url) router.visit(url, { preserveScroll: true }); };
 
-    // Hitung summary
-    const totalDocs  = documents.total ?? filtered.length;
-    const kritis     = (documents.data ?? []).filter(d => (d.confidence_score ?? 0) < 60).length;
-    const perluCek   = (documents.data ?? []).filter(d => {
+    const totalDocs = documents.total ?? filtered.length;
+    const kritis    = (documents.data ?? []).filter(d => (d.confidence_score ?? 0) < 60).length;
+    const perluCek  = (documents.data ?? []).filter(d => {
         const s = d.confidence_score ?? 0;
         return s >= 60 && s < 80;
     }).length;
@@ -96,7 +98,8 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
 
                 {/* Flash */}
                 {flash.success && (
-                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-xl">
+                    <div className="text-sm px-4 py-3 rounded-xl"
+                        style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", color: "#34d399" }}>
                         {flash.success}
                     </div>
                 )}
@@ -104,37 +107,52 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-lg font-semibold text-slate-800">Antrian Validasi</h1>
-                        <p className="text-sm text-slate-500 mt-0.5">
+                        <h1 className="text-lg font-semibold" style={{ color: "#f5f5f5" }}>Antrian Validasi</h1>
+                        <p className="text-sm mt-0.5" style={{ color: "#888" }}>
                             Dokumen yang memerlukan pemeriksaan manual oleh admin.
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-600">
-                            <span className="font-bold text-slate-800">{totalDocs}</span> dokumen
+                        <div className="px-4 py-2 text-sm rounded-xl"
+                            style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#888" }}>
+                            <span className="font-bold" style={{ color: "#f5f5f5" }}>{totalDocs}</span> dokumen
                         </div>
                     </div>
                 </div>
 
                 {/* Summary cards */}
                 <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-1">
-                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Total Antrian</p>
-                        <p className="text-2xl font-bold text-slate-800">{totalDocs}</p>
+                    {/* Total */}
+                    <div className="rounded-2xl p-4 space-y-1"
+                        style={{ background: "#1a1a1a", border: "1px solid #2a2a2a" }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#888" }}>
+                            Total Antrian
+                        </p>
+                        <p className="text-2xl font-bold" style={{ color: "#f5f5f5" }}>{totalDocs}</p>
                     </div>
-                    <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-4 space-y-1">
-                        <p className="text-[10px] font-semibold text-red-400 uppercase tracking-wide">Kritis (&lt;60%)</p>
-                        <p className="text-2xl font-bold text-red-600">{kritis}</p>
+
+                    {/* Kritis */}
+                    <div className="rounded-2xl p-4 space-y-1"
+                        style={{ background: "#1a1a1a", border: "1px solid rgba(239,68,68,0.2)" }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#f87171" }}>
+                            Kritis (&lt;60%)
+                        </p>
+                        <p className="text-2xl font-bold" style={{ color: "#f87171" }}>{kritis}</p>
                     </div>
-                    <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-4 space-y-1">
-                        <p className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide">Perlu Cek (60–79%)</p>
-                        <p className="text-2xl font-bold text-amber-600">{perluCek}</p>
+
+                    {/* Perlu Cek */}
+                    <div className="rounded-2xl p-4 space-y-1"
+                        style={{ background: "#1a1a1a", border: "1px solid rgba(245,158,11,0.2)" }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#fbbf24" }}>
+                            Perlu Cek (60–79%)
+                        </p>
+                        <p className="text-2xl font-bold" style={{ color: "#fbbf24" }}>{perluCek}</p>
                     </div>
                 </div>
 
                 {/* Search */}
                 <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#888" }}>
                         <SearchIcon />
                     </span>
                     <input
@@ -142,28 +160,42 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                         placeholder="Cari nama file atau template..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"
+                        className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl outline-none transition"
+                        style={{
+                            background: "#1a1a1a",
+                            border: "1px solid #2a2a2a",
+                            color: "#f5f5f5",
+                        }}
+                        onFocus={e => { e.target.style.borderColor = "#10b981"; e.target.style.boxShadow = "0 0 0 3px rgba(16,185,129,0.12)"; }}
+                        onBlur={e => { e.target.style.borderColor = "#2a2a2a"; e.target.style.boxShadow = "none"; }}
                     />
                 </div>
 
                 {/* Table */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="rounded-2xl overflow-hidden"
+                    style={{ background: "#1a1a1a", border: "1px solid #2a2a2a" }}>
+
                     {filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
-                            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
+                        <div className="flex flex-col items-center justify-center py-20 gap-3"
+                            style={{ color: "#888" }}>
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                                style={{ background: "#2a2a2a" }}>
                                 <WarningIcon />
                             </div>
-                            <p className="text-sm font-medium text-slate-500">
+                            <p className="text-sm font-medium" style={{ color: "#aaa" }}>
                                 {search ? "Tidak ada dokumen yang cocok" : "Tidak ada dokumen dalam antrian validasi"}
                             </p>
                             {!search && (
-                                <p className="text-xs text-slate-400">Semua dokumen sudah divalidasi</p>
+                                <p className="text-xs" style={{ color: "#666" }}>Semua dokumen sudah divalidasi</p>
                             )}
                         </div>
                     ) : (
                         <>
                             {/* Table header */}
-                            <div className="grid grid-cols-[1fr_160px_110px_110px_90px] px-6 py-3 bg-slate-50 border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                            <div
+                                className="grid grid-cols-[1fr_160px_110px_110px_90px] px-6 py-3 text-[10px] font-semibold uppercase tracking-widest"
+                                style={{ background: "#161616", borderBottom: "1px solid #2a2a2a", color: "#666" }}
+                            >
                                 <div>Dokumen</div>
                                 <div>Template</div>
                                 <div>Kualitas OCR</div>
@@ -171,22 +203,29 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                                 <div className="text-center">Aksi</div>
                             </div>
 
-                            {filtered.map((doc) => (
+                            {filtered.map((doc, idx) => (
                                 <div
                                     key={doc.id}
-                                    className="grid grid-cols-[1fr_160px_110px_110px_90px] px-6 py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition items-center"
+                                    className="grid grid-cols-[1fr_160px_110px_110px_90px] px-6 py-4 items-center transition-colors"
+                                    style={{
+                                        borderBottom: idx < filtered.length - 1 ? "1px solid #222" : "none",
+                                        cursor: "default",
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = "#222"}
+                                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                                 >
                                     {/* Nama file */}
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <div className="flex-shrink-0 w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center text-red-400">
+                                        <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                                            style={{ background: "rgba(239,68,68,0.1)", color: "#f87171" }}>
                                             <FileIcon />
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="text-sm font-medium text-slate-800 truncate leading-tight">
+                                            <p className="text-sm font-medium truncate leading-tight" style={{ color: "#f5f5f5" }}>
                                                 {doc.original_name}
                                             </p>
                                             <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[10px] text-slate-400">
+                                                <span className="text-[10px]" style={{ color: "#666" }}>
                                                     #{doc.id} · {doc.uploaded_by ?? "—"}
                                                 </span>
                                                 <UrgencyBadge score={doc.confidence_score} />
@@ -195,7 +234,7 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                                     </div>
 
                                     {/* Template */}
-                                    <div className="text-xs text-slate-600 truncate pr-3">
+                                    <div className="text-xs truncate pr-3" style={{ color: "#aaa" }}>
                                         {doc.template_name}
                                     </div>
 
@@ -205,7 +244,7 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                                     </div>
 
                                     {/* Tanggal */}
-                                    <div className="text-xs text-slate-500 leading-tight">
+                                    <div className="text-xs leading-tight" style={{ color: "#888" }}>
                                         <p>{doc.processed_at ?? doc.uploaded_at}</p>
                                     </div>
 
@@ -213,7 +252,10 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                                     <div className="flex justify-center">
                                         <Link
                                             href={`/validasi-dokumen/${doc.id}`}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-semibold transition"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                                            style={{ background: "rgba(16,185,129,0.1)", color: "#10b981", border: "1px solid rgba(16,185,129,0.2)" }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(16,185,129,0.2)"; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = "rgba(16,185,129,0.1)"; }}
                                         >
                                             <EyeIcon /> Periksa
                                         </Link>
@@ -226,7 +268,7 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
 
                 {/* Pagination */}
                 {documents.last_page > 1 && (
-                    <div className="flex items-center justify-between text-sm text-slate-500">
+                    <div className="flex items-center justify-between text-sm" style={{ color: "#888" }}>
                         <span>
                             Halaman {documents.current_page} dari {documents.last_page}
                         </span>
@@ -234,14 +276,20 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                             <button
                                 onClick={() => goToPage(documents.prev_page_url)}
                                 disabled={!documents.prev_page_url}
-                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition text-xs font-medium"
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#aaa" }}
+                                onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = "#222"; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = "#1a1a1a"; }}
                             >
                                 <ChevronLeftIcon /> Prev
                             </button>
                             <button
                                 onClick={() => goToPage(documents.next_page_url)}
                                 disabled={!documents.next_page_url}
-                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition text-xs font-medium"
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#aaa" }}
+                                onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = "#222"; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = "#1a1a1a"; }}
                             >
                                 Next <ChevronRightIcon />
                             </button>

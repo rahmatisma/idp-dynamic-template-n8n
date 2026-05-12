@@ -931,7 +931,7 @@ def extract_table(
 
     if not anchor:
         logger.warning(f"[TableExtractor] Anchor tabel '{table_name}' tidak ketemu. Skip.")
-        return []
+        return [], None
 
     area_cfg = table_config.get('area', {})
     raw_offset_y = area_cfg.get('offset_y', 0)

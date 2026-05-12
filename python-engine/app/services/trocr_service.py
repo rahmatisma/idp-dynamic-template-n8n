@@ -41,6 +41,12 @@ _trocr_model      = None
 _trocr_ready      = False   # False = belum pernah dicoba
 _trocr_failed     = False   # True  = gagal load, jangan coba lagi
 _trocr_loading    = False   # True  = sedang loading di background
+_trocr_device     = None
+
+# ── Page image cache ────────────────────────────────────────────
+# Menghindari Image.open() berulang untuk halaman yang sama.
+# Key = image_path, Value = PIL.Image. Dibatasi 4 halaman.
+_page_image_cache: dict = {}
 
 
 def prewarm_trocr():
@@ -87,11 +93,11 @@ def _load_trocr():
         _trocr_device = device
 
         print("[TrOCR] Sedang memuat model ke RAM (0/2)...")
-        _trocr_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
+        _trocr_processor = TrOCRProcessor.from_pretrained("models/trocr-finetuned")
 
         print(f"[TrOCR] Sedang memuat weights model ke {device.type.upper()} (1/2)...")
         _trocr_model = VisionEncoderDecoderModel.from_pretrained(
-            "microsoft/trocr-base-handwritten",
+            "models/trocr-finetuned",
             use_safetensors=True
         )
 
@@ -153,16 +159,6 @@ def read_handwritten(image_crop) -> str:
             logger.warning(f"[TrOCR] Crop terlalu kecil ({w}x{h}), skip.")
             return "", 0.0
 
-        # ── DEBUG: simpan crop ke disk untuk inspeksi ─────────────
-        import time, os
-        from config.settings import BASE_DIR
-        debug_dir = BASE_DIR / "storage" / "debug_crops"
-        debug_dir.mkdir(parents=True, exist_ok=True)
-        debug_path = debug_dir / f"crop_{int(time.time() * 1000)}.png"
-        image_crop.save(str(debug_path))
-        logger.info(f"[TrOCR DEBUG] Crop disimpan ({w}x{h}px): {debug_path}")
-        # ──────────────────────────────────────────────────────────
-
         # Proses gambar → tensor
         with torch.no_grad():
             pixel_values = _trocr_processor(
@@ -176,7 +172,7 @@ def read_handwritten(image_crop) -> str:
             # Generate teks + scores untuk menghitung confidence
             outputs = _trocr_model.generate(
                 pixel_values,
-                max_new_tokens=64,
+                max_new_tokens=32,
                 output_scores=True,
                 return_dict_in_generate=True,
             )
@@ -194,7 +190,10 @@ def read_handwritten(image_crop) -> str:
             import torch as _torch
             probs = []
             for i, score_t in enumerate(outputs.scores):
-                token_id = generated_ids[0, i + 1]          # +1: offset BOS
+                idx = i + 1  # +1: offset BOS
+                if idx >= generated_ids.shape[1]:
+                    break
+                token_id = generated_ids[0, idx]
                 p = _torch.softmax(score_t, dim=-1)[0, token_id].item()
                 probs.append(p)
             confidence = round((sum(probs) / len(probs)) * 100, 1) if probs else 50.0
@@ -230,7 +229,12 @@ def crop_cell_for_trocr(image_path: str, x1: int, y1: int, x2: int, y2: int, pad
     try:
         from PIL import Image
 
-        img = Image.open(image_path).convert("RGB")
+        # Gunakan cache agar gambar halaman tidak dibuka ulang tiap sel
+        if image_path not in _page_image_cache:
+            if len(_page_image_cache) >= 4:
+                _page_image_cache.pop(next(iter(_page_image_cache)))
+            _page_image_cache[image_path] = Image.open(image_path).convert("RGB")
+        img = _page_image_cache[image_path]
         img_w, img_h = img.size
 
         # Tambahkan padding, clamp ke batas gambar
@@ -273,7 +277,11 @@ def crop_image_for_trocr(image_path: str, bbox: tuple) -> object:
     try:
         from PIL import Image
 
-        img = Image.open(image_path).convert("RGB")
+        if image_path not in _page_image_cache:
+            if len(_page_image_cache) >= 4:
+                _page_image_cache.pop(next(iter(_page_image_cache)))
+            _page_image_cache[image_path] = Image.open(image_path).convert("RGB")
+        img = _page_image_cache[image_path]
         x1, y1, x2, y2 = bbox
 
         # Clamp koordinat agar tidak keluar batas gambar
