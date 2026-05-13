@@ -135,6 +135,59 @@ function ConfidenceAlert({ score }) {
     );
 }
 
+// ── Template Match Badge ──────────────────────────────────────
+function TemplateMatchBadge({ score, status }) {
+    if (score == null && !status) return null;
+    const isFailed = status === "failed" || status === "unknown"
+                  || (score != null && score < 60);
+    const isLow    = !isFailed && (status === "low_confidence"
+                  || (score != null && score >= 60 && score < 80));
+    if (isFailed) return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 text-xs font-semibold">
+            <XCircleIcon /> Tidak Dikenali
+        </span>
+    );
+    if (isLow) return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold">
+            <WarningIcon /> Low Confidence{score != null ? ` (${Math.round(score)}%)` : ""}
+        </span>
+    );
+    return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
+            <CheckCircleIcon /> Matched{score != null ? ` (${Math.round(score)}%)` : ""}
+        </span>
+    );
+}
+
+// ── Template Match Warning Box ─────────────────────────────────
+function TemplateMatchWarning({ score, status }) {
+    const isFailed = status === "failed" || status === "unknown"
+                  || (score != null && score < 60);
+    const isLow    = !isFailed && (status === "low_confidence"
+                  || (score != null && score >= 60 && score < 80));
+    if (!isFailed && !isLow) return null;
+    return (
+        <div className={`flex items-start gap-3 px-4 py-3.5 rounded-xl border text-sm ${
+            isFailed ? "bg-red-50 border-red-200 text-red-700"
+                     : "bg-amber-50 border-amber-200 text-amber-700"
+        }`}>
+            <span className={`flex-shrink-0 mt-0.5 ${isFailed ? "text-red-500" : "text-amber-500"}`}>
+                <WarningIcon />
+            </span>
+            <div>
+                <p className="font-semibold">
+                    {isFailed ? "Template tidak berhasil dideteksi otomatis."
+                              : "Sistem tidak yakin template ini benar."}
+                </p>
+                <p className="text-xs mt-0.5 opacity-80">
+                    {isFailed ? "Pilih template secara manual."
+                              : "Mohon verifikasi sebelum menyimpan hasil."}
+                </p>
+            </div>
+        </div>
+    );
+}
+
 // ── Tabel Checklist ────────────────────────────────────────────
 const KNOWN_COLUMN_LABELS = {
     no:           "No",
@@ -427,6 +480,9 @@ export default function DocumentDetail({ document }) {
                             <p className="text-sm font-medium text-slate-700 leading-snug">
                                 {document.template_name ?? <span className="text-slate-300 italic font-normal">Tidak terdeteksi</span>}
                             </p>
+                            <div className="mt-1.5">
+                                <TemplateMatchBadge score={document.template_match_score} status={pages[0]?.status} />
+                            </div>
                         </div>
                         <div>
                             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">
@@ -505,6 +561,9 @@ export default function DocumentDetail({ document }) {
                                                 <h2 className="text-base font-bold text-white leading-snug">
                                                     {page.template_name ?? document.template_name ?? "—"}
                                                 </h2>
+                                                <div className="mt-1.5">
+                                                    <TemplateMatchBadge score={page.template_match_score} status={page.status} />
+                                                </div>
                                                 {page.header && (
                                                     <p className="text-xs text-slate-400 mt-1">{page.header}</p>
                                                 )}
@@ -533,6 +592,7 @@ export default function DocumentDetail({ document }) {
                                         <div className="p-6 space-y-6">
                                             {/* ── Confidence Alert ── */}
                                             <ConfidenceAlert score={page.confidence} />
+                                            <TemplateMatchWarning score={page.template_match_score} status={page.status} />
 
                                             {/* ── Fields Section ── */}
                                             {Object.keys(fields).some(k => {

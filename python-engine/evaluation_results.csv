@@ -1,0 +1,998 @@
+﻿image_path,label,pred_base,cer_base,pred_finetuned,cer_finetuned
+FORM_PM_POP_GRAND_MALL_BEKASI/copy.png,27.,127.,0.3333333333333333,27,0.3333333333333333
+POP-CILEUNYI/page10_0011.png,pop cileunyi,""" prop pileunyl",0.4166666666666667,Pop cikalong,0.5
+POP-CILEUNYI/page10_0026.png,DWDM Nokia (pss 8),duum nigric CP.S. B ),0.6111111111111112,DWDM Nokia (PSS8),0.05555555555555555
+POP-WISMA-BUMI-PUTERA/page10_0026.png,Battery berfungsi dengan baik,"Battery herfungs, dengan back",0.10344827586206896,Battery berfungsi dengan baik,0.0
+POP-CILEUNYI/page10_0027.png,OK,ok,0.0,OK,0.0
+POP-CILEUNYI/page10_0029.png,DWDM Adva,dividination,1.0,DWDM Adva,0.0
+POP-CILEUNYI/page10_0032.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page10_0033.png,XR Gpon,xirgeon.,0.5714285714285714,XR Gpon,0.0
+POP-CILEUNYI/page10_0035.png,OK,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page10_0035.png,M.Firdaus,m.firdans.,0.2222222222222222,M.Firdaus,0.0
+POP-CILEUNYI/page10_0036.png,MA,mia,0.5,4A,0.5
+POP-WISMA-BUMI-PUTERA/page10_0036.png,PT.lintasarta,jpruntasarta,0.38461538461538464,PT.lintasarta,0.0
+POP-CILEUNYI/page10_0038.png,Huawei,plummer.,1.0,Huawei,0.0
+POP-CILEUNYI/page10_0040.png,OK,oki,0.5,OK,0.0
+POP-WISMA-BUMI-PUTERA/page10_0040.png,Fendi,fendi,0.0,Fendi,0.0
+POP-CILEUNYI/page10_0044.png,tangga,fangga,0.16666666666666666,Tunggu,0.3333333333333333
+POP-CILEUNYI/page10_0046.png,Apar,apaf,0.25,Apar,0.0
+POP-CILEUNYI/page10_0047.png,OK,ok,0.0,ok,0.0
+POP-CILEUNYI/page10_0049.png,RectiFier,rectifier.,0.1111111111111111,RectiFier,0.0
+POP-CILEUNYI/page10_0050.png,Inverter,philerger.,0.75,Inverter,0.0
+POP-CILEUNYI/page10_0052.png,Exhaust Fan tidak berfungsi,"exhaust fan # trick barfungs,",0.25925925925925924,"Exabersihkan, Tidak berfungsi",0.2962962962962963
+POP-CILEUNYI/page10_0061.png,M.Firdaus,implifications.,1.0,M.Firdaus,0.0
+POP-CILEUNYI/page10_0062.png,PT.lintasarta,jPL. lintasarta,0.23076923076923078,PT.lintasarta,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0011.png,Grand Mall Bekasi,Grandmall Bekasi,0.058823529411764705,Grendi adi Pengusaki,0.6470588235294118
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0013.png,"Selasa, 09.09.2025","sclaga,000695",0.5555555555555556,"Selasa, 09. 2025",0.16666666666666666
+POP-BBU_WISMA_BUMI_PUTERA/page1_0013.png,"Senin, 08 Desember 2025",""" ischrift on December 2025",0.4782608695652174,"Senin, 07 Desember 2025",0.043478260869565216
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0016.png,Shelter,isvineltier.,0.8571428571428571,Standar,0.7142857142857143
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0028.png,Bersih,bersin.,0.3333333333333333,Berksih,0.16666666666666666
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0029.png,OK,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0029.png,standar,standar,0.0,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0030.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0033.png,Kuat,knat,0.25,Kabel,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0034.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0034.png,Standar,guardar,0.42857142857142855,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0035.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0039.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0040.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0041.png,standar,standor.,0.2857142857142857,standar,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0043.png,Aman,aman,0.0,Ariaman,0.75
+POP-BBU_WISMA_BUMI_PUTERA/page1_0044.png,standar,standor.,0.2857142857142857,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0045.png,ok,olz,1.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0047.png,Normal,normal,0.0,Normal,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0049.png,Ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0050.png,standar,glander.,0.5714285714285714,Standar,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0054.png,OK,ok,0.0,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0056.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0063.png,dibersihkan,deberschikan,0.2727272727272727,dibersihkan,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0064.png,Adi,adi,0.0,Ada,0.3333333333333333
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0065.png,IMS,tats,1.0,"10,5",1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0067.png,IMS,ims.,0.3333333333333333,14.5,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page1_0068.png,Suyitno,isuvvitno,0.42857142857142855,54verptember,1.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0073.png,PT.lintasarta,tipt-linkawarta.,0.46153846153846156,PT.lintasarta,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0074.png,M.Firdaus,m-pirdown.,0.6666666666666666,M.Firdaus,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page1_0078.png,fendi Adi,Fendi Adi,0.0,Fendi Adi,0.0
+POP-CILEUNYI/page2_0011.png,Pop cileunyi,Pop Mileussy!,0.3333333333333333,Pop Ci,0.5
+POP-PADALARANG/page2_0011.png,Pop padalarang (BDGBBP),"pop paddarrang, ( BPE 13BPI",0.4782608695652174,Pop Padalarang (BDGBBP),0.0
+POP-WISMA-BUMI-PUTERA/page2_0011.png,Putera,pentafore,1.0,Penerarta,0.8333333333333334
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0012.png,Grandmall Bekasi,Grandmall Bokaisi,0.125,GrondingumiBDgan Baik,0.875
+POP-PADALARANG/page2_0012.png,"Rabu, 15 Okt 2025",""" probably's older so?",1.0,"Rabu, 15 Okt 2025",0.0
+POP-WISMA-BUMI-PUTERA/page2_0012.png,"Jum,at 17 oktober 2025",""" Sumner 17 October 2025",0.3181818181818182,"Jum'at, 17 Oktober 2025",0.09090909090909091
+POP-BBU_WISMA_BUMI_PUTERA/page2_0013.png,Pop Wisma Bumiputera (BDGBBU),""" Pop Woman Bumpugera ( B.C.B.RY )",0.5172413793103449,Pop SBria Beripungsi dengan (BDGBBU),0.5172413793103449
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0014.png,Saasa.09.09.2025,"salada, 09,009.2025",0.375,"Selasa, 09 Sept 2025",0.625
+POP-CILEUNYI/page2_0014.png,"sabtu, 25 okt 2025/12:00",""" sabre, as older acres 1 12.00",0.7916666666666666,"Selasa, 25 Okt 2025/12:00",0.20833333333333334
+POP-BBU_WISMA_BUMI_PUTERA/page2_0015.png,"Senin, 08 Des 2025/15:15",""" seen in, or has apart, it, it",0.875,"Senin, 08: 2025 / 13:15",0.2916666666666667
+POP-BBU_WISMA_BUMI_PUTERA/page2_0017.png,Delta,idelita,0.4,Delta,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0019.png,Panasonic,parasonic,0.1111111111111111,pan Regional ODC,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0022.png,1 PK,i-ndoork,1.0,OK,0.75
+POP-PADALARANG/page2_0024.png,dibersihkan,dibershikan.,0.2727272727272727,dibersihkan,0.0
+POP-WISMA-BUMI-PUTERA/page2_0024.png,dibersihkan,idibershikan.,0.36363636363636365,dibersihkan,0.0
+POP-CILEUNYI/page2_0026.png,dibersihkan,jebibersilskaan.,0.6363636363636364,dibersihkan,0.0
+POP-PADALARANG/page2_0026.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page2_0026.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0027.png,dibersihkan,felliborsichtsen.,0.9090909090909091,dibersihkan,0.0
+POP-CILEUNYI/page2_0027.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0029.png,Ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0030.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page2_0030.png,Standar,of aender.,0.8571428571428571,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page2_0030.png,Standar,standar,0.0,Standar,0.0
+POP-CILEUNYI/page2_0031.png,standar,stanolar,0.2857142857142857,Standar,0.0
+POP-PADALARANG/page2_0031.png,ok,ook,0.5,ok,0.0
+POP-WISMA-BUMI-PUTERA/page2_0031.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0032.png,Clean,clean.,0.2,Curn,0.6
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0033.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0033.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page2_0034.png,standar,standar.,0.14285714285714285,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0035.png,Terkoneksi,terkoneka,0.2,Terkoneksi,0.0
+POP-PADALARANG/page2_0035.png,Standar,standar,0.0,standar,0.0
+POP-WISMA-BUMI-PUTERA/page2_0035.png,standar,standar.,0.14285714285714285,Standar,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0036.png,Clean,clean.,0.2,Cian,0.4
+POP-CILEUNYI/page2_0036.png,ok,ole,1.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0037.png,OK,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0037.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page2_0037.png,ok,ole,1.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0039.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0040.png,Normal,normal,0.0,Normal,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0040.png,2,2,0.0,2,0.0
+POP-CILEUNYI/page2_0040.png,Standar,standar,0.0,Standar,0.0
+POP-PADALARANG/page2_0040.png,standar,effamiliar,1.0,Standar,0.0
+POP-CILEUNYI/page2_0041.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page2_0041.png,ok,ole,1.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page2_0041.png,standar,standar,0.0,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0042.png,Normal,phormal,0.3333333333333333,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page2_0042.png,Ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0043.png,OK,ok,0.0,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0044.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0045.png,Normal,normal,0.0,Normal,0.0
+POP-CILEUNYI/page2_0045.png,standar,standar,0.0,standar,0.0
+POP-PADALARANG/page2_0045.png,Standar,standar,0.0,Standar,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0046.png,OK,ok,0.0,OK,0.0
+POP-CILEUNYI/page2_0046.png,ok,cule.,1.0,Ok,0.0
+POP-PADALARANG/page2_0046.png,ok,ole,1.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page2_0046.png,standar,standar,0.0,standar,0.0
+POP-WISMA-BUMI-PUTERA/page2_0047.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0048.png,226,226,0.0,226,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0050.png,ok,ok,0.0,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0051.png,33A,33a,0.0,3A,0.3333333333333333
+POP-PADALARANG/page2_0051.png,Standar,standar,0.0,Standar,0.0
+POP-CILEUNYI/page2_0052.png,standar,standar,0.0,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0053.png,OK,ok,0.0,ok,0.0
+POP-CILEUNYI/page2_0053.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page2_0053.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page2_0053.png,standar,standar,0.0,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page2_0054.png,Ok,ole,1.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0056.png,"2,90","2, 190",0.5,210.10,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0057.png,Ok,ok,0.0,OK,0.0
+POP-PADALARANG/page2_0057.png,29°C,2goc.,0.75,29°C,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0058.png,33A,33a.,0.3333333333333333,3A,0.3333333333333333
+POP-CILEUNYI/page2_0058.png,Nok,riok,0.6666666666666666,Nok,0.0
+POP-WISMA-BUMI-PUTERA/page2_0058.png,20°C,200c.,0.5,20°C,0.0
+POP-PADALARANG/page2_0059.png,Nok,abijk,1.0,NOK,0.0
+POP-WISMA-BUMI-PUTERA/page2_0060.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0062.png,1,1',1.0,1,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0062.png,54.01,"54,01",0.2,54.01,0.0
+POP-CILEUNYI/page2_0064.png,Shelter dibersihkan,shalter dibersinkan,0.10526315789473684,shelter dibersihkan,0.0
+POP-CILEUNYI/page2_0065.png,Back up Genset 08:30 - 13:30,Book up Genset 08.30 -13.30,0.17857142857142858,BackV Backup Cirebon - 13:30,0.5714285714285714
+POP-PADALARANG/page2_0065.png,Pop dibersihkan,pop diborcitizen.,0.4666666666666667,Pop dibersihkan,0.0
+POP-WISMA-BUMI-PUTERA/page2_0067.png,Pop dibersihkan,pop diberschikan.,0.2,Pop dibersihkan,0.0
+POP-WISMA-BUMI-PUTERA/page2_0068.png,Pendampingan Pemasangan,pardampangan by pornography,0.6086956521739131,"Popdulersihkan, Pemasangan",0.43478260869565216
+POP-WISMA-BUMI-PUTERA/page2_0069.png,DWDM Nokia NG Phase 2,a DWDM Nokia NG phase 2,0.09523809523809523,DWDM Nokia NG Phase 2,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0071.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page2_0074.png,M.Firdaus,im.findians.,0.5555555555555556,M.Firdaus,0.0
+POP-PADALARANG/page2_0074.png,M.Firdaus,im-firdans.,0.4444444444444444,M.Firdaus,0.0
+POP-CILEUNYI/page2_0075.png,PT.lintasarta,jor. Minnesota,0.6923076923076923,PT.lintasarta,0.0
+POP-PADALARANG/page2_0075.png,Pt.lintasarta,pilintasarta,0.15384615384615385,PT.lintasarta,0.0
+POP-WISMA-BUMI-PUTERA/page2_0078.png,M.Firdaus,jim-pirdans.,0.6666666666666666,M.Firdaus,0.0
+POP-CILEUNYI/page2_0079.png,Fendi Adi,""" Fendi Adi",0.2222222222222222,Fendi Adi,0.0
+POP-WISMA-BUMI-PUTERA/page2_0079.png,Pt. lintasarta,per-linkataea,0.5,PT.lintasarta,0.07142857142857142
+POP-CILEUNYI/page2_0080.png,Deni,premi,0.75,DENI,0.0
+POP-PADALARANG/page2_0080.png,Fendi Adi,""" Fiendi Adi",0.3333333333333333,Fendi Adi,0.0
+POP-PADALARANG/page2_0081.png,Deni R,densi 12,0.5,DENI R,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0082.png,Rectifier berfungsi dengan baik,"Rectifier her pumps, dengan back",0.22580645161290322,Rectifier berfungsi dengan baik,0.0
+POP-WISMA-BUMI-PUTERA/page2_0083.png,Fendi,fendi I,0.4,fendi,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0086.png,130,130,0.0,13,0.3333333333333333
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0087.png,AC,ac.,0.5,AC,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0088.png,AC 2 130,AC 2 130,0.0,AC 2 PKC,0.375
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0089.png,PSi. Tgl Produksi:04/2020 (R32),"psi. "" griaduresi, on 1.0030 ( 2.32 )",0.6774193548387096,PSi. 21 FebakWari 2025 (14:30),0.6129032258064516
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0090.png,Tekanan Freon,Tekanan Green,0.15384615384615385,EATON APR48,0.6923076923076923
+POP-BBU_WISMA_BUMI_PUTERA/page2_0091.png,Pt. lintasarta,tort- lentasarfa.,0.5,PT.lintasarta,0.07142857142857142
+POP-BBU_WISMA_BUMI_PUTERA/page2_0092.png,M.Firdaus,jm-firdans.,0.4444444444444444,M.Firdaus,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page2_0096.png,Fendi Adi,Fiemoli Adi,0.4444444444444444,Fendi Adi,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0097.png,Adi,fadi,0.3333333333333333,Ada,0.3333333333333333
+POP-BBU_WISMA_BUMI_PUTERA/page2_0097.png,Purnomo,purposes,0.5714285714285714,Purnomo,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0098.png,IMS,ims.,0.3333333333333333,1.5,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0100.png,Suyitno,lsuyitno,0.14285714285714285,54.lintas,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page2_0101.png,IMS,ims.,0.3333333333333333,1°C,1.0
+POP-CILEUNYI/page3_0009.png,1,1.,1.0,1,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0010.png,2,2,0.0,2,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0011.png,Bekasi,bookasi,0.3333333333333333,BerJungsi,0.8333333333333334
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0012.png,Grandmall,groundmall. R.,0.6666666666666666,Grondingandral,0.8888888888888888
+POP-CILEUNYI/page3_0012.png,Pop cileunyi,paper-culgany.,0.6666666666666666,Pop cikalongur,0.5833333333333334
+POP-PADALARANG/page3_0012.png,Pop Padalarang,Pop Padalarang,0.0,Pop Padalarang,0.0
+POP-WISMA-BUMI-PUTERA/page3_0012.png,Pop Wismabumi putera,""" Pop wismabumi putera",0.1,Pop dismabumi putera,0.05
+POP-BBU_WISMA_BUMI_PUTERA/page3_0013.png,Pop Wisma bumi putera,""" Pop woman born, Putera",0.42857142857142855,Pop Wisma BumiPutera,0.047619047619047616
+POP-PADALARANG/page3_0013.png,(BDGBBP),credibly,0.875,(BDGBBP),0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0014.png,Selasa. 09.09.2025,"' Sedasa, on October",0.7777777777777778,"Selasa, 09: 2025",0.2777777777777778
+POP-BBU_WISMA_BUMI_PUTERA/page3_0014.png,(BDGBBU),"crubby,",0.75,(BDGBBU),0.0
+POP-CILEUNYI/page3_0014.png,"Sabtu, 25 Okt 2025",is about the bike 2025,0.5555555555555556,"Selasa, 25 Okt 2025",0.2777777777777778
+POP-PADALARANG/page3_0015.png,"Rabu, 15 Okt 2025",rubbles out so,0.6470588235294118,"Rabu, 15 Okt 2025",0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0016.png,"22,2°C","22,",0.5,"22,2",0.3333333333333333
+POP-BBU_WISMA_BUMI_PUTERA/page3_0017.png,"Senin, 08 Des 2025 / 15:20",""" Seminions, and has so easily is, 20",0.9230769230769231,"Senin, 08 Sept 2025/15:20",0.19230769230769232
+POP-CILEUNYI/page3_0017.png,EATON APR48,gation apart.,0.45454545454545453,EATON APR48,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0018.png,Bank: 1,Bank : I,0.2857142857142857,Bank: 1,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0020.png,Delta,idella,0.4,A,0.8
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0021.png,G-Power80Ah,"G. Power Boat,",0.6363636363636364,G-L08 Baik,0.8181818181818182
+POP-WISMA-BUMI-PUTERA/page3_0026.png,dibersihran,jotibersimken.,0.6363636363636364,dibersihkan,0.09090909090909091
+POP-PADALARANG/page3_0027.png,Normal,phnormal,0.3333333333333333,Normal,0.0
+POP-CILEUNYI/page3_0028.png,dibersihkan,fetuber-unknown.,1.0,dibersihkan,0.0
+POP-WISMA-BUMI-PUTERA/page3_0028.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page3_0030.png,berFungsi,berfungsi,0.0,berfungsi,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0031.png,dibersihkan,jobberstikan.,0.5454545454545454,dibersihkan,0.0
+POP-CILEUNYI/page3_0031.png,Ok,ok,0.0,Ok,0.0
+POP-PADALARANG/page3_0032.png,Normal,agorimac,0.6666666666666666,Normal,0.0
+POP-CILEUNYI/page3_0033.png,berfungsi,discrepurgist.,1.0,berfungsi,0.0
+POP-WISMA-BUMI-PUTERA/page3_0033.png,OK,ok,0.0,OK,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0034.png,"12,",12i,0.3333333333333333,12,0.3333333333333333
+POP-BBU_WISMA_BUMI_PUTERA/page3_0034.png,berfungsi,jhorquings.,0.6666666666666666,berfungsi,0.0
+POP-CILEUNYI/page3_0035.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page3_0035.png,standar,isfamiliar,0.8571428571428571,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0036.png,Terkoneksi,fire-tobonetics.,1.0,Terkoneksi,0.0
+POP-CILEUNYI/page3_0037.png,Terkoneksi,trembones.,0.5,Terkoneksi,0.0
+POP-WISMA-BUMI-PUTERA/page3_0037.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0039.png,"12,",pl2 ;,1.0,"1,2",0.6666666666666666
+POP-BBU_WISMA_BUMI_PUTERA/page3_0039.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page3_0039.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page3_0040.png,Normal,cultural,1.0,Normal,0.0
+POP-CILEUNYI/page3_0041.png,3,3,0.0,3,0.0
+POP-CILEUNYI/page3_0042.png,OK,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page3_0042.png,oK,ok,0.0,Ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0043.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page3_0043.png,Normal,arformal,0.5,Normal,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0044.png,Normal,phnormal,0.3333333333333333,Normal,0.0
+POP-PADALARANG/page3_0044.png,ok,od,0.5,ok,0.0
+POP-CILEUNYI/page3_0045.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page3_0045.png,226 VAC,226 Vac.,0.14285714285714285,226VAC,0.14285714285714285
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0046.png,"12,6",12 lb.,1.0,"12,6",0.0
+POP-WISMA-BUMI-PUTERA/page3_0046.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0048.png,226,22lb.,1.0,226,0.0
+POP-CILEUNYI/page3_0049.png,225V,225n.,0.5,225V,0.0
+POP-WISMA-BUMI-PUTERA/page3_0050.png,33.9A,33. 3.,0.6,33.9A,0.0
+POP-CILEUNYI/page3_0051.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page3_0051.png,oK,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0052.png,"12,5",plays,1.0,"12,5",0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0052.png,36A,36 A,0.3333333333333333,36 A,0.3333333333333333
+POP-CILEUNYI/page3_0053.png,23A,23 A,0.3333333333333333,23A,0.0
+POP-PADALARANG/page3_0054.png,28°C,"2,",0.75,28°C,0.0
+POP-CILEUNYI/page3_0055.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page3_0056.png,33.9A,33.34,0.4,53.9A,0.2
+POP-PADALARANG/page3_0057.png,27°C,270c.,0.5,27°C,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0058.png,"12,5",j 1 2/5,1.0,"13,5",0.25
+POP-BBU_WISMA_BUMI_PUTERA/page3_0058.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page3_0058.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0059.png,36A,36 A.,0.6666666666666666,35A,0.3333333333333333
+POP-CILEUNYI/page3_0059.png,23A,2.2a,0.6666666666666666,23A,0.0
+POP-CILEUNYI/page3_0060.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page3_0061.png,54.00V,"52, 400.",0.8333333333333334,54.00V,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0062.png,"53,99",53' 89,0.6,"53,89",0.2
+POP-PADALARANG/page3_0062.png,35°C,"35,30.",1.0,35°C,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0064.png,ok,ot,0.5,ok,0.0
+POP-CILEUNYI/page3_0065.png,"51,44V",511.42p.,0.8333333333333334,"51,44V",0.0
+POP-CILEUNYI/page3_0067.png,OK,ok,0.0,OK,0.0
+POP-CILEUNYI/page3_0069.png,standar,standier.,0.42857142857142855,standar,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0071.png,5,ns,1.0,5,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0071.png,OK,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0072.png,Normal,informal,0.3333333333333333,Normal,0.0
+POP-CILEUNYI/page3_0072.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page3_0072.png,ok,ork,0.5,ok,0.0
+POP-CILEUNYI/page3_0074.png,berfungsi,therpungs.,0.4444444444444444,berfungsi,0.0
+POP-PADALARANG/page3_0074.png,27°C,270c.,0.5,27°C,0.0
+POP-CILEUNYI/page3_0077.png,OK,ok,0.0,OK,0.0
+POP-PADALARANG/page3_0077.png,27°C,2/705,0.75,27°C,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0078.png,Normal,normal,0.0,NormaL,0.0
+POP-PADALARANG/page3_0078.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0079.png,12,pl2,1.0,1,0.5
+POP-WISMA-BUMI-PUTERA/page3_0079.png,"RectiFier, berfungsi dengan Baik","fractifier :'berquings, dengan back",0.28125,Rectifier 1 berfungsi dengan Baik,0.0625
+POP-BBU_WISMA_BUMI_PUTERA/page3_0080.png,OK,ok,0.0,ok,0.0
+POP-PADALARANG/page3_0082.png,Standar,stand for,0.42857142857142855,Standar,0.0
+POP-CILEUNYI/page3_0083.png,Ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page3_0084.png,berfungsi,barfungsi,0.1111111111111111,berfungsi,0.0
+POP-PADALARANG/page3_0084.png,ok,erk,1.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0085.png,RectiFier 2 berfungsi dengan,Rechfler 2 her fungan dengan,0.25,Rectifier 2 berfungsi dengan,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0086.png,baik,back,0.25,baik,0.0
+POP-PADALARANG/page3_0087.png,available,speculable,0.5555555555555556,Available,0.0
+POP-WISMA-BUMI-PUTERA/page3_0088.png,M.Firdaus,fm.finctous,0.5555555555555556,M.Firdaus,0.0
+POP-WISMA-BUMI-PUTERA/page3_0089.png,PT.lintasarta,PT.I intrasatta,0.3076923076923077,PT.lintasarta,0.0
+POP-CILEUNYI/page3_0090.png,RectiFier 1 berfungsi dengan baik,Resipier I herfung si dengan talk,0.24242424242424243,RectiFier 1 berfungsi dengan baik,0.0
+POP-PADALARANG/page3_0092.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0093.png,Produksi : 07/03/2022,produksi 5 071 03 ( 2022,0.2857142857142857,"Perdasa,07: 2025/13:22",0.7142857142857143
+POP-WISMA-BUMI-PUTERA/page3_0093.png,Fendi A.P,""" Ferndi.A.P.",0.5555555555555556,Fendi A.P,0.0
+POP-WISMA-BUMI-PUTERA/page3_0094.png,DEN,often,1.0,DENI,0.3333333333333333
+POP-BBU_WISMA_BUMI_PUTERA/page3_0095.png,M.Firdaus,pm-pirdans.,0.5555555555555556,N.Firdaus,0.1111111111111111
+POP-PADALARANG/page3_0095.png,231,237,0.3333333333333333,231,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page3_0098.png,Fendi Adi Purnomo,""" Fendi Adi Purnonwu,",0.35294117647058826,Fendi Adi Purnomo,0.0
+POP-PADALARANG/page3_0098.png,Panel distribusi dan kable instalasi,Panel distribution double insularist,0.3333333333333333,Panel distribusi dan kabel,0.2777777777777778
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0099.png,Adi,adi,0.0,Ada,0.3333333333333333
+POP-CILEUNYI/page3_0099.png,M.Firdaus,I'm Africans.,1.0,M.Firdaus,0.0
+POP-PADALARANG/page3_0099.png,Normal,abnormal,0.3333333333333333,Normal,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0100.png,IMS,tvis.,1.0,14.,1.0
+POP-CILEUNYI/page3_0100.png,PT.lintasarta,pelintasarta,0.15384615384615385,PT.lintasarta,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page3_0101.png,IMS,jiris.,1.0,1°C,1.0
+POP-PADALARANG/page3_0108.png,M.Firdaus,I'm Africans.,1.0,M.Firdaus,0.0
+POP-PADALARANG/page3_0109.png,PT.lintasarta,pportunatory,0.7692307692307693,PT.lintasarta,0.0
+POP-PADALARANG/page3_0112.png,Fendi,fendi,0.0,Fendi,0.0
+POP-PADALARANG/page3_0113.png,Adi,adj,0.3333333333333333,Adi,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0011.png,Pop Wisma bumi putera,Pop Wesma Bumi putora,0.09523809523809523,Pop Ciera bumi putera,0.14285714285714285
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0012.png,Grandmall Bekasi,grandmall. Bokasi,0.125,Grendi adosat,0.6875
+POP-CILEUNYI/page4_0012.png,Pop Cileunyi,Pop-cileumyi,0.16666666666666666,Pop cik,0.5
+POP-PADALARANG/page4_0012.png,Pop Padalarang,""" Pop Padalarang",0.14285714285714285,Pop Padalarang,0.0
+POP-WISMA-BUMI-PUTERA/page4_0012.png,Pop Wismabumi Putera,""" Pop Wismabom putera",0.2,Pop Wismabumi putera,0.0
+POP-PADALARANG/page4_0014.png,(BDGBBP),cippi chapbellsbury,1.0,(BDGBBP),0.0
+POP-WISMA-BUMI-PUTERA/page4_0014.png,"Jum,at 17 Okt 2025",""" gymnastics to take",0.8888888888888888,"Jum'at, 17 Okt 2025",0.1111111111111111
+POP-BBU_WISMA_BUMI_PUTERA/page4_0015.png,Inverter 2000,innister zoo,0.5384615384615384,Inverter 2000,0.0
+POP-CILEUNYI/page4_0015.png,Okt 2025,61st 2025,0.375,okt 2025,0.0
+POP-PADALARANG/page4_0016.png,"Rabu, 15 Okt 2025",""" Kabul risks",0.8235294117647058,"Rabu, 15 Okt 2025",0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0017.png,EATON,meaton.,0.4,EATON,0.0
+POP-WISMA-BUMI-PUTERA/page4_0017.png,Delta,ibelitia,0.8,delta,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0025.png,dibersihkan,diversitikan.,0.36363636363636365,dibersihkan,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0028.png,Clean,Clean.,0.2,Cian,0.4
+POP-BBU_WISMA_BUMI_PUTERA/page4_0028.png,berFungsi,joorfungsi,0.3333333333333333,berfungsi,0.0
+POP-CILEUNYI/page4_0028.png,dibersihkan,joliberslinkan,0.45454545454545453,dibersihkan,0.0
+POP-CILEUNYI/page4_0029.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page4_0029.png,standar,standar,0.0,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page4_0029.png,dibersihkan,jeliberchikan.,0.6363636363636364,dibersihkan,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0030.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0030.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page4_0031.png,berfungsi,I bonfungi,0.5555555555555556,berfungsi,0.0
+POP-WISMA-BUMI-PUTERA/page4_0031.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0032.png,Normal,normal,0.0,Normal,0.0
+POP-PADALARANG/page4_0032.png,OK,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0033.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page4_0033.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page4_0033.png,berfungsi,thorough.,0.7777777777777778,berfungsi,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0034.png,"54,4",sara,1.0,"54,4",0.0
+POP-CILEUNYI/page4_0034.png,terkoneksi,freikoinsky,0.7,Terkoneksi,0.0
+POP-PADALARANG/page4_0034.png,standar,standor.,0.2857142857142857,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page4_0035.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0036.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0037.png,Tighten,tightion.,0.42857142857142855,Tighkan,0.2857142857142857
+POP-CILEUNYI/page4_0037.png,OK,ok,0.0,OK,0.0
+POP-PADALARANG/page4_0038.png,standar,standar,0.0,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page4_0038.png,standar,jisraintat.,1.0,standar,0.0
+POP-CILEUNYI/page4_0039.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0040.png,220.6,220 lb.,0.8,"220,6",0.2
+POP-CILEUNYI/page4_0040.png,2,2,0.0,2,0.0
+POP-PADALARANG/page4_0040.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page4_0040.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0041.png,Ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page4_0041.png,2,2c,1.0,2,0.0
+POP-CILEUNYI/page4_0042.png,Normal,quormal,0.3333333333333333,Normal,0.0
+POP-PADALARANG/page4_0043.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page4_0044.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page4_0044.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0046.png,220°C,220cc,0.2,220°C,0.0
+POP-PADALARANG/page4_0046.png,yes,yes,0.0,yes,0.0
+POP-WISMA-BUMI-PUTERA/page4_0047.png,226VAC,22vvac.,0.3333333333333333,226VAC,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0048.png,25°C,asoc.,1.0,25°C,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0049.png,Ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page4_0049.png,OK,ok,0.0,OK,0.0
+POP-WISMA-BUMI-PUTERA/page4_0050.png,OK,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0051.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page4_0051.png,9A,ga,0.5,9A,0.0
+POP-PADALARANG/page4_0051.png,3phasa,3phosce.,0.6666666666666666,3phasa,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0053.png,Inverter berfungsi dengan baik,"Inwater berfungs, dengan back",0.16666666666666666,Inverter berfungsi dengan baik,0.0
+POP-CILEUNYI/page4_0053.png,70,ok,1.0,OK,1.0
+POP-PADALARANG/page4_0053.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page4_0053.png,"31,5A",31.15A.,0.6,"31,5A",0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0054.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0055.png,"54,46","sy, 46",0.6,"54,06",0.2
+POP-WISMA-BUMI-PUTERA/page4_0055.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page4_0058.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page4_0058.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page4_0058.png,31.5A,"31,154",0.6,"31,5A",0.2
+POP-WISMA-BUMI-PUTERA/page4_0059.png,OK,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0062.png,M.Firdaus,jm-firdans.,0.4444444444444444,M.Firdaus,0.0
+POP-CILEUNYI/page4_0062.png,"53,02V",s302xy ),1.0,"53,52V",0.16666666666666666
+POP-PADALARANG/page4_0062.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0063.png,PT.lintasarta,pt-luptacarta,0.3076923076923077,PT.lintasarta,0.0
+POP-CILEUNYI/page4_0064.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page4_0064.png,53.99VDC,53.eggroot,0.875,"53,99VDC",0.125
+POP-WISMA-BUMI-PUTERA/page4_0065.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page4_0066.png,standar,standard,0.14285714285714285,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page4_0068.png,Fendi adi purnomo,", Fendi Adi Puonome",0.23529411764705882,Fendi Adi Purnomo,0.0
+POP-PADALARANG/page4_0068.png,"GE : 3,2 Ω",TE. 3.2 S.,0.6,"GE : 3,2A",0.2
+POP-CILEUNYI/page4_0070.png,Berfungsi,berpunga,0.3333333333333333,berfungsi,0.0
+POP-CILEUNYI/page4_0073.png,OK,ok,0.0,ok,0.0
+POP-PADALARANG/page4_0077.png,PT.lintasarta,jet-Contosarfa.,0.6153846153846154,PT.Lintasarta,0.0
+POP-CILEUNYI/page4_0078.png,berfungsi,jberfunga,0.3333333333333333,berfungsi,0.0
+POP-CILEUNYI/page4_0080.png,ok,wk,0.5,ok,0.0
+POP-PADALARANG/page4_0081.png,Fendi,fendi,0.0,Fendi,0.0
+POP-PADALARANG/page4_0082.png,adi,adi,0.0,Adi,0.0
+POP-PADALARANG/page4_0083.png,DENI R,denni 12,0.5,DENI R,0.0
+POP-WISMA-BUMI-PUTERA/page4_0083.png,"dibersihkan, berfungsi dengan baik","diborentaken, her fungus, dengan, but",0.4117647058823529,"dibersihkan, berfungsi dengan baik",0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0084.png,Adi,adi,0.0,Adi,0.0
+POP-WISMA-BUMI-PUTERA/page4_0084.png,RectiFier 2,rectifier?,0.18181818181818182,Rectifier 2,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0085.png,IMS,tails,1.0,1.5,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0088.png,Suyitno,psychistry,1.0,54 PKt 2025,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page4_0089.png,IMS,iris,0.6666666666666666,"1,5",1.0
+POP-CILEUNYI/page4_0093.png,M.Firdaus,tm.pidious,0.5555555555555556,M.Firdaus,0.0
+POP-WISMA-BUMI-PUTERA/page4_0093.png,M.Firdaus,jim-firdans.,0.5555555555555556,M.Firdaus,0.0
+POP-CILEUNYI/page4_0094.png,PT.lintasarta,ppi- limitayarta,0.5384615384615384,PT.lintasarta,0.0
+POP-WISMA-BUMI-PUTERA/page4_0094.png,PT.lintasarta,pilimacarta,0.38461538461538464,PT.lintasarta,0.0
+POP-WISMA-BUMI-PUTERA/page4_0097.png,Fendi,fendi.,0.2,fendi,0.0
+POP-CILEUNYI/page4_0098.png,Fendi Adi,""" Fierndi Adi.",0.5555555555555556,Fendi Adi,0.0
+POP-CILEUNYI/page4_0099.png,P,sp,1.0,P,0.0
+POP-WISMA-BUMI-PUTERA/page4_0099.png,DENI,denni.,0.5,DENI,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0011.png,Grandmall Bekasi,Grandmall Bekasi,0.0,Grondingu Berfungsi,0.625
+POP-CILEUNYI/page5_0011.png,Pop cileunyi,pop cite-unyi,0.16666666666666666,Pop cikalongsi,0.5
+POP-PADALARANG/page5_0011.png,Pop Padalarang (BDEBBP),pop padalarang ( BDE BBPI,0.13043478260869565,Pop Padalarang (BDGBBP),0.043478260869565216
+POP-WISMA-BUMI-PUTERA/page5_0011.png,Pop Wisma Bumi Putera,pop wisma bum putera,0.047619047619047616,Pop Wisma bumera,0.23809523809523808
+POP-WISMA-BUMI-PUTERA/page5_0012.png,"Jum'at, 17 Okt 2025",""" Quinning it, "" it takes",1.0,"Jum'at, 17 Okt 2025",0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0013.png,B3CD0100213MA0066,. BBCD0100213 MACOGG,0.47058823529411764,B3CD07MOIC,0.6470588235294118
+POP-PADALARANG/page5_0013.png,"Rabu, 15 Okt 2025 /13:12","IRADU. "" PACKEDRIC 1 13 : 12",0.75,"Rabu, 15 Okt 2025/13:12",0.041666666666666664
+POP-BBU_WISMA_BUMI_PUTERA/page5_0014.png,Inverter 2000,inverter 2000,0.0,inverter 2000,0.0
+POP-CILEUNYI/page5_0014.png,"Sabtu, 25 Okt 2025",isablutivi's own,0.7777777777777778,"Rabu, 25 Okt 2025",0.1111111111111111
+POP-WISMA-BUMI-PUTERA/page5_0014.png,Inverter 2000,"iliniverter, 2000",0.3076923076923077,Inverter 2000,0.0
+POP-PADALARANG/page5_0015.png,Inverter 2000,innister 3000,0.3076923076923077,Inverter 2000,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0016.png,UNK3KBB0373,iunkskobo 373,0.45454545454545453,WNcK30/13,0.6363636363636364
+POP-CILEUNYI/page5_0016.png,Inverter 2000,importer zoo,0.5384615384615384,Inverter 2000,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0018.png,ORION,morion.,0.4,OK ION,0.4
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0021.png,3 KVa,izikva,0.6,3KSuva,0.6
+POP-BBU_WISMA_BUMI_PUTERA/page5_0024.png,dibersihkan,diberschlear.,0.45454545454545453,dibersihkan,0.0
+POP-PADALARANG/page5_0024.png,dibersihkan,idiversitikan.,0.45454545454545453,dibersihkan,0.0
+POP-WISMA-BUMI-PUTERA/page5_0025.png,dibersihkan,dibershikan.,0.2727272727272727,dibersihkan,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page5_0026.png,berfungsi,therfungs.,0.3333333333333333,berfungsi,0.0
+POP-PADALARANG/page5_0026.png,OK,ok,0.0,OK,0.0
+POP-CILEUNYI/page5_0027.png,dibersihkan,clibersi taken.,0.6363636363636364,dibersihkan,0.0
+POP-WISMA-BUMI-PUTERA/page5_0027.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0028.png,Clean,clean.,0.2,Cian,0.4
+POP-BBU_WISMA_BUMI_PUTERA/page5_0028.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page5_0028.png,berfungsi,jberfungs.,0.2222222222222222,berfungsi,0.0
+POP-CILEUNYI/page5_0029.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page5_0030.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page5_0030.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0031.png,Ok,qk,0.5,ok,0.0
+POP-CILEUNYI/page5_0031.png,berfungsi,jberfungs.,0.2222222222222222,berfungsi,0.0
+POP-WISMA-BUMI-PUTERA/page5_0031.png,berFungsi,loorpungsi,0.4444444444444444,berfungsi,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0032.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page5_0033.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page5_0033.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0034.png,Normal,wormall,0.3333333333333333,Normal,0.0
+POP-PADALARANG/page5_0034.png,"54,53","34,53",0.2,54.53,0.2
+POP-WISMA-BUMI-PUTERA/page5_0036.png,"53,85V","53,850",0.16666666666666666,"53,55V",0.16666666666666666
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0037.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page5_0037.png,ok,ok,0.0,Ok,0.0
+POP-CILEUNYI/page5_0038.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page5_0038.png,"0,80A",opeppa,1.0,"0,80A",0.0
+POP-WISMA-BUMI-PUTERA/page5_0038.png,0.62,0.62,0.0,0.1,0.5
+POP-CILEUNYI/page5_0039.png,0.29V,01.12gy,0.8,0.29V,0.0
+POP-WISMA-BUMI-PUTERA/page5_0040.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0041.png,"236,9",23619,0.2,"234,9",0.2
+POP-CILEUNYI/page5_0041.png,Ok,ole,1.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0042.png,OK,ok,0.0,OK,0.0
+POP-PADALARANG/page5_0042.png,ok,cope,1.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page5_0044.png,223,223,0.0,223,0.0
+POP-WISMA-BUMI-PUTERA/page5_0044.png,0.62,"to,652",1.0,"0,62",0.25
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0045.png,ok,ok,0.0,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page5_0045.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page5_0046.png,"0,29V",olizzy V.,1.0,"0,29V",0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0047.png,Ok,ok,0.0,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page5_0047.png,23°C,230c.,0.5,23°C,0.0
+POP-PADALARANG/page5_0047.png,230V,230ly,0.5,230V,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0048.png,"0,3",0/3,0.3333333333333333,"0,3",0.0
+POP-PADALARANG/page5_0049.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page5_0050.png,Inverter berfungsi dengan baik,"Inverter her pumps, dengan bark",0.23333333333333334,Inverter berfungsi dengan baik,0.0
+POP-PADALARANG/page5_0050.png,24°C,240c.,0.5,24°C,0.0
+POP-WISMA-BUMI-PUTERA/page5_0050.png,230VAC,"230,ac.",0.3333333333333333,220 VAC,0.3333333333333333
+POP-CILEUNYI/page5_0051.png,230VAC,230 Vac.,0.3333333333333333,230VAC,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0052.png,"2,44","2, 2.42",1.0,"2,V",0.5
+POP-WISMA-BUMI-PUTERA/page5_0052.png,Ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page5_0053.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page5_0053.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0054.png,Ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page5_0054.png,"13,6C",3.30,0.8,13.6°C,0.4
+POP-CILEUNYI/page5_0055.png,26.8°C,2b.pec.,0.6666666666666666,"26,8°C",0.16666666666666666
+POP-PADALARANG/page5_0055.png,InVerter,inverter.,0.125,Inverter,0.0
+POP-PADALARANG/page5_0056.png,Normal,alor mal,0.5,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page5_0056.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page5_0057.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0058.png,2.43,"2, 243",0.75,2.3,0.25
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0059.png,Ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page5_0059.png,M.Firdaus,jIM-pirdans.,0.6666666666666666,M.Firdaus,0.0
+POP-CILEUNYI/page5_0059.png,Inverter berfungsi dengan baik,Interter borrowings dengeun bank,0.3333333333333333,Inverter berfungsi dengan baik,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page5_0060.png,PT.lintasarta,tpt-hunhasatta.,0.5384615384615384,PT.lintasarta,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0062.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0064.png,"27,8°C","27,78.",0.5,"27,8°C",0.0
+POP-BBU_WISMA_BUMI_PUTERA/page5_0064.png,Fendi adi Purnomo,"fiendi Adi Purnonio,",0.23529411764705882,Fendi Adi Purnomo,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0065.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page5_0065.png,M.Firdaus,jm-firdans.,0.4444444444444444,M.Firdaus,0.0
+POP-PADALARANG/page5_0066.png,PT.lintasarta,prolintasorta,0.23076923076923078,PT.lintasarta,0.0
+POP-WISMA-BUMI-PUTERA/page5_0066.png,M.Firdaus,tim-firdalls.,0.6666666666666666,M.Firdaus,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0067.png,"50,0",sojo,1.0,"5,0",0.25
+POP-WISMA-BUMI-PUTERA/page5_0067.png,PT.Lintasarta,tri- Imhasarta,0.5384615384615384,PT.lintasarta,0.0
+POP-CILEUNYI/page5_0068.png,PT.lintasarta,prolutasarta,0.3076923076923077,PT.lintasarta,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0070.png,"107,4VDC",flozywork,1.0,"10,70°C",0.5
+POP-CILEUNYI/page5_0070.png,M.Firdaus,jury-furious.,1.0,M.Firdaus,0.0
+POP-PADALARANG/page5_0070.png,Fendi,fend.,0.2,Fendi,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0071.png,ok,oik,0.5,OK,0.0
+POP-PADALARANG/page5_0071.png,Adi,act ;,1.0,Adi,0.0
+POP-WISMA-BUMI-PUTERA/page5_0071.png,Fendi A'P,fenoli A'p.,0.3333333333333333,Fendi A.P,0.1111111111111111
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0073.png,"0,01ADC",foroxid acid,1.0,"0,06A",0.42857142857142855
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0074.png,OK,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0076.png,Berputar,theiripular,0.625,Beripungsi,0.625
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0077.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0080.png,Normal,"informal,",0.5,Normal,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0081.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0087.png,107.4VDC,"flozy, 4vg.",1.0,berFungsi,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0088.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0089.png,"97,7VDC","1947, 7wick",0.8571428571428571,52.FVDC,0.5714285714285714
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0090.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0095.png,OK,ok,0.0,OK,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0105.png,Adi,ladi,0.3333333333333333,Adi,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0106.png,IMS,inis,0.6666666666666666,"14,5",1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0108.png,IMS,jnels.,1.0,"1,5",1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page5_0109.png,Suyitno,isuyitino,0.2857142857142857,Switchar,0.8571428571428571
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0008.png,Grandmall Bekasi,Grandmill Bekasi,0.0625,Grondingu Battery,0.6875
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0011.png,"Selasa, 09.09.2025",""" Selash, 0/059. 2008",0.5,"Selasa, 09: 2025",0.2222222222222222
+POP-PADALARANG/page6_0011.png,Pop Padalarang (BDGBBP),Pop Radakorang ( BDGBB PJ,0.2608695652173913,Pop Padalarang (BDGBBP),0.0
+POP-WISMA-BUMI-PUTERA/page6_0011.png,2,2,0.0,2,0.0
+POP-PADALARANG/page6_0012.png,"Rabu, 15 Okt 2025/13:14",""" Roba. is Oktzoat ( 13 : 14",0.6956521739130435,"Rabu, 15 Okt 2025/13:14",0.0
+POP-WISMA-BUMI-PUTERA/page6_0012.png,"Jum'at, 17 Okt 2025",dum'at. 17' okt 2025,0.15789473684210525,"Jum'at, 17 Okt 2025",0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0013.png,pop wismabumiputera,""" pop Wesmabumputera",0.21052631578947367,Pop Vismabumi putera,0.10526315789473684
+POP-CILEUNYI/page6_0013.png,Pop cileunyi,""" POP oil-lenny,",0.5833333333333334,Pop cikalongujur,0.6666666666666666
+POP-BBU_WISMA_BUMI_PUTERA/page6_0015.png,"Senin, 08 Desember 2025",": Semi, "" or resember post",0.5652173913043478,"Senin, 08 Desember 2025",0.0
+POP-CILEUNYI/page6_0015.png,"Sabtu, 25 okt 2025",""" Sabbiriti set over 20025",0.8333333333333334,"Selasa, 25 Okt 2025",0.2777777777777778
+POP-PADALARANG/page6_0015.png,Inverter 2000,inverter 2000,0.0,Inverter 2000,0.0
+POP-WISMA-BUMI-PUTERA/page6_0025.png,dibersihkan,diberschican ),0.45454545454545453,dibersihkan,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0026.png,ok,ok,0.0,OK,0.0
+POP-PADALARANG/page6_0026.png,dibersihkan,idiberchikan.,0.45454545454545453,dibersihkan,0.0
+POP-WISMA-BUMI-PUTERA/page6_0027.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page6_0029.png,standar,standar,0.0,Standar,0.0
+POP-PADALARANG/page6_0029.png,berFungsi,jberfulness,0.4444444444444444,berfungsi,0.0
+POP-WISMA-BUMI-PUTERA/page6_0029.png,berfungsi,berpungs.,0.2222222222222222,berfungsi,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0031.png,Ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page6_0031.png,OK,ok,0.0,ok,0.0
+POP-PADALARANG/page6_0031.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page6_0031.png,OK,ok,0.0,ok,0.0
+POP-CILEUNYI/page6_0033.png,standar,standier.,0.42857142857142855,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0034.png,standar,standar ),0.2857142857142857,standar,0.0
+POP-PADALARANG/page6_0034.png,53.24,13.34,0.4,53.24,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0035.png,Kuat,khat,0.25,Ralt,0.75
+POP-CILEUNYI/page6_0035.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page6_0035.png,"54,20VDC","54,42ome.",0.625,54.20VDC,0.125
+POP-CILEUNYI/page6_0036.png,Normal,informal,0.3333333333333333,Normal,0.0
+POP-PADALARANG/page6_0036.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page6_0036.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0037.png,OK,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0037.png,standar,standar,0.0,standar,0.0
+POP-PADALARANG/page6_0038.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page6_0038.png,"0,70A",out of,1.0,"0,70A",0.0
+POP-CILEUNYI/page6_0039.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page6_0039.png,OK,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0040.png,Kuat,kreat,0.5,baalt,0.75
+POP-BBU_WISMA_BUMI_PUTERA/page6_0040.png,Ok,ck,0.5,ok,0.0
+POP-PADALARANG/page6_0040.png,0.80A,"to, 800 A",1.0,0.80A,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0042.png,OK,ok,0.0,ok,0.0
+POP-CILEUNYI/page6_0042.png,Yes,yos.,0.6666666666666666,yes,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0043.png,yes,yes,0.0,Yes,0.0
+POP-CILEUNYI/page6_0043.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page6_0043.png,0.70A,0.70a,0.0,0.70A,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0044.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page6_0044.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0045.png,Kuat & kencang,Kuat A kencang,0.07142857142857142,KabelA Penunang,0.5714285714285714
+POP-WISMA-BUMI-PUTERA/page6_0045.png,oK,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0046.png,yes,yes,0.0,Yes,0.0
+POP-CILEUNYI/page6_0046.png,yes,yes,0.0,Yes,0.0
+POP-PADALARANG/page6_0046.png,0.80A,oveboxed,1.0,"0,80A",0.2
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0047.png,OK,ok,0.0,OK,0.0
+POP-CILEUNYI/page6_0048.png,OK,oke,0.5,Ok,0.0
+POP-PADALARANG/page6_0050.png,219,zig,1.0,219,0.0
+POP-WISMA-BUMI-PUTERA/page6_0050.png,230 VAc,230vacy,0.2857142857142857,230VAC,0.14285714285714285
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0051.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page6_0051.png,3phasa,3phosa,0.16666666666666666,3 phasa,0.16666666666666666
+POP-PADALARANG/page6_0052.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0053.png,Kuat,kurt,0.25,K-06,0.75
+POP-BBU_WISMA_BUMI_PUTERA/page6_0053.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page6_0053.png,16.6c,ibobic.,1.0,16.6°C,0.2
+POP-CILEUNYI/page6_0054.png,ok,ok,0.0,OK,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0055.png,ok,ok,0.0,OK,0.0
+POP-PADALARANG/page6_0055.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page6_0056.png,Inverter berfungsi dengan baik,Inverter herpungsi dengan bank,0.1,Inverter berfungsi dengan baik,0.0
+POP-PADALARANG/page6_0057.png,Inverter berfungsi dengan Normal,Inverter herfungsi dangan Normal,0.0625,Inverter berfungsi dengan normal,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0058.png,Normal,whormal,0.3333333333333333,Normal,0.0
+POP-CILEUNYI/page6_0058.png,ok,ole,1.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0060.png,ok,oke,0.5,ok,0.0
+POP-CILEUNYI/page6_0060.png,Normal,nicrimal,0.5,Normal,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0061.png,Normal,mormal,0.16666666666666666,Normal,0.0
+POP-CILEUNYI/page6_0063.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page6_0064.png,Normal,phnormal,0.3333333333333333,Normal,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0065.png,Standar,stanclair.,0.5714285714285714,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page6_0065.png,M.Firdaus,pm-firdans.,0.4444444444444444,M.Firdaus,0.0
+POP-PADALARANG/page6_0066.png,M.Firdaus,jury-pirdance.,1.0,M.Firdaus,0.0
+POP-WISMA-BUMI-PUTERA/page6_0066.png,PT.Lintasarta,ppi-Lintasarta,0.23076923076923078,PT.lintasarta,0.0
+POP-CILEUNYI/page6_0067.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page6_0067.png,PT.lintasarta,militasarta,0.3076923076923077,PT.lintasarta,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0068.png,graunding Normal,stounding Normal,0.1875,Grounding Normal,0.0625
+POP-CILEUNYI/page6_0069.png,Standar,standar,0.0,standar,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0070.png,Adi,fadi,0.3333333333333333,Ada,0.3333333333333333
+POP-WISMA-BUMI-PUTERA/page6_0070.png,Fendi A.P,Fendi A.P.,0.1111111111111111,Fendi A.P,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0071.png,IMS,mills.,1.0,1CMS,0.6666666666666666
+POP-PADALARANG/page6_0071.png,Fendi Adi P,"French Adi P.,",0.45454545454545453,Fendi Adi P,0.0
+POP-CILEUNYI/page6_0072.png,P-G : 228V,"p-, 1200 y",0.7,P-G : 228V,0.0
+POP-CILEUNYI/page6_0073.png,P-N : 228 V,p-majority.,0.8181818181818182,P-N : 228.2V,0.18181818181818182
+POP-CILEUNYI/page6_0074.png,"N-G : 0,8 V",in-to crisis y,0.9090909090909091,"N-G: 0,8V",0.18181818181818182
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0075.png,Suyitno,guycitro,0.42857142857142855,Su Lithini,0.7142857142857143
+FORM_PM_POP_GRAND_MALL_BEKASI/page6_0076.png,IMS,inis,0.6666666666666666,1.5,1.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0077.png,M.Firdaus,(m.pirdans.,0.4444444444444444,M.Firdaus,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0078.png,PT.Lintasarta,jor. lintasarita.,0.46153846153846156,PT.lintasarta,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page6_0083.png,Fendi Adi Purnomo,""" Fincii Adi Promolo,",0.5882352941176471,Fendi Adi Purnomo,0.0
+POP-CILEUNYI/page6_0083.png,M.Firdaus,implipitous.,0.8888888888888888,M.Firdaus,0.0
+POP-CILEUNYI/page6_0084.png,PT.Lintasarta,1p.e. Bintacarta,0.46153846153846156,PT.lintasarta,0.0
+POP-CILEUNYI/page6_0087.png,Fendi Adi,""" Ferdi Adi",0.3333333333333333,Fendi Adi,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0010.png,Grandmall Bekasi,""" Grundmall Bekaat",0.3125,Gronding Panel Bikalong,0.8125
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0012.png,"Selasa, 09.09.2025",""" Selasu, 09.00,205",0.3333333333333333,"Selasa, 09: 2025",0.2222222222222222
+POP-PADALARANG/page7_0012.png,pop Padalarang,""" Pop Padalarang",0.14285714285714285,Pop Padalarang,0.0
+POP-WISMA-BUMI-PUTERA/page7_0012.png,Pop Wisma bumiputera,""" Pop Wisma bumiputera",0.1,Popuisma bumhani putera,0.3
+POP-BBU_WISMA_BUMI_PUTERA/page7_0013.png,"Senin, 08 Desember 2025",""" Seminips' reporter 2020",0.5652173913043478,"Senin, 14 Desember 2025",0.08695652173913043
+POP-CILEUNYI/page7_0013.png,Pop cileunyi,"pop cite-my,",0.3333333333333333,Pop Cikalong,0.5
+POP-WISMA-BUMI-PUTERA/page7_0015.png,Jum'at 17 Okt 2025,""" journalist in older sizes",1.0,"Jum'at, 17 Okt 2025",0.05555555555555555
+POP-CILEUNYI/page7_0016.png,Sabtu 25 Okt 2025,""" SABAN-Tazetoke 2022",0.7058823529411765,"Selabu, 26 Okt 2025",0.29411764705882354
+POP-PADALARANG/page7_0016.png,"Rabu, 15 Okt 2025/13:02","Trabu, took place 1 13.02",0.6086956521739131,"Rabu, 15 Okt 2025 /13:00",0.08695652173913043
+POP-PADALARANG/page7_0019.png,EATON APR48,station apparatus.,0.9090909090909091,EATON APR48,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0020.png,Rak 1,peak I,0.6,RAGE,0.6
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0021.png,OTB,totb.,0.6666666666666666,CT,0.6666666666666666
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0022.png,3,3,0.0,3,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0024.png,2,2.,1.0,2,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0025.png,Poe port,1 Poe port,0.25,POPomo,0.5
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0026.png,1,il,1.0,1,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0027.png,Poe,pox,0.3333333333333333,P-bon,1.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0027.png,standar,standar,0.0,standar,0.0
+POP-CILEUNYI/page7_0027.png,Normal,informal,0.3333333333333333,Normal,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0028.png,port,port.,0.25,Sentrik,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0029.png,41,"ly,",1.0,ok,1.0
+POP-CILEUNYI/page7_0029.png,ok,ok,0.0,Ok,0.0
+POP-PADALARANG/page7_0029.png,dibersihkan,jobbershikan.,0.5454545454545454,dibersihkan,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0030.png,1,l,1.0,1,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0030.png,Standar,standout.,0.5714285714285714,standar,0.0
+POP-CILEUNYI/page7_0031.png,Normal,normal,0.0,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page7_0031.png,Standar,standard at,0.5714285714285714,standar,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0032.png,5,sit.,1.0,sh,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0033.png,"Poe Radwin ""BKSGMBBW""",""" Poe tradwin "" besgmbbbww """,0.38095238095238093,Pop Padulhalim /BDGBH),0.7142857142857143
+POP-BBU_WISMA_BUMI_PUTERA/page7_0033.png,Standar,standout,0.42857142857142855,standar,0.0
+POP-CILEUNYI/page7_0033.png,OK,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page7_0033.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page7_0034.png,Normal,noimal,0.16666666666666666,Normal,0.0
+POP-PADALARANG/page7_0034.png,berfungsi,doorfangs.,0.5555555555555556,berfungsi,0.0
+POP-WISMA-BUMI-PUTERA/page7_0034.png,Standar,standor.,0.2857142857142857,standar,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0035.png,6.,6.,0.0,"0,",1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0036.png,Huawei,thuanxi,0.5,Huawei,0.0
+POP-PADALARANG/page7_0036.png,Terkonoksi,herkonoesi.,0.3,Terkoneksi,0.1
+POP-WISMA-BUMI-PUTERA/page7_0036.png,oK,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0037.png,7.,7i.,0.5,Adi,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0038.png,1,1.,1.0,1,0.0
+POP-CILEUNYI/page7_0038.png,Normal,alnormal,0.3333333333333333,Normal,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0039.png,8.,toto,1.0,8,0.5
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0040.png,Kabel manaJemen,Ikabol managementmen,0.4666666666666667,Kabel purnomo,0.5333333333333333
+POP-BBU_WISMA_BUMI_PUTERA/page7_0040.png,Standar,standier.,0.42857142857142855,standar,0.0
+POP-WISMA-BUMI-PUTERA/page7_0040.png,ok,ok,0.0,OK,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0041.png,2,2,0.0,2,0.0
+POP-CILEUNYI/page7_0041.png,Normal,finformal,0.5,Normal,0.0
+POP-PADALARANG/page7_0041.png,Normal,normal,0.0,Normal,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0042.png,1,0,1.0,1,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0042.png,Ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page7_0042.png,Yes,yes,0.0,Yes,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0043.png,10.,lib.,1.0,10,0.3333333333333333
+POP-CILEUNYI/page7_0043.png,Normal,informic,0.6666666666666666,Normal,0.0
+POP-PADALARANG/page7_0043.png,ok,ok,0.0,ok,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0044.png,"Raiscom ""BKSGMBSRLO""","Ipsiscom "" "" Bksgeursimo. """,0.65,Rabu (BDGBE),0.7
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0045.png,B2WN 0202011N01214,IRMNG.000TH.LY,0.8333333333333334,Bayu020I Normal,0.7222222222222222
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0046.png,B2WN 0202010N00086,IRPOND 200 2000008ic.,0.7222222222222222,BayWN020 DWD00,0.6111111111111112
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0047.png,Raisecom,praiscom,0.25,RAisecON,0.125
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0049.png,"Raisecom ""BKSGMBXROI""","traisecom "" BKSENABX RO! """,0.38095238095238093,Rabu Skring : 13:OI,0.8095238095238095
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0050.png,12.,12.,0.0,1,0.6666666666666666
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0052.png,13.,"this. """,1.0,13.1,0.3333333333333333
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0053.png,PDU,ipidic.,1.0,BDC,0.6666666666666666
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0054.png,2,2,0.0,2,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0056.png,1,1.,1.0,1,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0057.png,B2WN 0150010D00374,B2W.N.O.S0010D00374,0.2777777777777778,BeWN CICD07V,0.6111111111111112
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0058.png,15.,psi,1.0,15,0.3333333333333333
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0059.png,Lo Modem,to modern,0.375,ODC DWDini,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0061.png,B2WN 01A4010300125,Bawn Clay 010300125,0.2777777777777778,RWN 0WDMjur,0.7777777777777778
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0062.png,16.,ils. K,1.0,ok,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0063.png,Co Modem,to modern.,0.5,Co purnomo,0.75
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0064.png,1,1,0.0,1,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0066.png,Poe Port,1pick port.,0.625,Pt.,0.875
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0067.png,"""CT TO BSI""",""" "" CT. TO PBS! """,0.6363636363636364,CT°OI,0.6363636363636364
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0069.png,B2WS 0391205MA0477,Bews 0391aosnao477,0.3333333333333333,13UDSi bufungsi,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0070.png,17.,pigs.,1.0,1,0.6666666666666666
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0071.png,18.,18.,0.0,13.,0.3333333333333333
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0072.png,Raisecom,paisicom.,0.375,Ruisecom,0.125
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0074.png,19.,19.,0.0,19.,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0075.png,Raisecom,pauiscorn.,0.75,Risecbon,0.375
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0076.png,B2WN 01AH020401420,IRPOND PATH 020401420,0.5,BeWN 0ATON /120,0.5
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0077.png,1,1.,1.0,1,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0079.png,20,teia.,1.0,2,0.5
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0080.png,Raisecom,traiscoon.,0.625,RisecCDini,0.75
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0081.png,B2WN01AH020402442,# BAWN or AHOADYOZYYYY2,1.0,BeWNON APR 0WDeyur 2,0.8235294117647058
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0083.png,21.,2.,0.3333333333333333,21,0.3333333333333333
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0084.png,Raisecom,paisacorn.,0.625,Risecbon,0.375
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0085.png,1,t,1.0,1,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0087.png,B2WN01AH020401819,Brun Diabolou 819,0.7058823529411765,P-N APR48 (19:39,0.8235294117647058
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0088.png,22.,22.,0.0,22,0.3333333333333333
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0089.png,Radio Link,radio link,0.0,Rabu - U 2025,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0090.png,B2WS 023A010500465,BZWS 023A01059661,0.2777777777777778,"BayS, 08S 2025",0.7222222222222222
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0091.png,Radio Link,Radio link,0.0,"Rabu, 0rik",0.6
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0093.png,24. Radio Link,24. Tradio Link,0.07142857142857142,24. 20 diservis,0.6428571428571429
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0094.png,B2WS 023A010500292,IRGINS 023A01050029's,0.3888888888888889,"EATus, 04 Feb 2025arta",1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0095.png,1,l,1.0,1,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0096.png,25.,25.,0.0,25,0.3333333333333333
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0098.png,B2WN 0202011K00153,Bawn 0202011000153,0.1111111111111111,Rabu0001 2025/15:15,0.7777777777777778
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0099.png,"Raisecom ""BK5GMBSROI","Iraiswoon "" BKSEMBS ROI",0.4,Room Skringusi,0.7
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0100.png,1,il,1.0,1,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0101.png,Raisecom,pariscuous,0.75,Ruisecom,0.125
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0102.png,B2WN 0202011N00318,IBBOWN 0202011 N00318,0.2222222222222222,"Rabu020, 1200010848",0.7222222222222222
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0103.png,Poe Port,for port,0.25,Pt. 20VDE,0.875
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0105.png,B2WS 0391205MA0286,B2W. 03910.00A.86,0.3888888888888889,G-SUD0700010800,0.8333333333333334
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0113.png,Adi,jadi,0.3333333333333333,Adi,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0114.png,IMS,tives,1.0,14.8,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0116.png,Suyitno,ismyitno,0.2857142857142857,54 PKto,0.8571428571428571
+FORM_PM_POP_GRAND_MALL_BEKASI/page7_0117.png,IMS,inas.,1.0,14A,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0009.png,Grandmall Bekasi,""" Grandmall Pskaci",0.3125,Gronding irdae (BDGIDS,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0011.png,"Selasa, 09.09.2025",""" Salachoo, 09.2023",0.6111111111111112,"Selasa, 21: 2025",0.3333333333333333
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0020.png,28.,28.,0.0,28,0.3333333333333333
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0021.png,RectiFier,""" Precoticifier.",0.7777777777777778,RectiFier,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0023.png,Rak battery,rate battery.,0.2727272727272727,Rack Battery,0.09090909090909091
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0024.png,ORION 3kVA,option 3kva,0.2,07UDI 3VDC,0.8
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0025.png,ups,ilepsky,1.0,yes,0.6666666666666666
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0026.png,1,1,0.0,1,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0028.png,2,2.,1.0,2,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0029.png,Battery G-Power,IBattery G.Power,0.13333333333333333,Battery :fONomo,0.4666666666666667
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0030.png,6,lb.,1.0,ok,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0039.png,Adi,fadi,0.3333333333333333,Adi,0.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0040.png,IMS,tivis.,1.0,11.5,1.0
+FORM_PM_POP_GRAND_MALL_BEKASI/page8_0043.png,Suyitno,jisuyitno,0.2857142857142857,54 Tahini,1.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0047.png,ok,ok,0.0,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0049.png,Standar,examiner.,1.0,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0051.png,OK,ok,0.0,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0053.png,Standar,standier.,0.42857142857142855,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0055.png,OK,ok,0.0,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0057.png,Standar,standar.,0.14285714285714285,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0059.png,ok,oik,0.5,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0062.png,ok,ok.,0.5,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0063.png,Standar,glandiat.,0.7142857142857143,Standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0066.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0069.png,standar,standar.,0.14285714285714285,Standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0071.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0073.png,standar,standar,0.0,Standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0077.png,standar,standier.,0.42857142857142855,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0079.png,ok,ok,0.0,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0081.png,standar,standier.,0.42857142857142855,Standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0084.png,OK,ok,0.0,OK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0091.png,standar,standar.,0.14285714285714285,standar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0095.png,ok,oik.,1.0,oK,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0097.png,225,321,0.6666666666666666,225,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0102.png,Kabel dan panel normal,kobel dam panel normal,0.09090909090909091,Kabel dan panel Normal,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0111.png,PT.Lintasarta,pt. Lintasarta,0.07692307692307693,PT.lintasarta,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0112.png,M.Firdaus,tm.purdans.,0.5555555555555556,M.Firdaus,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page7_0116.png,Fendi Adi Purnomo,Fendi Adi Buono me.,0.29411764705882354,Fendi Adi Purnomo,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0012.png,Pop Wisma Bumi putera,""" Pop Wisma Bum. putsig",0.2857142857142857,"Pop Wismu, Bianomo",0.5238095238095238
+POP-BBU_WISMA_BUMI_PUTERA/page8_0014.png,"Senin, 08 Des 2025/15:10",""" Seminars des 2025 1,5.10",0.4166666666666667,"Senin, 08 Sept 2025 /13:10",0.20833333333333334
+POP-BBU_WISMA_BUMI_PUTERA/page8_0017.png,25°C,280.,0.75,25°C,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0019.png,2,12 2,1.0,2,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0020.png,1,1,0.0,1,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0021.png,2,2,0.0,2,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0022.png,VRLA,yrla,0.25,VRLA,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0023.png,VRLA,yrla,0.25,VRLA,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0024.png,Ritar,rettar.,0.6,Ritar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0025.png,Ritar,ikitar,0.4,Ritar,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0039.png,134,th3rd,1.0,13.4,0.3333333333333333
+POP-BBU_WISMA_BUMI_PUTERA/page8_0040.png,Full,pulp,0.5,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0041.png,"13,6",1316,0.25,13.6,0.25
+POP-BBU_WISMA_BUMI_PUTERA/page8_0042.png,Full,full,0.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0046.png,Full,full,0.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0047.png,Full,full.,0.25,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0050.png,"13,5",p315,0.5,"13,5",0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0053.png,"13,6","13,30",0.5,"13,6",0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0054.png,Full,full,0.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0055.png,Full,full,0.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0060.png,"13,5",p133,0.75,"13,5",0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0061.png,Full,fully,0.25,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0062.png,"13,5","13,5",0.0,"13,5",0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0063.png,Full,full,0.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0068.png,13.5,1335,0.25,"13,5",0.25
+POP-BBU_WISMA_BUMI_PUTERA/page8_0069.png,13.5,13.35,0.25,"13,5",0.25
+POP-BBU_WISMA_BUMI_PUTERA/page8_0071.png,Full,peull,0.5,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0074.png,Full,full,0.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0076.png,"13,6",13.36,0.5,"13,6",0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0077.png,"13,5",133.95,0.75,13.5,0.25
+POP-BBU_WISMA_BUMI_PUTERA/page8_0078.png,Full,fyvy.,1.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0080.png,Full,full,0.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0084.png,"13,5",pixie.,1.0,"13,5",0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0085.png,Full,full,0.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0086.png,13.5,pigs.,1.0,13.5,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0087.png,Full,full,0.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0092.png,13.6,13.36,0.25,13.6,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page8_0093.png,Full,full,0.0,Full,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page9_0018.png,Normal,acormal,0.3333333333333333,Normal,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page9_0019.png,ok,ok,0.0,ok,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page9_0020.png,Normal,normal,0.0,Normal,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page9_0029.png,Battery,battery,0.0,Battery,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page9_0030.png,Normal,normal,0.0,Normal,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page9_0039.png,PT.Lintasarta,PT. Contasorta,0.3076923076923077,PT.lintasarta,0.0
+POP-BBU_WISMA_BUMI_PUTERA/page9_0042.png,Fendi Adi Purnomo,Rendi Adi Purnowicz,0.29411764705882354,Fendi Adi Purnomo,0.0
+POP-CILEUNYI/page7_0044.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page7_0050.png,standar,stanular,0.2857142857142857,standar,0.0
+POP-CILEUNYI/page7_0053.png,standar,standar,0.0,standar,0.0
+POP-CILEUNYI/page7_0056.png,Standar,extainchair,0.8571428571428571,Standar,0.0
+POP-CILEUNYI/page7_0058.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page7_0059.png,standar,standor,0.14285714285714285,Standar,0.0
+POP-CILEUNYI/page7_0062.png,ok,ok,0.0,OK,0.0
+POP-CILEUNYI/page7_0063.png,standar,stanular,0.2857142857142857,standar,0.0
+POP-CILEUNYI/page7_0064.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page7_0067.png,Standar,standar,0.0,standar,0.0
+POP-CILEUNYI/page7_0069.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page7_0073.png,Standar,stanolar,0.2857142857142857,Standar,0.0
+POP-CILEUNYI/page7_0075.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page7_0077.png,Standar,standar,0.0,standar,0.0
+POP-CILEUNYI/page7_0079.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page7_0081.png,Standar,starndar,0.14285714285714285,Standar,0.0
+POP-CILEUNYI/page7_0084.png,Standar,stancpar,0.2857142857142857,standar,0.0
+POP-CILEUNYI/page7_0086.png,ok,olk,0.5,ok,0.0
+POP-CILEUNYI/page7_0088.png,Standar,extemptor,1.0,Standar,0.0
+POP-CILEUNYI/page7_0090.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page7_0093.png,Standar,strandiar.,0.42857142857142855,Standar,0.0
+POP-CILEUNYI/page7_0097.png,Ada,sida,0.6666666666666666,Ada,0.0
+POP-CILEUNYI/page7_0105.png,228,728,0.3333333333333333,228,0.0
+POP-CILEUNYI/page7_0107.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page7_0109.png,228,220,0.3333333333333333,228,0.0
+POP-CILEUNYI/page7_0110.png,ok,oik,0.5,ok,0.0
+POP-CILEUNYI/page7_0113.png,Exhaust Fan Tidak berfungsi,"exhaust plan. "" Adak, borrowings",0.48148148148148145,"E Split, Roak berfungsi",0.4444444444444444
+POP-CILEUNYI/page7_0122.png,M.Firdaus,jimifarious,0.6666666666666666,M.Firdaus,0.0
+POP-CILEUNYI/page7_0123.png,PT.Lintasarta,per- limitasarta,0.46153846153846156,PT.lintasarta,0.0
+POP-CILEUNYI/page7_0127.png,Fendi,fendi,0.0,Fendi,0.0
+POP-CILEUNYI/page8_0012.png,Pop Cileunyi,""" propodequyny,",0.8333333333333334,Pop Cipeundu,0.25
+POP-CILEUNYI/page8_0013.png,sabtu/25 Okt 2025,""" Subtut, 25 October 2020",0.7058823529411765,Selasa / 25 Okt 2025,0.35294117647058826
+POP-CILEUNYI/page8_0015.png,26°C,2000,0.75,26°C,0.0
+POP-CILEUNYI/page8_0018.png,2,2,0.0,2,0.0
+POP-CILEUNYI/page8_0019.png,1,11,1.0,1,0.0
+POP-CILEUNYI/page8_0020.png,2,2,0.0,2,0.0
+POP-CILEUNYI/page8_0021.png,VRLA,virla,0.25,VRLA,0.0
+POP-CILEUNYI/page8_0023.png,VRLA,virla,0.25,VRLA,0.0
+POP-CILEUNYI/page8_0025.png,FT 12V/ 120Ah,s Pt.12V. 120Ah.,0.46153846153846156,FRV RoV,0.7692307692307693
+POP-CILEUNYI/page8_0026.png,Ritar FT 12V/160AH,""" Retreat. 779 1241, 160th",0.8333333333333334,Ritar RAAH,0.5555555555555556
+POP-CILEUNYI/page8_0027.png,Ritar,ritar,0.0,Ritar,0.0
+POP-CILEUNYI/page8_0044.png,"13,2VDC",13.12 VDC,0.42857142857142855,"13,2VDC",0.0
+POP-CILEUNYI/page8_0045.png,25%,250p.,1.0,25°6,0.6666666666666666
+POP-CILEUNYI/page8_0046.png,13.2VDC,13.32ndo,0.42857142857142855,13.2VDC,0.0
+POP-CILEUNYI/page8_0049.png,25%,250p.,1.0,25A,0.3333333333333333
+POP-CILEUNYI/page8_0051.png,13.2VDC,13. 3. 3. 3.,1.0,13.2VDC,0.0
+POP-CILEUNYI/page8_0052.png,25%,2500,0.6666666666666666,25°C,0.6666666666666666
+POP-CILEUNYI/page8_0054.png,13.2VDC,13.32ndo,0.42857142857142855,13.2VDC,0.0
+POP-CILEUNYI/page8_0056.png,25%,250to,1.0,25°6,0.6666666666666666
+POP-CILEUNYI/page8_0060.png,13.3VDC,t3.32,0.5714285714285714,13.3VDC,0.0
+POP-CILEUNYI/page8_0061.png,25%,250jp.,1.0,25°C,0.6666666666666666
+POP-CILEUNYI/page8_0062.png,13.2VDC,13.32v.v.,0.5714285714285714,13.2VDC,0.0
+POP-CILEUNYI/page8_0066.png,13.2VDC,13.32v.c.,0.42857142857142855,13.2VDC,0.0
+POP-CILEUNYI/page8_0067.png,25%,250p.,1.0,25°C,0.6666666666666666
+POP-CILEUNYI/page8_0068.png,13.2VDC,"t3,32v.c.",0.7142857142857143,13.2VDC,0.0
+POP-CILEUNYI/page8_0070.png,25%,250lb.,1.0,25°6,0.6666666666666666
+POP-CILEUNYI/page9_0017.png,Back up Battery,Back up rattery.,0.13333333333333333,Back uk Backup Battery,0.4666666666666667
+POP-CILEUNYI/page9_0019.png,Normal,journal,0.5,Normal,0.0
+POP-CILEUNYI/page9_0020.png,ok,012,1.0,ok,0.0
+POP-CILEUNYI/page9_0021.png,dari,dario,0.25,dan,0.5
+POP-CILEUNYI/page9_0027.png,ok,ok,0.0,ok,0.0
+POP-CILEUNYI/page9_0029.png,48.32VDC,48.32v.,0.25,48.32VC,0.125
+POP-CILEUNYI/page9_0031.png,5 Jam,5 games,0.6,standin,1.0
+POP-CILEUNYI/page9_0032.png,23 menit,23 menit.,0.125,23 shelft,0.5
+POP-CILEUNYI/page9_0041.png,M.Firdaus,tum-firdans.,0.5555555555555556,M.Firdaus,0.0
+POP-CILEUNYI/page9_0042.png,PT.lintasarta,PR. United States,0.8461538461538461,PT.lintasarta,0.0
+POP-CILEUNYI/page9_0046.png,Fendi Adi,forrati Adi,0.5555555555555556,Fendi Adi,0.0
+POP-PADALARANG/page7_0046.png,261,221,0.3333333333333333,231,0.3333333333333333
+POP-PADALARANG/page7_0048.png,ok,old,1.0,ok,0.0
+POP-PADALARANG/page7_0051.png,19A,iga,0.6666666666666666,19A,0.0
+POP-PADALARANG/page7_0052.png,ok,ork,0.5,ok,0.0
+POP-PADALARANG/page7_0060.png,"54,35",54.35,0.2,"54,35",0.0
+POP-PADALARANG/page7_0061.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page7_0075.png,standar,standar,0.0,standar,0.0
+POP-PADALARANG/page7_0078.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page7_0082.png,RectiFier Normal,rectifier Normal,0.0,RectiFier Normal,0.0
+POP-PADALARANG/page7_0091.png,M.Firdaus,IM.Fircuous,0.4444444444444444,M.Firdaus,0.0
+POP-PADALARANG/page7_0092.png,PT.Lintasarta,jpt. Cintoscerta,0.46153846153846156,PT.Lintasarta,0.0
+POP-PADALARANG/page7_0096.png,Fendi Adi,Fendi Adi I,0.2222222222222222,Fendi Adi,0.0
+POP-PADALARANG/page8_0013.png,Pop Padalarang (BDGBBP),""" POP Padalarang ( RPG.BBP )",0.30434782608695654,Pop Padalarang (BDGBBP),0.0
+POP-PADALARANG/page8_0015.png,"Rabu, 15 okt 2025/13:06","rebulous like goes, 13.06",0.6521739130434783,"Rabu, 15 Okt 2025 / 13:06",0.08695652173913043
+POP-PADALARANG/page8_0029.png,dibersihkan,jotibersihkan.,0.36363636363636365,dibersihkan,0.0
+POP-PADALARANG/page8_0031.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page8_0033.png,berfungsi,thorfungs.,0.4444444444444444,berfungsi,0.0
+POP-PADALARANG/page8_0035.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page8_0036.png,standar,jstandard air.,1.0,standar,0.0
+POP-PADALARANG/page8_0038.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page8_0041.png,2,2,0.0,2,0.0
+POP-PADALARANG/page8_0042.png,OK,ok,0.0,ok,0.0
+POP-PADALARANG/page8_0044.png,Normal,normal,0.0,Normal,0.0
+POP-PADALARANG/page8_0050.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page8_0052.png,3A,3a.,0.5,3A,0.0
+POP-PADALARANG/page8_0055.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page8_0059.png,3A,347,1.0,3A,0.0
+POP-PADALARANG/page8_0064.png,53.86,93.86,0.2,53.86,0.0
+POP-PADALARANG/page8_0066.png,ok,ok,0.0,ok,0.0
+POP-PADALARANG/page8_0083.png,RectiFler Normal,Rechipier Normal,0.1875,RectiFier Normal,0.0625
+POP-PADALARANG/page8_0092.png,Pt.Lintasarta,1pt. Lintasorta,0.23076923076923078,PT.lintasarta,0.0
+POP-PADALARANG/page8_0094.png,M.Firdaus,jm-firdans.,0.4444444444444444,M.Firdaus,0.0
+POP-PADALARANG/page8_0097.png,fendi A.P,fendi A.P.,0.1111111111111111,Fendi A.P,0.0
+POP-PADALARANG/page9_0012.png,Pop Padalarang (BDGBBBP),""" POP. PADALARANG ( RDE.BRP )",0.375,Pop Padalarang (RDGBBP),0.08333333333333333
+POP-PADALARANG/page9_0014.png,"Rabu, 15 okt 2025 / 12:45",""" Rabbi, is okt # ever? 12.45",0.56,"Rabu, 15 Okt 2025/12:45",0.08
+POP-PADALARANG/page9_0016.png,22°C,220c.,0.5,22°C,0.0
+POP-PADALARANG/page9_0018.png,2,12,1.0,2,0.0
+POP-PADALARANG/page9_0020.png,2,2,0.0,2,0.0
+POP-PADALARANG/page9_0021.png,VRLA,yrica,0.75,VRLA,0.0
+POP-PADALARANG/page9_0022.png,VRLA,vrea,0.25,VRLA,0.0
+POP-PADALARANG/page9_0023.png,Ritar (RA12-120),Ritzer CRA12-120 ),0.25,Ritar ( RAJRS),0.4375
+POP-PADALARANG/page9_0024.png,Rintar (RA12-120),tritar CRA12-120 ),0.23529411764705882,Ritar (RA-120),0.17647058823529413
+POP-PADALARANG/page9_0041.png,13.4,193.34,0.5,13.4,0.0
+POP-PADALARANG/page9_0042.png,full,pfull,0.25,Full,0.0
+POP-PADALARANG/page9_0046.png,"13,6",13.36,0.5,13.6,0.25
+POP-PADALARANG/page9_0047.png,Full,"ful,",0.25,Full,0.0
+POP-PADALARANG/page9_0049.png,Full,j full,0.5,Full,0.0
+POP-PADALARANG/page9_0051.png,"13,5",1315,0.25,"13,5",0.0
+POP-PADALARANG/page9_0053.png,"13,6",p13fb.,1.0,"13,6",0.0
+POP-PADALARANG/page9_0054.png,Full,ffull.,0.5,Full,0.0
+POP-PADALARANG/page9_0058.png,"13,5",13. 3. 5,1.0,"13,5",0.0
+POP-PADALARANG/page9_0059.png,Full,full,0.0,Full,0.0
+POP-PADALARANG/page9_0061.png,"13,6",13th,0.5,13.6,0.25
+POP-PADALARANG/page9_0062.png,Full,full,0.0,Full,0.0
+POP-PADALARANG/page9_0063.png,"13,5","13,5",0.0,"13,5",0.0
+POP-PADALARANG/page9_0064.png,Full,jfully,0.5,Full,0.0
+POP-WISMA-BUMI-PUTERA/page7_0045.png,OK,ok,0.0,OK,0.0
+POP-WISMA-BUMI-PUTERA/page7_0048.png,3phasa,3phaca.,0.3333333333333333,3phasa,0.0
+POP-WISMA-BUMI-PUTERA/page7_0051.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page7_0055.png,Normal,normal,0.0,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page7_0058.png,Normal,normal,0.0,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page7_0061.png,oK,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page7_0064.png,Standar,staider,0.2857142857142857,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page7_0065.png,ok,wk,0.5,Ok,0.0
+POP-WISMA-BUMI-PUTERA/page7_0068.png,Grounding Normal,Grounding Normal,0.0,Gronding Normal,0.0625
+POP-WISMA-BUMI-PUTERA/page7_0077.png,M.Firdaus,IM. Pirdans.,0.5555555555555556,M.Firdaus,0.0
+POP-WISMA-BUMI-PUTERA/page7_0078.png,PT.lintasarta,prolintasarta,0.15384615384615385,PT.lintasarta,0.0
+POP-WISMA-BUMI-PUTERA/page7_0083.png,Fendi A.P,"Fendi A. "" p.",0.4444444444444444,Fendi A.P,0.0
+POP-WISMA-BUMI-PUTERA/page8_0013.png,pop wismabumi putera,pop usingbumming,0.65,Popuismang berfumi putera,0.4
+POP-WISMA-BUMI-PUTERA/page8_0016.png,Jum'at / 17 okt 2025,""" Summit Tonight over Rose,",1.0,Jum'at / 17 Okt 2025,0.0
+POP-WISMA-BUMI-PUTERA/page8_0027.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0029.png,Normal,normal,0.0,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page8_0032.png,Normal,philuminati,1.0,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page8_0034.png,ok,wk.,1.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0036.png,Normal,normal,0.0,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page8_0038.png,Normal,normal,0.0,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page8_0041.png,oK,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0042.png,Normal,informal,0.3333333333333333,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page8_0045.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0047.png,Normal,nurmal,0.16666666666666666,Normal,0.0
+POP-WISMA-BUMI-PUTERA/page8_0051.png,standar,stangar,0.14285714285714285,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0053.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0055.png,standar,strainchair.,0.8571428571428571,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0057.png,Ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0058.png,standar,standar,0.0,standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0061.png,Ok,ok,0.0,OK,0.0
+POP-WISMA-BUMI-PUTERA/page8_0063.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0066.png,standar,standar.,0.14285714285714285,standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0070.png,standar,strandar,0.14285714285714285,standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0072.png,OK,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0075.png,standar,standur,0.14285714285714285,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0077.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0078.png,Standar,standar.,0.14285714285714285,standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0080.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0083.png,standar,standar,0.0,Standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0085.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0086.png,standar,standar.,0.14285714285714285,standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0088.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0091.png,standar,sfundur,0.42857142857142855,standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0097.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0099.png,standar,stanilar,0.2857142857142857,standar,0.0
+POP-WISMA-BUMI-PUTERA/page8_0100.png,oK,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0103.png,ada,ada,0.0,Ada,0.0
+POP-WISMA-BUMI-PUTERA/page8_0106.png,228.7VAL,228. Oval.,0.375,228.7VAC,0.125
+POP-WISMA-BUMI-PUTERA/page8_0108.png,ok,ok,0.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0110.png,228.9VAL,220.gnac.,0.625,22.9VAC,0.25
+POP-WISMA-BUMI-PUTERA/page8_0112.png,ok,pik,1.0,ok,0.0
+POP-WISMA-BUMI-PUTERA/page8_0114.png,"N-G : 0,3",H.G.O.3,0.7777777777777778,"N-G : 0,3",0.0
+POP-WISMA-BUMI-PUTERA/page8_0123.png,M.Firdaus,I'm Africans.,1.0,M.Firdaus,0.0
+POP-WISMA-BUMI-PUTERA/page8_0124.png,Pt.Lintasarta,1pt. Lintasarra,0.23076923076923078,PT.lintasarta,0.0
+POP-WISMA-BUMI-PUTERA/page8_0125.png,M.Firdaus,fm-firdans.,0.4444444444444444,M.Firdaus,0.0
+POP-WISMA-BUMI-PUTERA/page9_0011.png,Pop Wismabumi putera,""" pop mismodrome puters.",0.5,Popuismabumi Putera,0.1
+POP-WISMA-BUMI-PUTERA/page9_0013.png,"Jum'at, 17 okt 2025",""" swim-att, 17. O.22002C",0.6842105263157895,"Jum'at, 17 Okt 2025",0.0
+POP-WISMA-BUMI-PUTERA/page9_0016.png,19°C,ilgsc.,1.0,19°C,0.0
+POP-WISMA-BUMI-PUTERA/page9_0018.png,2,2,0.0,2,0.0
+POP-WISMA-BUMI-PUTERA/page9_0019.png,1,11,1.0,1,0.0
+POP-WISMA-BUMI-PUTERA/page9_0020.png,2,2,0.0,2,0.0
+POP-WISMA-BUMI-PUTERA/page9_0021.png,VRLA,yrla,0.25,VRLA,0.0
+POP-WISMA-BUMI-PUTERA/page9_0023.png,VRLA,vrla,0.0,VRLA,0.0
+POP-WISMA-BUMI-PUTERA/page9_0025.png,Ritar,ritar,0.0,Ritar,0.0
+POP-WISMA-BUMI-PUTERA/page9_0026.png,Ritar,ritar,0.0,Ritar,0.0
+POP-WISMA-BUMI-PUTERA/page9_0043.png,13.6,13.36,0.25,13.6,0.0
+POP-WISMA-BUMI-PUTERA/page9_0044.png,Full,kull,0.25,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0046.png,"13,6",13.36,0.5,13.6,0.25
+POP-WISMA-BUMI-PUTERA/page9_0049.png,Full,prill,0.75,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0051.png,13.6,p13th.,1.0,13.6,0.0
+POP-WISMA-BUMI-PUTERA/page9_0053.png,13.6,13.36,0.25,13.6,0.0
+POP-WISMA-BUMI-PUTERA/page9_0056.png,Full,full,0.0,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0059.png,13.6,13.36,0.25,13.6,0.0
+POP-WISMA-BUMI-PUTERA/page9_0060.png,Full,full,0.0,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0062.png,13.6,13rb.,0.75,13.6,0.0
+POP-WISMA-BUMI-PUTERA/page9_0065.png,13.6,13.13,0.5,13.6,0.0
+POP-WISMA-BUMI-PUTERA/page9_0066.png,Full,full,0.0,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0068.png,13.6,13th,0.5,13.6,0.0
+POP-WISMA-BUMI-PUTERA/page9_0069.png,Full,full,0.0,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0074.png,"13,6",tilt,1.0,13.6,0.25
+POP-WISMA-BUMI-PUTERA/page9_0075.png,Full,full,0.0,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0076.png,Full,full,0.0,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0080.png,"13,6",tribut.,1.0,13.6,0.25
+POP-WISMA-BUMI-PUTERA/page9_0081.png,Full,full,0.0,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0082.png,13.5,13.,0.25,"13,5",0.25
+POP-WISMA-BUMI-PUTERA/page9_0083.png,Full,full,0.0,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0088.png,"13,5",1315,0.25,"13,5",0.0
+POP-WISMA-BUMI-PUTERA/page9_0089.png,Full,pull,0.25,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0091.png,"15,6",15.56,0.5,"13,6",0.25
+POP-WISMA-BUMI-PUTERA/page9_0096.png,13.5,fibits,1.0,"13,5",0.25
+POP-WISMA-BUMI-PUTERA/page9_0097.png,Full,ifull,0.25,Full,0.0
+POP-WISMA-BUMI-PUTERA/page9_0099.png,13.6,13th,0.5,"13,6",0.25
+POP-WISMA-BUMI-PUTERA/page9_0100.png,Full,truil,0.75,Full,0.0

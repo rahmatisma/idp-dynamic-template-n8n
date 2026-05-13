@@ -122,7 +122,7 @@ def read_header(image_path: str) -> dict:
         potential_seeds = [c for c in header_candidates if len(c['text'].strip()) >= 4]
         if not potential_seeds: potential_seeds = header_candidates
         
-        primary = max(potential_seeds, key=lambda c: (c['height'] * len(c['text'])) / (abs(c['x_center'] - 0.5) + 0.1))
+        primary = max(potential_seeds, key=lambda c: (c['height'] * len(c['text'])) * (c['x_center'] + 0.3))
         target_x_center = primary['x_center']
         
         # Ambil yang 'sejajar' alignment-nya sama si Raja
@@ -139,15 +139,19 @@ def read_header(image_path: str) -> dict:
         # Expand 1.5x -> Toleran buat judul yang agak renggang
         for direction in [1, -1]:
             curr = p_idx
+            steps = 0
             while 0 <= curr + direction < len(all_aligned):
+                steps += 1
+                if steps > 2:
+                    break
                 next_node = all_aligned[curr + direction]
                 this_node = all_aligned[curr]
-                
+
                 if direction == 1:
                     gap = next_node['y'] - (this_node['y'] + this_node['height'])
                 else:
                     gap = this_node['y'] - (next_node['y'] + next_node['height'])
-                    
+
                 if gap < (max(this_node['height'], next_node['height']) * 1.5):
                     curr += direction
                     title_indices.add(curr)

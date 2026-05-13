@@ -5,6 +5,7 @@ Orkestrator pipeline ekstraksi dokumen hybrid IDP.
 """
 
 import logging
+import re
 import cv2
 import numpy as np
 from pathlib import Path
@@ -111,61 +112,97 @@ def run_global_ocr(image_path: str) -> list:
 # ══════════════════════════════════════════════════════════════
 def detect_template(image_path: str, all_templates: list) -> dict:
     """
-    Mencari identifier text di area header menggunakan Fuzzy Matching.
-    Taktis: Menggunakan gabungan Judul + No Dokumen agar lebih akurat.
+    Deteksi template via composite key (suffix no. dok + judul ternormalisasi).
+    3 level: exact composite → suffix+fuzzy judul → fuzzy lama.
     """
     header_data = read_header(image_path)
     if not header_data:
         return {"template": None, "score": 0, "status": "unknown", "header": ""}
 
-    # Gabungkan Title dan Doc Number untuk pencarian yang lebih luas
-    title = header_data.get('title', '')
-    doc_no = header_data.get('doc_number')
-    
-    doc_no_str = doc_no if doc_no else ""
-    searchable_text = f"{title} {doc_no_str}".strip()
-    
+    title  = header_data.get('title', '')
+    doc_no = header_data.get('doc_number') or ''
+    searchable_text = f"{title} {doc_no}".strip()
+
     if not searchable_text:
         return {"template": None, "score": 0, "status": "unknown", "header": ""}
 
-    logger.info(f"[Auto-Detect] Analyzing Header: '{searchable_text[:50]}...'")
-    
+    logger.info(f"[Auto-Detect] Header raw → title='{title}' | doc_no='{doc_no}'")
+
+    # Helper: ambil 3 digit terakhir dari string no. dok
+    def _suffix(s: str):
+        m = re.search(r'(\d{3})\D*$', (s or '').strip())
+        return m.group(1) if m else None
+
+    # Helper: hapus angka dan spasi di akhir judul
+    def _norm_title(s: str) -> str:
+        return re.sub(r'[\s\d]+$', '', s or '').strip()
+
+    # ── STEP 1: Suffix no. dok dari header ────────────────────────────────
+    suffix_header = _suffix(doc_no)
+    logger.info(f"[Auto-Detect] STEP 1 - suffix header: '{suffix_header}' (dari doc_no='{doc_no}')")
+
+    # ── STEP 2: Normalisasi judul dari header ─────────────────────────────
+    title_norm = _norm_title(title)
+    logger.info(f"[Auto-Detect] STEP 2 - title normalized: '{title_norm}' (dari title='{title}')")
+
+    # ── STEP 3: Composite key header ──────────────────────────────────────
+    ck_header = f"{suffix_header}_{title_norm}" if suffix_header else None
+    logger.info(f"[Auto-Detect] STEP 3 - composite_key_header: '{ck_header}'")
+
+    # ── STEP 5 LEVEL 1: Exact composite key match ─────────────────────────
+    if ck_header:
+        for t in all_templates:
+            t_suffix = _suffix(t.get('identifier_text', ''))
+            t_title  = _norm_title(t.get('type_name', ''))
+            ck_template = f"{t_suffix}_{t_title}" if t_suffix else None
+            logger.debug(f"[Auto-Detect] L1 → header='{ck_header}' vs template='{ck_template}' ({t.get('type_name')})")
+            if ck_template and ck_header == ck_template:
+                logger.info(f"[Auto-Detect] LEVEL 1 EXACT MATCH → '{t.get('type_name')}' | composite='{ck_template}'")
+                return {"template": t, "score": 100, "status": "matched", "header": searchable_text}
+
+    # ── STEP 5 LEVEL 2: Suffix only, fuzzy judul tertinggi ───────────────
+    if suffix_header:
+        candidates = []
+        for t in all_templates:
+            t_suffix = _suffix(t.get('identifier_text', ''))
+            if t_suffix != suffix_header:
+                continue
+            t_title = _norm_title(t.get('type_name', ''))
+            title_score = max(
+                fuzz.partial_ratio(title_norm.lower(), t_title.lower()),
+                fuzz.token_sort_ratio(title_norm.lower(), t_title.lower()),
+            )
+            logger.debug(f"[Auto-Detect] L2 suffix='{suffix_header}' match → '{t.get('type_name')}' title_score={title_score}")
+            candidates.append((t, title_score))
+
+        if candidates:
+            best_t, best_score = max(candidates, key=lambda x: x[1])
+            logger.info(f"[Auto-Detect] LEVEL 2 SUFFIX MATCH → '{best_t.get('type_name')}' (title_score={best_score})")
+            return {"template": best_t, "score": best_score, "status": "low_confidence", "header": searchable_text}
+
+    # ── STEP 5 LEVEL 3: Fallback fuzzy lama ──────────────────────────────
+    logger.info(f"[Auto-Detect] STEP 5 LEVEL 3 - Fallback fuzzy (title+doc_no vs identifier_text)...")
     best_template = None
     highest_score = 0
-
     for t in all_templates:
         identifier = t.get('identifier_text')
         if not identifier:
             continue
-            
-        # Strategi Dua Lapis: Tahan Typo + Tahan Urutan Terbalik
         score = max(
             fuzz.partial_ratio(identifier.lower(), searchable_text.lower()),
-            fuzz.token_sort_ratio(identifier.lower(), searchable_text.lower())
+            fuzz.token_sort_ratio(identifier.lower(), searchable_text.lower()),
         )
-        
+        logger.debug(f"[Auto-Detect] L3 fuzzy → '{t.get('type_name')}' score={score}")
         if score > highest_score:
             highest_score = score
             best_template = t
 
-    # Sistem Kasta Status (Realistis)
-    status = "unknown"
-    if highest_score >= 80:
-        status = "matched"
-    elif highest_score >= 60:
-        status = "low_confidence"
+    if highest_score >= 60:
+        logger.info(f"[Auto-Detect] LEVEL 3 FUZZY MATCH → '{best_template.get('type_name')}' (score={highest_score})")
+        return {"template": best_template, "score": highest_score, "status": "low_confidence", "header": searchable_text}
 
-    if best_template:
-        logger.info(f"[Auto-Detect] Result: {status.upper()} (Best Score: {highest_score:.1f} against '{best_template.get('type_name')}')")
-    else:
-        logger.warning(f"[Auto-Detect] No template matched. Highest score was {highest_score:.1f}")
-
-    return {
-        "template": best_template,
-        "score": highest_score,
-        "status": status,
-        "header": searchable_text
-    }
+    logger.warning(f"[Auto-Detect] SEMUA LEVEL GAGAL. Highest fuzzy score={highest_score}")
+    return {"template": None, "score": highest_score, "status": "unknown", "header": searchable_text}
 
 # ══════════════════════════════════════════════════════════════
 # ADAPTER: Konversi format field_extractor → format json_builder

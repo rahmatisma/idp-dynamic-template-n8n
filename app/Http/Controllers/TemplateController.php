@@ -209,7 +209,7 @@ class TemplateController extends Controller
             // Tentukan timeout berdasarkan text_type
             // TrOCR di CPU butuh lebih lama dari PaddleOCR
             $textType = $request->input('text_type', 'printed');
-            $timeout  = $textType === 'handwritten' ? 60 : 15;
+            $timeout  = $textType === 'handwritten' ? 180 : 15;
 
             $response = Http::timeout($timeout)->post(
                 config('services.python_engine.url') . '/predict-ocr', 

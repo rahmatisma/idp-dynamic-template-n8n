@@ -106,6 +106,16 @@ def _load_trocr():
 
         print("[TrOCR] Finalisasi model (2/2)...")
         _trocr_model.eval()
+
+        # Warmup: jalankan dummy inference agar cold start tidak kena request pertama user
+        print("[TrOCR] Warming up model (dummy inference)...")
+        from PIL import Image as _PIL_Image
+        dummy_img = _PIL_Image.new("RGB", (384, 64), color=(255, 255, 255))
+        dummy_px  = _trocr_processor(images=dummy_img, return_tensors="pt").pixel_values.to(device)
+        with torch.no_grad():
+            _trocr_model.generate(dummy_px, max_new_tokens=5, num_beams=1)
+        print("[TrOCR] Warmup selesai.")
+
         _trocr_ready   = True
         _trocr_loading = False
         print(f"[TrOCR] MODEL SIAP di {device.type.upper()}! Sekarang bisa baca tulisan tangan.")
@@ -169,11 +179,13 @@ def read_handwritten(image_crop) -> str:
             # Pindahkan input gambar ke device yang sama dengan model (GPU/CPU)
             pixel_values = pixel_values.to(_trocr_device)
 
-            # Generate teks + scores untuk menghitung confidence
+            # Generate teks dengan parameter sesuai generation_config model fine-tuned
             outputs = _trocr_model.generate(
                 pixel_values,
-                max_new_tokens=32,
-                output_scores=True,
+                num_beams=4,
+                max_new_tokens=128,
+                no_repeat_ngram_size=3,
+                length_penalty=2.0,
                 return_dict_in_generate=True,
             )
 
@@ -184,21 +196,13 @@ def read_handwritten(image_crop) -> str:
             skip_special_tokens=True
         )[0].strip()
 
-        # Hitung rata-rata probabilitas per token sebagai confidence score
-        confidence = 0.0
-        if outputs.scores:
-            import torch as _torch
-            probs = []
-            for i, score_t in enumerate(outputs.scores):
-                idx = i + 1  # +1: offset BOS
-                if idx >= generated_ids.shape[1]:
-                    break
-                token_id = generated_ids[0, idx]
-                p = _torch.softmax(score_t, dim=-1)[0, token_id].item()
-                probs.append(p)
-            confidence = round((sum(probs) / len(probs)) * 100, 1) if probs else 50.0
+        # Hitung confidence dari sequences_scores (tersedia otomatis dengan beam search)
+        import torch as _torch
+        if hasattr(outputs, 'sequences_scores') and outputs.sequences_scores is not None:
+            score = outputs.sequences_scores[0].item()
+            confidence = round(float(_torch.sigmoid(_torch.tensor(score + 1)).item()) * 100, 1)
         else:
-            confidence = 50.0  # fallback jika scores tidak tersedia
+            confidence = 50.0
 
         logger.info(f"[TrOCR] Crop {w}x{h}px → '{text}' (conf={confidence:.1f}%)")
         return text, confidence
