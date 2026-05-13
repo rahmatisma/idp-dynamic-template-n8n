@@ -29,6 +29,8 @@ python-engine/Lintasarta/
 python-engine/storage/
 python-engine/Dataset/crops/
 python-engine/debug_crops/
+python-engine/models/
 *.pt
 *.pth
 *.bin
+*.safetensors
