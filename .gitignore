@@ -1,3 +1,14 @@
+# Claude / AI generated files - jangan push ke GitHub
+.claude/
+.agents/
+temp-skills/
+CLAUDE.md
+python-engine/EXTRACTION_PLAN.md
+python-engine/MEKANISME.md
+python-engine/MEKANISME_OCR.md
+python-engine/implementation.md
+python-engine/rancangan.md
+
 *.log
 .DS_Store
 .env
