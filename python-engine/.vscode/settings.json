@@ -1,12 +1,17 @@
 {
-    "python.languageServer": "None",
-    "pyre2.enable": false,
-    "basedpyright.analysis.pythonPath": "d:\\laragon\\www\\idp-lintasarta\\python-engine\\.venv\\Scripts\\python.exe",
-    "basedpyright.analysis.venvPath": "d:\\laragon\\www\\idp-lintasarta\\python-engine",
-    "basedpyright.analysis.venv": ".venv",
-    "basedpyright.analysis.autoSearchPaths": true,
-    "basedpyright.analysis.diagnosticMode": "openFilesOnly",
-    "basedpyright.analysis.typeCheckingMode": "basic",
-    "python.pythonPath": ".venv\\Scripts\\python.exe",
-    "python.linting.pylintEnabled": true
+    "python.languageServer": "Jedi",
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/.venv/Lib/site-packages",
+        "${workspaceFolder}"
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.diagnosticMode": "openFilesOnly",
+    "python.analysis.ignore": [
+        ".venv/**"
+    ],
+    "pyrefly.enable": false,
+    "python.analysis.useLibraryCodeForTypes": true
 }

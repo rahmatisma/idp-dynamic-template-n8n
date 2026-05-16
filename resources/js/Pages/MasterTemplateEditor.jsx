@@ -598,6 +598,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
     const [converting, setConverting] = useState(false);
     const [typeName, setTypeName] = useState(editingTemplate?.type_name ?? "");
     const [identifierText, setIdentifierText] = useState(editingTemplate?.identifier_text ?? "");
+    const [docVersion, setDocVersion] = useState(editingTemplate?.doc_version ?? "");
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState(null);
     const [zoom, setZoom] = useState(1);
@@ -615,7 +616,12 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                 ...item,
                 manual_key: true,
                 targets: (item.targets || []).map(t => ({ ...t, manual_key: true })),
-                columns: (item.columns || []).map(c => ({ ...c, manual_key: true }))
+                columns: (item.columns || []).map(c => {
+                const derived = (c.label ?? "").toLowerCase()
+                    .replace(/[^a-z0-9_]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+                console.log(`[DEBUG] label="${c.label}" key="${c.key}" derived="${derived}" manual_key=${c.key !== derived}`);
+                return { ...c, manual_key: c.key !== derived };
+            })
             }));
         }
         return [];
@@ -625,6 +631,33 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
     const [activeTargetIdx, setActiveTargetIdx] = useState(null);
     const [activeColumnIdx, setActiveColumnIdx] = useState(null);
     const fileInputRef = useRef(null);
+
+    // ── Unsaved-changes tracking ──────────────────────────────────
+    const [isDirty, setIsDirty] = useState(false);
+    const _initialMount = useRef(true);
+
+    useEffect(() => {
+        if (_initialMount.current) { _initialMount.current = false; return; }
+        setIsDirty(true);
+    }, [items, typeName, identifierText, docVersion]);
+
+    useEffect(() => {
+        const handler = (e) => {
+            if (!isDirty) return;
+            e.preventDefault();
+            e.returnValue = "";
+        };
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, [isDirty]);
+
+    useEffect(() => {
+        const unsub = router.on("before", () => {
+            if (!isDirty) return;
+            return confirm("Ada perubahan yang belum disimpan. Yakin ingin meninggalkan halaman?");
+        });
+        return unsub;
+    }, [isDirty]);
 
     // Reset preview OCR saat admin pindah ke item lain
     useEffect(() => {
@@ -669,9 +702,10 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                 if (data.header.doc_number) {
                     setIdentifierText(data.header.doc_number);
                 } else {
-                    setIdentifierText(""); 
+                    setIdentifierText("");
                 }
-                
+                setDocVersion(data.header.version ?? "");
+
                 if (data.header.confidence) {
                     setConfScore(Math.round(data.header.confidence * 100));
                 }
@@ -1075,6 +1109,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                 template_name: typeName.toLowerCase().replace(/\s+/g, "_"),
                 type_name: typeName,
                 identifier_text: identifierText,
+                doc_version: docVersion,
                 pdf_path: pdfPath,
                 mapping_config: { fields: pFields, tables: pTables },
                 ui_metadata: items,
@@ -1082,6 +1117,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                 ...(isEdit && { template_id: editingTemplate.id })
             });
             setSaveMsg("success");
+            setIsDirty(false);
             setTimeout(() => router.visit("/master-template"), 1500);
         } catch (err) { 
             setSaveMsg("error"); 
@@ -1103,7 +1139,15 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
             <Head title="Editor Template" />
             <div className="flex flex-col gap-4 max-w-[1600px] mx-auto px-4">
                 <div className="flex items-center justify-between">
-                    <Link href="/master-template" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition"><BackIcon /> Back</Link>
+                    <button
+                        onClick={() => {
+                            if (isDirty) {
+                                if (!confirm('Konfigurasi belum disimpan. Yakin ingin keluar?')) return;
+                            }
+                            router.visit('/master-template');
+                        }}
+                        className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition"
+                    ><BackIcon /> Back</button>
                     <button onClick={handleSave} disabled={saving || !typeName.trim() || !pdfPath} className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${saveMsg === "success" ? "bg-emerald-500 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200"}`}>{saving ? "Saving..." : "Save Template"}</button>
                 </div>
 
@@ -1130,6 +1174,18 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                                                 onChange={e => setIdentifierText(e.target.value)} 
                                                 placeholder={detectingHeader ? "Reading document..." : "Teks unik di header..."} 
                                                 className={`w-full border-none bg-slate-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-100 font-medium text-sm text-slate-700 transition-all ${detectingHeader ? "opacity-50" : ""}`} 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase mb-1.5 block tracking-wider">Versi Dokumen</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={docVersion}
+                                                onChange={e => setDocVersion(e.target.value)}
+                                                placeholder="contoh: 1.0, 1.1 (rev.1)"
+                                                className="w-full border-none bg-slate-50 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-100 font-medium text-sm text-slate-700"
                                             />
                                         </div>
                                     </div>

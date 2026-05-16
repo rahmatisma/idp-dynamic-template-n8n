@@ -27,7 +27,9 @@ class DocumentTemplate extends Model
         'mapping_config',
         'ui_metadata',
         'is_active',
-        'version',
+        'template_version',
+        'doc_version',
+        'structural_fingerprint',
         'parent_id',
     ];
 
@@ -42,7 +44,8 @@ class DocumentTemplate extends Model
             'mapping_config' => 'array',
             'ui_metadata' => 'array',
             'is_active' => 'boolean',
-            'version' => 'integer',
+            'template_version' => 'integer',
+            'structural_fingerprint' => 'array',
         ];
     }
 

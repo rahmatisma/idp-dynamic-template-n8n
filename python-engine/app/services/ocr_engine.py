@@ -112,77 +112,109 @@ def run_global_ocr(image_path: str) -> list:
 # ══════════════════════════════════════════════════════════════
 def detect_template(image_path: str, all_templates: list) -> dict:
     """
-    Deteksi template via composite key (suffix no. dok + judul ternormalisasi).
-    3 level: exact composite → suffix+fuzzy judul → fuzzy lama.
+    Deteksi template via composite key 4-level:
+      L1: Exact (suffix No.Dok + nama + versi)  → score 100, matched
+      L2: Partial (suffix + nama, skip versi)    → score 90,  matched
+      L3: Nama saja                              → score 75,  low_confidence
+      L4: Fuzzy fallback                         → score 60+, low_confidence
+    Tiebreaker: structural_fingerprint dari template.
     """
     header_data = read_header(image_path)
     if not header_data:
-        return {"template": None, "score": 0, "status": "unknown", "header": ""}
+        return {"template": None, "score": 0, "status": "unknown", "header": "", "doc_version": None}
 
-    title  = header_data.get('title', '')
-    doc_no = header_data.get('doc_number') or ''
+    title       = header_data.get('title', '')
+    doc_no      = header_data.get('doc_number') or ''
+    doc_version = (header_data.get('version') or '').strip() or None
     searchable_text = f"{title} {doc_no}".strip()
 
     if not searchable_text:
-        return {"template": None, "score": 0, "status": "unknown", "header": ""}
+        return {"template": None, "score": 0, "status": "unknown", "header": "", "doc_version": None}
 
-    logger.info(f"[Auto-Detect] Header raw → title='{title}' | doc_no='{doc_no}'")
+    logger.info(f"[Auto-Detect] Header raw → title='{title}' | doc_no='{doc_no}' | version='{doc_version}'")
 
-    # Helper: ambil 3 digit terakhir dari string no. dok
-    def _suffix(s: str):
-        m = re.search(r'(\d{3})\D*$', (s or '').strip())
-        return m.group(1) if m else None
+    def normalize_name(s: str) -> str:
+        return re.sub(r'\s*\d+\s*$', '', (s or '').strip().lower())
 
-    # Helper: hapus angka dan spasi di akhir judul
-    def _norm_title(s: str) -> str:
-        return re.sub(r'[\s\d]+$', '', s or '').strip()
+    def extract_suffix(s: str) -> str:
+        if not s:
+            return ''
+        clean = re.sub(r'[^A-Z0-9]', '', s.upper())
+        return clean[-3:] if len(clean) >= 3 else clean
 
-    # ── STEP 1: Suffix no. dok dari header ────────────────────────────────
-    suffix_header = _suffix(doc_no)
-    logger.info(f"[Auto-Detect] STEP 1 - suffix header: '{suffix_header}' (dari doc_no='{doc_no}')")
+    def _pick(candidates: list):
+        """Pilih best score; tiebreaker via structural_fingerprint."""
+        if not candidates:
+            return None, 0
+        best_score = max(s for _, s in candidates)
+        tied = [t for t, s in candidates if s == best_score]
+        if len(tied) == 1:
+            return tied[0], best_score
+        with_fp = [t for t in tied if t.get('structural_fingerprint')]
+        chosen = with_fp[0] if with_fp else tied[0]
+        if with_fp:
+            logger.info(f"[Auto-Detect] Tiebreaker → '{chosen.get('type_name')}' (has fingerprint)")
+        return chosen, best_score
 
-    # ── STEP 2: Normalisasi judul dari header ─────────────────────────────
-    title_norm = _norm_title(title)
-    logger.info(f"[Auto-Detect] STEP 2 - title normalized: '{title_norm}' (dari title='{title}')")
+    doc_suffix = extract_suffix(doc_no)
+    doc_name   = normalize_name(title)
+    logger.info(f"[Auto-Detect] Normalized → suffix='{doc_suffix}' | name='{doc_name}' | version='{doc_version}'")
 
-    # ── STEP 3: Composite key header ──────────────────────────────────────
-    ck_header = f"{suffix_header}_{title_norm}" if suffix_header else None
-    logger.info(f"[Auto-Detect] STEP 3 - composite_key_header: '{ck_header}'")
-
-    # ── STEP 5 LEVEL 1: Exact composite key match ─────────────────────────
-    if ck_header:
+    # ── LEVEL 1: Exact composite key (suffix + nama + versi) ─────
+    if doc_suffix and doc_name:
+        l1 = []
         for t in all_templates:
-            t_suffix = _suffix(t.get('identifier_text', ''))
-            t_title  = _norm_title(t.get('type_name', ''))
-            ck_template = f"{t_suffix}_{t_title}" if t_suffix else None
-            logger.debug(f"[Auto-Detect] L1 → header='{ck_header}' vs template='{ck_template}' ({t.get('type_name')})")
-            if ck_template and ck_header == ck_template:
-                logger.info(f"[Auto-Detect] LEVEL 1 EXACT MATCH → '{t.get('type_name')}' | composite='{ck_template}'")
-                return {"template": t, "score": 100, "status": "matched", "header": searchable_text}
-
-    # ── STEP 5 LEVEL 2: Suffix only, fuzzy judul tertinggi ───────────────
-    if suffix_header:
-        candidates = []
-        for t in all_templates:
-            t_suffix = _suffix(t.get('identifier_text', ''))
-            if t_suffix != suffix_header:
+            t_suffix  = extract_suffix(t.get('identifier_text', ''))
+            t_name    = normalize_name(t.get('type_name', ''))
+            t_version = (t.get('doc_version') or '').strip() or None
+            if t_suffix != doc_suffix or t_name != doc_name:
                 continue
-            t_title = _norm_title(t.get('type_name', ''))
-            title_score = max(
-                fuzz.partial_ratio(title_norm.lower(), t_title.lower()),
-                fuzz.token_sort_ratio(title_norm.lower(), t_title.lower()),
-            )
-            logger.debug(f"[Auto-Detect] L2 suffix='{suffix_header}' match → '{t.get('type_name')}' title_score={title_score}")
-            candidates.append((t, title_score))
+            if not (doc_version and t_version):
+                continue  # salah satu versi kosong → masuk L2
+            if doc_version != t_version:
+                logger.debug(f"[Auto-Detect] L1 skip '{t.get('type_name')}' — versi beda doc='{doc_version}' tmpl='{t_version}'")
+                continue
+            logger.debug(f"[Auto-Detect] L1 candidate → '{t.get('type_name')}'")
+            l1.append((t, 100))
+        if l1:
+            best_t, best_s = _pick(l1)
+            logger.info(f"[Auto-Detect] LEVEL 1 EXACT → '{best_t.get('type_name')}' (score={best_s})")
+            return {"template": best_t, "score": best_s, "status": "matched", "header": searchable_text, "doc_version": doc_version}
 
-        if candidates:
-            best_t, best_score = max(candidates, key=lambda x: x[1])
-            logger.info(f"[Auto-Detect] LEVEL 2 SUFFIX MATCH → '{best_t.get('type_name')}' (title_score={best_score})")
-            return {"template": best_t, "score": best_score, "status": "low_confidence", "header": searchable_text}
+    # ── LEVEL 2: Partial (suffix + nama, versi tidak tersedia) ───
+    if doc_suffix and doc_name:
+        l2 = []
+        for t in all_templates:
+            t_suffix  = extract_suffix(t.get('identifier_text', ''))
+            t_name    = normalize_name(t.get('type_name', ''))
+            t_version = (t.get('doc_version') or '').strip() or None
+            if t_suffix != doc_suffix or t_name != doc_name:
+                continue
+            if doc_version and t_version:
+                continue  # keduanya ada → sudah di-handle L1
+            logger.debug(f"[Auto-Detect] L2 candidate → '{t.get('type_name')}' (versi tidak lengkap)")
+            l2.append((t, 90))
+        if l2:
+            best_t, best_s = _pick(l2)
+            logger.info(f"[Auto-Detect] LEVEL 2 PARTIAL → '{best_t.get('type_name')}' (score={best_s})")
+            return {"template": best_t, "score": best_s, "status": "matched", "header": searchable_text, "doc_version": doc_version}
 
-    # ── STEP 5 LEVEL 3: Fallback fuzzy lama ──────────────────────────────
-    logger.info(f"[Auto-Detect] STEP 5 LEVEL 3 - Fallback fuzzy (title+doc_no vs identifier_text)...")
-    best_template = None
+    # ── LEVEL 3: Nama saja ────────────────────────────────────────
+    if doc_name:
+        l3 = []
+        for t in all_templates:
+            t_name = normalize_name(t.get('type_name', ''))
+            if t_name == doc_name:
+                logger.debug(f"[Auto-Detect] L3 candidate → '{t.get('type_name')}'")
+                l3.append((t, 75))
+        if l3:
+            best_t, best_s = _pick(l3)
+            logger.info(f"[Auto-Detect] LEVEL 3 NAME → '{best_t.get('type_name')}' (score={best_s})")
+            return {"template": best_t, "score": best_s, "status": "low_confidence", "header": searchable_text, "doc_version": doc_version}
+
+    # ── LEVEL 4: Fuzzy fallback (sama seperti logika lama) ────────
+    logger.info(f"[Auto-Detect] LEVEL 4 - Fuzzy fallback...")
+    l4 = []
     highest_score = 0
     for t in all_templates:
         identifier = t.get('identifier_text')
@@ -192,17 +224,18 @@ def detect_template(image_path: str, all_templates: list) -> dict:
             fuzz.partial_ratio(identifier.lower(), searchable_text.lower()),
             fuzz.token_sort_ratio(identifier.lower(), searchable_text.lower()),
         )
-        logger.debug(f"[Auto-Detect] L3 fuzzy → '{t.get('type_name')}' score={score}")
+        logger.debug(f"[Auto-Detect] L4 fuzzy → '{t.get('type_name')}' score={score}")
         if score > highest_score:
             highest_score = score
-            best_template = t
-
-    if highest_score >= 60:
-        logger.info(f"[Auto-Detect] LEVEL 3 FUZZY MATCH → '{best_template.get('type_name')}' (score={highest_score})")
-        return {"template": best_template, "score": highest_score, "status": "low_confidence", "header": searchable_text}
+        if score >= 60:
+            l4.append((t, score))
+    if l4:
+        best_t, best_s = _pick(l4)
+        logger.info(f"[Auto-Detect] LEVEL 4 FUZZY → '{best_t.get('type_name')}' (score={best_s})")
+        return {"template": best_t, "score": best_s, "status": "low_confidence", "header": searchable_text, "doc_version": doc_version}
 
     logger.warning(f"[Auto-Detect] SEMUA LEVEL GAGAL. Highest fuzzy score={highest_score}")
-    return {"template": None, "score": highest_score, "status": "unknown", "header": searchable_text}
+    return {"template": None, "score": highest_score, "status": "unknown", "header": searchable_text, "doc_version": doc_version}
 
 # ══════════════════════════════════════════════════════════════
 # ADAPTER: Konversi format field_extractor → format json_builder
@@ -375,6 +408,7 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
             "template_match_score": match_result['score'],  # ← kecocokan header ke template
             "template_id":          selected_template.get('id'),
             "template_name":        selected_template.get('type_name'),
+            "doc_version":          match_result.get('doc_version'),
             "header":               match_result['header'],
             "fields":               structured_out,
             "tables":               tables_data

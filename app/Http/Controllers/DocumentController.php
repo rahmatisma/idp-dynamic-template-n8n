@@ -63,6 +63,7 @@ class DocumentController extends Controller
                 'confidence_score' => $document->confidence_score,
                 'uploaded_at'      => $document->created_at->format('d M Y, H:i'),
                 'template_name'    => $document->template?->type_name ?? null,
+                'doc_version'      => $document->template?->doc_version ?? null,
                 'extracted_data'   => $document->extracted_data ?? [],
                 'tp_count'         => $document->tp_count,
                 'fp_count'         => $document->fp_count,

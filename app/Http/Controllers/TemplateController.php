@@ -286,6 +286,7 @@ class TemplateController extends Controller
             'template_name'   => 'required|string|max:255',
             'type_name'       => 'required|string|max:255',
             'identifier_text' => 'nullable|string|max:255',
+            'doc_version'     => 'nullable|string|max:50',
             'pdf_path'        => 'required|string',
             'mapping_config'  => 'required|array',       // Includes fields and tables
             'ui_metadata'     => 'nullable|array',       // Format Flat untuk Editor
@@ -311,7 +312,26 @@ class TemplateController extends Controller
                     'is_active'         => \Illuminate\Support\Facades\DB::raw('true'),
                 ]
             );
-            
+
+            // 2. GENERATE DAN SIMPAN STRUCTURAL FINGERPRINT
+            $config  = $validated['mapping_config'];
+            $tables  = $config['tables'] ?? [];
+            $fields  = $config['fields'] ?? [];
+
+            $columnKeys = count($tables) > 0
+                ? array_merge(...array_map(fn($t) => array_column($t['columns'] ?? [], 'key'), $tables))
+                : [];
+
+            $template->structural_fingerprint = [
+                'table_count'     => count($tables),
+                'field_count'     => count($fields),
+                'table_anchors'   => array_map(fn($t) => $t['anchor']['texts'][0] ?? '', $tables),
+                'column_keys'     => $columnKeys,
+                'has_handwritten' => count(array_filter($fields, fn($f) => ($f['type'] ?? '') === 'handwritten')) > 0,
+            ];
+            $template->doc_version = $validated['doc_version'] ?? null;
+            $template->save();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Template berhasil disimpan langsung ke database.',

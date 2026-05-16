@@ -186,6 +186,7 @@ def read_handwritten(image_crop) -> str:
                 max_new_tokens=128,
                 no_repeat_ngram_size=3,
                 length_penalty=2.0,
+                output_scores=True,
                 return_dict_in_generate=True,
             )
 

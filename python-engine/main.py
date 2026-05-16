@@ -8,6 +8,9 @@ Jalankan dengan: python main.py
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables dari .env
 
+import os
+print(f"[ENV] TROCR_ENABLED = {os.getenv('TROCR_ENABLED')}")
+
 from flask import Flask
 from flask_cors import CORS
 from app.api.routes import register_routes

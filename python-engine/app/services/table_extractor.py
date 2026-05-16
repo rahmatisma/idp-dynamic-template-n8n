@@ -24,6 +24,18 @@ def _is_trocr_noise(text: str) -> bool:
     return (clean / len(text)) < 0.5
 
 
+def normalize_status_value(text: str) -> str:
+    """Normalisasi variasi OCR untuk nilai status ke 'OK' atau 'NOK'."""
+    if not text:
+        return text
+    t = text.strip().lower().replace(" ", "")
+    if t in {"ok", "0k", "ck"}:
+        return "OK"
+    if t in {"nok", "n0k", "nck", "notok"}:
+        return "NOK"
+    return text
+
+
 def group_by_y(ocr_items: list, y_threshold: float = None) -> list:
     """
     Kelompokkan item OCR berdasarkan posisi Y (baris) — metode GAP-BASED.
@@ -929,6 +941,16 @@ def extract_table(
     """
     table_name = table_config.get('table_name', 'unknown')
 
+    if table_name == "Executor":
+        if anchor:
+            logger.debug(
+                f"[TableExtractor][Executor] Anchor ditemukan: "
+                f"x={anchor['x']}, y={anchor['y']}, h={anchor.get('h', '?')}, "
+                f"text='{anchor.get('text', '?')}'"
+            )
+        else:
+            logger.debug("[TableExtractor][Executor] Anchor TIDAK ditemukan.")
+
     if not anchor:
         logger.warning(f"[TableExtractor] Anchor tabel '{table_name}' tidak ketemu. Skip.")
         return [], None
@@ -947,6 +969,11 @@ def extract_table(
         i for i in ocr_results
         if filter_y1 <= (i['y'] + i['h'] / 2) <= area_y2
     ]
+
+    if table_name == "Executor":
+        logger.debug(f"[TableExtractor][Executor] {len(area_items)} item OCR di area tabel:")
+        for _dbg in area_items:
+            logger.debug(f"  x={_dbg['x']:4d} y={_dbg['y']:4d}  '{_dbg['text']}'")
 
     if not area_items:
         logger.warning(f"[TableExtractor] Tidak ada teks di area tabel '{table_name}'")
@@ -1029,6 +1056,9 @@ def extract_table(
     else:
         rows = group_by_y(area_items)
         logger.info(f"[TableExtractor] Row detection: GAP-BASED ({len(rows)} baris fisik)")
+
+    if table_name == "Executor":
+        logger.debug(f"[TableExtractor][Executor] {len(rows)} baris terdeteksi setelah anchor.")
 
     # ── Cari kolom anchor untuk kalkulasi row_h yang akurat ──────
     anchor_col_cfg = next(
@@ -1115,6 +1145,16 @@ def extract_table(
         for k in list(row.keys()):
             if k.startswith('_') and not k.startswith('_conf_') and not k.startswith('_ocr_source_'):
                 row.pop(k, None)
+
+    # ── Normalisasi nilai status ───────────────────────────────────
+    for row in result:
+        for col in columns_config:
+            key = col['key']
+            if 'status' not in key.lower() and key != 'kolom_5':
+                continue
+            val = row.get(key)
+            if isinstance(val, str):
+                row[key] = normalize_status_value(val)
 
     logger.info(
         f"[TableExtractor] '{table_name}' → {len(result)} baris logis | "

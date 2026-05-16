@@ -319,11 +319,15 @@ function ChecklistTable({ rows }) {
                                 {otherKeys.map(key => {
                                     const val  = (row[key] ?? "").trim();
                                     const conf = row[`_conf_${key}`];
+                                    const wasAttempted = row[`_ocr_source_${key}`] != null;
+                                    const isEmpty = val === "" && wasAttempted;
                                     const isLowConf = conf != null && conf < CONF_LOW;
                                     const isMedConf = conf != null && conf >= CONF_LOW && conf < CONF_MED;
                                     const cellBg = isLowConf
                                         ? "bg-red-50/60"
-                                        : isMedConf ? "bg-amber-50/60" : "";
+                                        : (isMedConf || isEmpty)
+                                            ? "bg-amber-50/60"
+                                            : "";
                                     return (
                                         <td key={key} className={`px-3 py-2.5 border-r border-slate-100 last:border-r-0 align-top ${COL_WIDTH[key] ?? ""} ${cellBg}`}>
                                             <div className="flex items-start gap-1">
@@ -335,9 +339,13 @@ function ChecklistTable({ rows }) {
                                                             : <span className="text-slate-300 select-none text-xs">—</span>
                                                     }
                                                 </div>
-                                                {(isLowConf || isMedConf) && (
+                                                {(isLowConf || isMedConf || isEmpty) && (
                                                     <span
-                                                        title={`Confidence TrOCR: ${conf?.toFixed(0)}% — perlu diperiksa`}
+                                                        title={
+                                                            isEmpty
+                                                                ? "Nilai tidak terdeteksi — perlu diperiksa"
+                                                                : `Confidence: ${conf?.toFixed(0)}% — perlu diperiksa`
+                                                        }
                                                         className={`flex-shrink-0 mt-0.5 ${isLowConf ? "text-red-400" : "text-amber-400"}`}
                                                     >
                                                         <WarningIcon />
@@ -398,6 +406,26 @@ function FieldGrid({ fields }) {
             })}
         </div>
     );
+}
+
+function flattenFields(fields) {
+    const out = {};
+    for (const [k, v] of Object.entries(fields)) {
+        if (k === "copyright") continue;
+        if (v === null || v === "") continue;
+        if (Array.isArray(v)) {
+            if (v.length > 0 && typeof v[0] === "string")
+                out[k] = v.join(", ");
+        } else if (typeof v === "object") {
+            for (const [ik, iv] of Object.entries(v)) {
+                if (iv == null || (typeof iv === "string" && !iv.trim())) continue;
+                out[ik] = typeof iv === "string" ? iv : String(iv);
+            }
+        } else if (typeof v === "string" && v.trim()) {
+            out[k] = v;
+        }
+    }
+    return out;
 }
 
 // ── Raw JSON block ─────────────────────────────────────────────
@@ -483,6 +511,11 @@ export default function DocumentDetail({ document }) {
                             <div className="mt-1.5">
                                 <TemplateMatchBadge score={document.template_match_score} status={pages[0]?.status} />
                             </div>
+                            {pages[0]?.doc_version && (
+                                <p className="mt-1 text-[10px] text-slate-400">
+                                    Versi terdeteksi: {pages[0].doc_version}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">
@@ -549,6 +582,7 @@ export default function DocumentDetail({ document }) {
                                 const fields = page.fields ?? {};
                                 const tables = page.tables ?? {};
                                 const copyright = fields.copyright ?? null;
+                                const flatFields = flattenFields(fields);
 
                                 return (
                                     <div key={pi} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -595,16 +629,10 @@ export default function DocumentDetail({ document }) {
                                             <TemplateMatchWarning score={page.template_match_score} status={page.status} />
 
                                             {/* ── Fields Section ── */}
-                                            {Object.keys(fields).some(k => {
-                                                if (k === "copyright") return false;
-                                                const v = fields[k];
-                                                if (Array.isArray(v)) return v.length > 0 && typeof v[0] === "string";
-                                                if (typeof v === "object" && v !== null) return Object.keys(v).length > 0;
-                                                return typeof v === "string" && v.trim();
-                                            }) && (
+                                            {Object.keys(flatFields).length > 0 && (
                                                 <div>
                                                     <SectionLabel>Informasi Dokumen</SectionLabel>
-                                                    <FieldGrid fields={fields} />
+                                                    <FieldGrid fields={flatFields} />
                                                 </div>
                                             )}
 

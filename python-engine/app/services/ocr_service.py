@@ -86,14 +86,14 @@ def read_header(image_path: str) -> dict:
     try:
         img = cv2.imread(image_path)
         if img is None:
-            return {"title": "", "doc_number": None}
+            return {"title": "", "doc_number": None, "version": None}
         
         h_img, w_img = img.shape[:2]
         ocr_engine = get_ocr_instance()
         result = ocr_engine.ocr(img, cls=True)
         
         if not result or not result[0]:
-            return {"title": "", "doc_number": None}
+            return {"title": "", "doc_number": None, "version": None}
             
         header_candidates = []
         for line in result[0]:
@@ -114,7 +114,7 @@ def read_header(image_path: str) -> dict:
                 })
 
         if not header_candidates:
-            return {"title": "", "doc_number": None, "confidence": 0}
+            return {"title": "", "doc_number": None, "version": None, "confidence": 0}
 
         # --- 1. EKSTRAK JUDUL (Robust Seed Clustering) ---
         # Seed: Prioritas yang GEDE, PANJANG, dan di TENGAH
@@ -199,10 +199,23 @@ def read_header(image_path: str) -> dict:
                     doc_number = doc_number.lstrip(":.- ").strip()
                     break
 
+        # --- 3. EKSTRAK VERSI ---
+        version = None
+        for c in header_candidates:
+            t = c['text'].upper()
+            if "VERSI" in t or "VERSION" in t:
+                raw = c['text']
+                if ":" in raw:
+                    v = raw.split(":", 1)[1].strip()
+                    if v:
+                        version = v
+                        break
+
         logger.info(f"[OCR] Header Final -> Title: '{title}', DocNum: '{doc_number}', Conf: {avg_conf:.2f}")
         return {
             "title": title,
             "doc_number": doc_number,
+            "version": version,
             "confidence": round(avg_conf, 4)
         }
 
