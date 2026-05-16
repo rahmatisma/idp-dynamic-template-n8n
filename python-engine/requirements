@@ -30,3 +30,9 @@ transformers==4.38.2
 Levenshtein>=0.25.0
 scikit-learn>=1.4.1
 rapidfuzz>=3.8.0
+
+# ==========================================
+# 5. DATA ANALYSIS & VISUALIZATION
+# ==========================================
+pandas>=2.1.0          # evaluation/ground_truth.py, run_tester.py, test_docs.py, detection_evaluator.py
+matplotlib>=3.8.0      # evaluation/test_docs.py (grafik & report chart)
