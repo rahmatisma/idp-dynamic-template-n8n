@@ -587,6 +587,30 @@ function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, setActiveI
 }
 
 // ══════════════════════════════════════════════════════════════
+// UNSAVED CHANGES MODAL
+// ══════════════════════════════════════════════════════════════
+function UnsavedChangesModal({ onStay, onLeave }) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+                <h2 className="text-base font-bold text-slate-800 mb-2">Belum Disimpan</h2>
+                <p className="text-sm text-slate-500 mb-6">
+                    Konfigurasi template belum disimpan. Yakin ingin keluar?
+                </p>
+                <div className="flex gap-3 justify-end">
+                    <button onClick={onStay} className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition">
+                        Tetap di Halaman
+                    </button>
+                    <button onClick={onLeave} className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition">
+                        Keluar Tanpa Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ══════════════════════════════════════════════════════════════
 // MAIN EDITOR
 // ══════════════════════════════════════════════════════════════
 export default function MasterTemplateEditor({ editingTemplate = null }) {
@@ -635,9 +659,14 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
     // ── Unsaved-changes tracking ──────────────────────────────────
     const [isDirty, setIsDirty] = useState(false);
     const _initialMount = useRef(true);
+    const isDirtyRef = useRef(false);
+    const allowNavRef = useRef(false);
+    const [showLeaveModal, setShowLeaveModal] = useState(false);
+    const [pendingUrl, setPendingUrl] = useState(null);
 
     useEffect(() => {
         if (_initialMount.current) { _initialMount.current = false; return; }
+        isDirtyRef.current = true;
         setIsDirty(true);
     }, [items, typeName, identifierText, docVersion]);
 
@@ -652,12 +681,15 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
     }, [isDirty]);
 
     useEffect(() => {
-        const unsub = router.on("before", () => {
-            if (!isDirty) return;
-            return confirm("Ada perubahan yang belum disimpan. Yakin ingin meninggalkan halaman?");
+        const unsub = router.on("before", (event) => {
+            if (!isDirtyRef.current || allowNavRef.current) return;
+            const url = event.detail?.visit?.url?.toString() ?? null;
+            setPendingUrl(url);
+            setShowLeaveModal(true);
+            return false;
         });
         return unsub;
-    }, [isDirty]);
+    }, []);
 
     // Reset preview OCR saat admin pindah ke item lain
     useEffect(() => {
@@ -758,6 +790,18 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
         } finally {
             setOcrPredicting(false);
         }
+    };
+
+    const handleConfirmLeave = () => {
+        setShowLeaveModal(false);
+        allowNavRef.current = true;
+        isDirtyRef.current = false;
+        setIsDirty(false);
+        router.visit(pendingUrl ?? '/master-template');
+    };
+    const handleCancelLeave = () => {
+        setShowLeaveModal(false);
+        setPendingUrl(null);
     };
 
     // Preview OCR untuk kotak target/kolom tanpa mengubah state items
@@ -1118,6 +1162,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
             });
             setSaveMsg("success");
             setIsDirty(false);
+            isDirtyRef.current = false;
             setTimeout(() => router.visit("/master-template"), 1500);
         } catch (err) { 
             setSaveMsg("error"); 
@@ -1137,14 +1182,19 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
     return (
         <AuthenticatedLayout header={isEdit ? "Edit Template" : "Buat Template"}>
             <Head title="Editor Template" />
+            {showLeaveModal && (
+                <UnsavedChangesModal onStay={handleCancelLeave} onLeave={handleConfirmLeave} />
+            )}
             <div className="flex flex-col gap-4 max-w-[1600px] mx-auto px-4">
                 <div className="flex items-center justify-between">
                     <button
                         onClick={() => {
                             if (isDirty) {
-                                if (!confirm('Konfigurasi belum disimpan. Yakin ingin keluar?')) return;
+                                setPendingUrl('/master-template');
+                                setShowLeaveModal(true);
+                            } else {
+                                router.visit('/master-template');
                             }
-                            router.visit('/master-template');
                         }}
                         className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 transition"
                     ><BackIcon /> Back</button>

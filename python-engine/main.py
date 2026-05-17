@@ -36,4 +36,4 @@ if __name__ == "__main__":
     print(f"{'='*50}\n")
 
     # use_reloader=False WAJIB agar prewarm_trocr tidak dipanggil 2x oleh Flask reloader
-    app.run(debug=FLASK_DEBUG, port=FLASK_PORT, use_reloader=False)
+    app.run(debug=FLASK_DEBUG, host="0.0.0.0", port=FLASK_PORT, use_reloader=False)
