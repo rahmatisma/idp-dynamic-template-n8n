@@ -443,31 +443,12 @@ def predict_ocr():
     from app.services.ocr_service import predict_text
 
     if text_type == "handwritten":
+        # Pakai TrOCR untuk tulisan tangan
         try:
             import app.services.trocr_service as trocr_svc
             from PIL import Image as PILImage
 
             print(f"[PredictOCR] TrOCR status → ready={trocr_svc._trocr_ready} | loading={trocr_svc._trocr_loading} | failed={trocr_svc._trocr_failed}")
-
-            if trocr_svc._trocr_loading:
-                # TrOCR masih proses loading model → beritahu user, jangan pakai engine lain
-                print(f"[PredictOCR] TrOCR masih loading model, belum bisa membaca.")
-                return jsonify({
-                    "status":  "loading",
-                    "text":    "",
-                    "engine":  "TrOCR",
-                    "message": "Model TrOCR sedang dimuat, harap tunggu beberapa saat lalu coba lagi."
-                })
-
-            if trocr_svc._trocr_failed:
-                # TrOCR gagal load → beritahu user secara jelas
-                print(f"[PredictOCR] TrOCR gagal load model.")
-                return jsonify({
-                    "status":  "error",
-                    "text":    "",
-                    "engine":  "TrOCR",
-                    "message": "Model TrOCR gagal dimuat. Periksa log Python Engine untuk detail."
-                })
 
             # Konversi box ratio → koordinat pixel absolut
             img = PILImage.open(str(full_path))
@@ -480,24 +461,28 @@ def predict_ocr():
 
             crop = trocr_svc.crop_image_for_trocr(str(full_path), (x1, y1, x2, y2))
 
-            if crop is None:
-                print(f"[PredictOCR] Crop gagal (koordinat di luar batas gambar?).")
-                return jsonify({
-                    "status":  "error",
-                    "text":    "",
-                    "engine":  "TrOCR",
-                    "message": "Gagal crop area — coba geser atau perbesar kotak."
-                })
+            if trocr_svc._trocr_loading:
+                from app.services.ocr_service import predict_text
+                text   = predict_text(str(full_path), box)
+                engine = "PaddleOCR (TrOCR masih loading...)"
+            elif crop is not None:
+                text, _conf = trocr_svc.read_handwritten(crop)
+                engine = "TrOCR"
+                if not text and not trocr_svc._trocr_ready:
+                    from app.services.ocr_service import predict_text
+                    text   = predict_text(str(full_path), box)
+                    engine = "PaddleOCR (TrOCR belum siap)"
+            else:
+                text   = ""
+                engine = "TrOCR (crop gagal)"
 
-            text, conf = trocr_svc.read_handwritten(crop)
-            engine = "TrOCR"
-            print(f"[PredictOCR] TrOCR hasil: '{text}' (conf={conf:.1f}%)")
+            print(f"[PredictOCR] Hasil TrOCR: engine={engine} | text='{text}'")
 
         except Exception as e:
-            print(f"[PredictOCR] ❌ TrOCR exception: {e}")
-            logger.error(f"[PredictOCR] TrOCR error: {e}", exc_info=True)
+            logger.error(f"[PredictOCR] TrOCR error: {e}")
+            from app.services.ocr_service import predict_text
             text   = predict_text(str(full_path), box)
-            engine = f"PaddleOCR (TrOCR error)"
+            engine = f"PaddleOCR (TrOCR error: {str(e)[:50]})"
     else:
         # Printed text → PaddleOCR
         text   = predict_text(str(full_path), box)
