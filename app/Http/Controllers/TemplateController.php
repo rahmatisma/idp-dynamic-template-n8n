@@ -80,7 +80,9 @@ class TemplateController extends Controller
                 'master_file_url'  => $previewUrl,
                 'master_file_path' => $template->master_file_path,
                 'image_path'       => $template->master_image_path,
-                'python_image_path' => $template->master_image_path ? storage_path('app/public/' . $template->master_image_path) : null,
+                'python_image_path' => $template->master_image_path
+                    ? 'storage/pages/' . str_replace('_preview', '', pathinfo($template->master_image_path, PATHINFO_FILENAME)) . '/page_1.png'
+                    : null,
             ],
         ]);
     }
@@ -181,7 +183,7 @@ class TemplateController extends Controller
             return response()->json([
                 'image_url'         => $localImageUrl,
                 'image_path'        => $localImagePath,  // path untuk disimpan di DB
-                'python_image_path' => storage_path('app/public/' . $localImagePath), // path absolut
+                'python_image_path' => 'storage/pages/' . pathinfo($pdfPath, PATHINFO_FILENAME) . '/page_1.png',
                 'pdf_path'          => $pdfPath,
                 'total_pages'       => $data['total_pages'] ?? 1,
             ]);
@@ -242,8 +244,13 @@ class TemplateController extends Controller
         ]);
 
         try {
+            // Kirim image_path (PNG yang sudah ada di server Python) selain file_path
+            // agar Python engine tidak perlu cari PDF di filesystem lokal Laravel
+            $stem = pathinfo($request->file_path, PATHINFO_FILENAME);
+
             $response = Http::timeout(20)->post(config('services.python_engine.url') . '/detect-header', [
-                'file_path' => $request->file_path,
+                'file_path'  => $request->file_path,
+                'image_path' => 'storage/pages/' . $stem . '/page_1.png',
             ]);
 
             if ($response->failed()) {

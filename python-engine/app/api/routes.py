@@ -10,6 +10,7 @@ Endpoint yang tersedia:
 """
 
 import logging
+import requests as _requests
 from flask import Blueprint, request, jsonify
 from pathlib import Path
 from app.services.pdf_converter import convert_if_not_exists
@@ -19,6 +20,31 @@ from config.settings import INPUT_DIR
 
 logger = logging.getLogger(__name__)
 api_bp = Blueprint("api", __name__)
+
+
+def _notify_laravel_failed(document_id: int, error_msg: str):
+    """
+    Notifikasi darurat ke Laravel bahwa dokumen gagal.
+    Dipanggil ketika Python Engine error dan n8n mungkin tidak bisa routing
+    status 'failed' kembali ke Laravel secara normal.
+    """
+    if not document_id:
+        return
+    from config.settings import LARAVEL_API_URL
+    url = f"{LARAVEL_API_URL}/api/webhook/ocr-result"
+    payload = {
+        'document_id': document_id,
+        'status': 'failed',
+        'error': str(error_msg)[:500],
+    }
+    try:
+        resp = _requests.patch(url, json=payload, timeout=5)
+        if resp.ok:
+            print(f"[NOTIFY] ✅ Laravel dinotifikasi: dokumen #{document_id} → FAILED")
+        else:
+            print(f"[NOTIFY] ⚠️  Laravel jawab {resp.status_code}: {resp.text[:100]}")
+    except Exception as e:
+        print(f"[NOTIFY] ❌ Tidak bisa hubungi Laravel ({url}): {e}")
 
 
 # ── 1. Health Check ────────────────────────────────────────────
@@ -205,17 +231,28 @@ def process():
     if not file_path:
         return jsonify({"status": "failed", "error": "file_path wajib diisi"}), 400
 
+    print(f"\n{'='*60}")
+    print(f"[PROSES] Dokumen ID #{document_id}")
+    print(f"[PROSES] Template   : {template_code or '(Auto-Detect)'}")
+    print(f"[PROSES] File       : {file_path[:80]}")
+    print(f"{'='*60}")
+
     # Resolusi Path Otomatis (Supabase vs Lokal)
     from config.settings import BASE_DIR
     if file_path.startswith("http://") or file_path.startswith("https://"):
         filename = Path(file_path).name
         pdf_path = INPUT_DIR / f"temp_{document_id}_{filename}"
         if not pdf_path.exists():
+            print(f"[PROSES] ⬇️  Download dari Supabase: {filename}")
             try:
                 from app.services.supabase_storage import download_from_supabase
                 download_from_supabase(file_path, str(pdf_path))
+                print(f"[PROSES] ✅ Download selesai → {pdf_path}")
             except Exception as e:
-                return jsonify({"error": f"Gagal mendownload dari Supabase: {str(e)}"}), 500
+                error_msg = f"Gagal mendownload dari Supabase: {str(e)}"
+                print(f"[PROSES] ❌ {error_msg}")
+                _notify_laravel_failed(document_id, error_msg)
+                return jsonify({"error": error_msg}), 500
     else:
         # Fallback lokal untuk testing atau Laragon
         pdf_path = Path(file_path)
@@ -223,9 +260,13 @@ def process():
              pdf_path = BASE_DIR.parent / "storage" / "app" / "public" / file_path
 
     if not pdf_path.exists():
-        return jsonify({"status": "failed", "error": f"File PDF tidak ditemukan: {pdf_path}"}), 404
+        error_msg = f"File PDF tidak ditemukan: {pdf_path}"
+        print(f"[PROSES] ❌ {error_msg}")
+        _notify_laravel_failed(document_id, error_msg)
+        return jsonify({"status": "failed", "error": error_msg}), 404
 
     try:
+        print(f"[PROSES] ▶️  Memulai pipeline OCR...")
         from app.services.ocr_engine import extract_document
         result = extract_document(
             pdf_path=str(pdf_path),
@@ -234,23 +275,41 @@ def process():
             all_templates=all_templates,
         )
 
-        # Kembalikan seluruh hasil (termasuk array pages, total_pages, TP/FP/FN)
+        # Jika semua halaman gagal (template tidak dikenali), notifikasi Laravel
+        all_failed = result.get("pages") and all(
+            p.get("status") == "failed" for p in result["pages"]
+        )
+        if all_failed:
+            first_err = result["pages"][0].get("error", "Template tidak dikenali")
+            print(f"[PROSES] ❌ Semua halaman gagal: {first_err}")
+            _notify_laravel_failed(document_id, first_err)
+
+        conf = result.get("confidence_score", 0)
+        pages = result.get("total_pages", 0)
+        print(f"[PROSES] ✅ Selesai — {pages} hal | confidence: {conf:.1f}%")
+        print(f"{'='*60}\n")
         return jsonify(result)
 
     except FileNotFoundError as e:
+        error_msg = str(e)
+        print(f"[PROSES] ❌ File tidak ditemukan: {error_msg}")
+        _notify_laravel_failed(document_id, error_msg)
         return jsonify({
             "status":      "failed",
             "document_id": document_id,
-            "error":       str(e)
+            "error":       error_msg
         }), 200
 
     except Exception as e:
-        logger.error(f"Error dalam process: {str(e)}", exc_info=True)
+        error_msg = f"Kesalahan saat ekstraksi: {str(e)}"
+        print(f"[PROSES] ❌ ERROR: {error_msg}")
+        logger.error(error_msg, exc_info=True)
+        _notify_laravel_failed(document_id, error_msg)
         return jsonify({
             "status":      "failed",
             "document_id": document_id,
-            "error":       f"Kesalahan saat ekstraksi: {str(e)}"
-        }), 200 # Kembalikan 200 agar n8n bisa memproses percabangan IF dengan mudah
+            "error":       error_msg
+        }), 200
 
 
 # ── 4. Detect Header (Auto-Detect Helper) ─────────────────────
@@ -263,7 +322,8 @@ def detect_header():
     Request JSON: { "file_path": "path/to/master.pdf" }
     """
     data = request.get_json()
-    file_path = data.get("file_path")
+    file_path  = data.get("file_path")
+    image_path = data.get("image_path")  # path PNG yang sudah ada di server Python (opsional)
 
     if not file_path:
         return jsonify({"error": "file_path wajib diisi"}), 400
@@ -272,33 +332,70 @@ def detect_header():
     from app.services.pdf_converter import convert_if_not_exists
     from app.services.ocr_service import read_header
 
-    # Resolusi path
-    input_path = Path(file_path)
-    if not input_path.is_absolute():
-        pdf_path = BASE_DIR.parent / "storage" / "app" / "public" / file_path
-    else:
-        pdf_path = input_path
+    print(f"[DetectHeader] file_path  : {file_path[:80]}")
 
-    if not pdf_path.exists():
-        return jsonify({"error": f"File tidak ditemukan: {pdf_path}"}), 404
+    # Prioritas 1: gunakan image_path PNG yang sudah ada (dari /convert-pdf sebelumnya)
+    # Ini menghindari keharusan akses file PDF di filesystem Laravel (berbeda server/OS)
+    page_image = None
+    if image_path:
+        candidate = BASE_DIR / image_path if not Path(image_path).is_absolute() else Path(image_path)
+        print(f"[DetectHeader] image_path : {image_path}")
+        print(f"[DetectHeader] image_full : {candidate}")
+        print(f"[DetectHeader] img_exists : {candidate.exists()}")
+        if candidate.exists():
+            page_image = str(candidate)
+            print(f"[DetectHeader] ✅ Menggunakan PNG yang sudah ada, skip konversi PDF")
 
-    try:
-        # 1. Pastikan sudah jadi image
+    if not page_image:
+        # Prioritas 2: konversi dari PDF
+        input_path = Path(file_path)
+        if input_path.is_absolute():
+            pdf_path = input_path
+        else:
+            pdf_path = BASE_DIR.parent / "storage" / "app" / "public" / file_path
+
+        print(f"[DetectHeader] pdf_path   : {pdf_path}")
+        print(f"[DetectHeader] file_exists: {pdf_path.exists()}")
+
+        if not pdf_path.exists():
+            print(f"[DetectHeader] ❌ File PDF tidak ditemukan dan image_path juga tidak tersedia!")
+            return jsonify({"error": f"File tidak ditemukan: {pdf_path}"}), 404
+
+        print(f"[DetectHeader] Mengkonversi PDF ke gambar...")
         pages = convert_if_not_exists(str(pdf_path))
         if not pages:
-            return jsonify({"error": "Gagal konversi PDF"}), 500
+            return jsonify({"error": "Gagal konversi PDF ke gambar"}), 500
+        page_image = str(pages[0])
+        print(f"[DetectHeader] Gambar siap: {page_image}")
 
-        # 2. Baca header (Kembaliannya sekarang DICT {title, doc_number})
-        header_data = read_header(str(pages[0]))
+    try:
+        # 2. Baca header dari halaman pertama
+        print(f"[DetectHeader] Membaca header dokumen...")
+        header_data = read_header(page_image)
+
+        title   = header_data.get('title', '')
+        doc_num = header_data.get('doc_number', '')
+        version = header_data.get('version', '')
+        conf    = header_data.get('confidence', 0)
+
+        print(f"[DetectHeader] ✅ Hasil:")
+        print(f"  Title     : '{title}'")
+        print(f"  Doc Number: '{doc_num}'")
+        print(f"  Version   : '{version}'")
+        print(f"  Confidence: {conf:.2f}")
+
+        if not title:
+            print(f"[DetectHeader] ⚠️  Title kosong — header mungkin tidak terbaca dengan baik")
 
         return jsonify({
             "status": "ok",
             "header": header_data,
-            "suggestion": header_data['title'][:50] if header_data.get('title') else ""
+            "suggestion": title[:50] if title else ""
         })
 
     except Exception as e:
-        print(f"Error dalam detect-header: {str(e)}")
+        print(f"[DetectHeader] ❌ Error: {str(e)}")
+        logger.error(f"[DetectHeader] Error: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
@@ -326,25 +423,51 @@ def predict_ocr():
     if not rel_path:
         return jsonify({"error": "image_path wajib diisi"}), 400
 
-    # Pastikan path absolut
-    if "storage/" in rel_path:
+    # Resolusi path: absolut langsung pakai, relatif gabung dengan BASE_DIR
+    if Path(rel_path).is_absolute():
+        full_path = Path(rel_path)
+    elif "storage/" in rel_path:
         full_path = BASE_DIR / rel_path
     else:
-        full_path = Path(rel_path)
+        full_path = BASE_DIR / "storage" / rel_path
+
+    print(f"[PredictOCR] image_path  : {rel_path[:80]}")
+    print(f"[PredictOCR] full_path   : {full_path}")
+    print(f"[PredictOCR] file_exists : {full_path.exists()}")
+    print(f"[PredictOCR] text_type   : '{text_type}' | box: {box}")
 
     if not full_path.exists():
-        return jsonify({"error": f"Gambar tidak ditemukan: {rel_path}"}), 404
+        print(f"[PredictOCR] ❌ File gambar tidak ditemukan!")
+        return jsonify({"error": f"Gambar tidak ditemukan: {full_path}"}), 404
 
-    # ── Routing ke engine yang tepat ──────────────────────────────
-    print(f"[PredictOCR] text_type diterima: '{text_type}' | image: {rel_path}")
+    from app.services.ocr_service import predict_text
 
     if text_type == "handwritten":
-        # Pakai TrOCR untuk tulisan tangan
         try:
             import app.services.trocr_service as trocr_svc
             from PIL import Image as PILImage
 
             print(f"[PredictOCR] TrOCR status → ready={trocr_svc._trocr_ready} | loading={trocr_svc._trocr_loading} | failed={trocr_svc._trocr_failed}")
+
+            if trocr_svc._trocr_loading:
+                # TrOCR masih proses loading model → beritahu user, jangan pakai engine lain
+                print(f"[PredictOCR] TrOCR masih loading model, belum bisa membaca.")
+                return jsonify({
+                    "status":  "loading",
+                    "text":    "",
+                    "engine":  "TrOCR",
+                    "message": "Model TrOCR sedang dimuat, harap tunggu beberapa saat lalu coba lagi."
+                })
+
+            if trocr_svc._trocr_failed:
+                # TrOCR gagal load → beritahu user secara jelas
+                print(f"[PredictOCR] TrOCR gagal load model.")
+                return jsonify({
+                    "status":  "error",
+                    "text":    "",
+                    "engine":  "TrOCR",
+                    "message": "Model TrOCR gagal dimuat. Periksa log Python Engine untuk detail."
+                })
 
             # Konversi box ratio → koordinat pixel absolut
             img = PILImage.open(str(full_path))
@@ -353,38 +476,34 @@ def predict_ocr():
             y1 = int(box['y'] * img_h)
             x2 = int((box['x'] + box['w']) * img_w)
             y2 = int((box['y'] + box['h']) * img_h)
+            print(f"[PredictOCR] Crop coords: ({x1},{y1}) → ({x2},{y2}) | img: {img_w}×{img_h}")
 
             crop = trocr_svc.crop_image_for_trocr(str(full_path), (x1, y1, x2, y2))
 
-            if trocr_svc._trocr_loading:
-                from app.services.ocr_service import predict_text
-                text   = predict_text(str(full_path), box)
-                engine = "PaddleOCR (TrOCR masih loading...)"
-            elif crop is not None:
-                text, _conf = trocr_svc.read_handwritten(crop)
-                engine = "TrOCR"
-                if not text and not trocr_svc._trocr_ready:
-                    from app.services.ocr_service import predict_text
-                    text   = predict_text(str(full_path), box)
-                    engine = "PaddleOCR (TrOCR belum siap)"
-            else:
-                text   = ""
-                engine = "TrOCR (crop gagal)"
+            if crop is None:
+                print(f"[PredictOCR] Crop gagal (koordinat di luar batas gambar?).")
+                return jsonify({
+                    "status":  "error",
+                    "text":    "",
+                    "engine":  "TrOCR",
+                    "message": "Gagal crop area — coba geser atau perbesar kotak."
+                })
 
-            print(f"[PredictOCR] Hasil TrOCR: engine={engine} | text='{text}'")
+            text, conf = trocr_svc.read_handwritten(crop)
+            engine = "TrOCR"
+            print(f"[PredictOCR] TrOCR hasil: '{text}' (conf={conf:.1f}%)")
 
         except Exception as e:
-            logger.error(f"[PredictOCR] TrOCR error: {e}")
-            from app.services.ocr_service import predict_text
+            print(f"[PredictOCR] ❌ TrOCR exception: {e}")
+            logger.error(f"[PredictOCR] TrOCR error: {e}", exc_info=True)
             text   = predict_text(str(full_path), box)
-            engine = f"PaddleOCR (TrOCR error: {str(e)[:50]})"
+            engine = f"PaddleOCR (TrOCR error)"
     else:
-        # Pakai PaddleOCR untuk teks cetak (default)
-        from app.services.ocr_service import predict_text
+        # Printed text → PaddleOCR
         text   = predict_text(str(full_path), box)
         engine = "PaddleOCR"
 
-    print(f"[PredictOCR] Final → engine={engine} | text='{text[:30]}'")
+    print(f"[PredictOCR] ✅ Final → engine='{engine}' | text='{text[:50] if text else '(kosong)'}'")
 
     return jsonify({
         "status": "ok",

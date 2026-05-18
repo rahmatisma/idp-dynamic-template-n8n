@@ -290,26 +290,29 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
     """
     logger.info(f"--- Memulai Ekstraksi ID #{document_id} ---")
 
-    # JEMPUT BOLA: Jika n8n tidak kasih template, cari sendiri ke Laravel
     # JEMPUT BOLA: Jika n8n tidak kasih template, cari sendiri ke Supabase
     if not all_templates:
+        print(f"[OCR] Mengambil daftar template dari Supabase...")
         all_templates = fetch_active_templates()
+        print(f"[OCR] {len(all_templates)} template aktif ditemukan.")
 
     # FALLBACK SAKTI: Jika di database cuma ada 1 template aktif, langsung pakai itu tanpa nebak-nebak!
     if not template_code and all_templates and len(all_templates) == 1:
         template_code = all_templates[0].get("template_code")
-        logger.info(f"[Auto-Bypass] Hanya ada 1 template di DB. Langsung menggunakan: {template_code}")
+        print(f"[OCR] Auto-Bypass: hanya 1 template di DB → pakai '{template_code}'")
 
     from app.services.pdf_converter import convert_if_not_exists
+    print(f"[OCR] Mengkonversi PDF → PNG...")
     images = convert_if_not_exists(pdf_path)
     if not images:
         raise ValueError("PDF tidak menghasilkan gambar.")
+    print(f"[OCR] PDF berhasil dikonversi: {len(images)} halaman.")
 
     results_per_page = []
 
     for i, img_path in enumerate(images):
         page_num = i + 1
-        logger.info(f"[Page {page_num}] Processing...")
+        print(f"\n[OCR] ── Halaman {page_num}/{len(images)} ────────────────────────")
 
         # 1. Preprocess: Bersihkan gambar dulu (CLAHE + denoise) SEBELUM DETEKSI TEMPLATE
         from app.services.preprocessor import preprocess_image
@@ -320,16 +323,28 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
 
         # 2. Jika n8n/Laravel memberikan template_code secara spesifik (Manual Mode)
         if template_code:
+            print(f"[OCR] Mode MANUAL — mencari template '{template_code}'...")
             for t in all_templates:
                 if t.get("template_code") == template_code:
                     selected_template = t
                     break
             if not selected_template:
+                print(f"[OCR] ❌ Template '{template_code}' tidak ditemukan di database!")
                 match_result = {"status": "unknown", "score": 0, "header": "None"}
+            else:
+                print(f"[OCR] ✅ Template ditemukan: '{selected_template.get('type_name')}'")
         else:
             # 3. Jika tidak ada template_code, gunakan Auto-Detect pada gambar yang sudah bersih
+            print(f"[OCR] Mode AUTO-DETECT — membaca header dokumen...")
             match_result = detect_template(str(clean_img_path), all_templates)
             selected_template = match_result.get('template')
+            if selected_template:
+                print(f"[OCR] ✅ Template terdeteksi: '{selected_template.get('type_name')}' "
+                      f"(score: {match_result['score']}%, header: '{match_result.get('header', '')[:50]}')")
+            else:
+                print(f"[OCR] ❌ Tidak ada template cocok "
+                      f"(score tertinggi: {match_result.get('score', 0)}%, "
+                      f"header: '{match_result.get('header', '')[:50]}')")
 
         if not selected_template or match_result['status'] == "unknown":
             results_per_page.append({
@@ -345,7 +360,9 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         # (Gambar sudah dibersihkan di atas)
 
         # 4. Global OCR: Scan gambar yang sudah bersih — SATU KALI
+        print(f"[OCR] Menjalankan Global OCR scan...")
         ocr_results = run_global_ocr(clean_img_path)
+        print(f"[OCR] Global OCR selesai: {len(ocr_results)} teks terdeteksi.")
 
         # ── Hitung kualitas baca OCR dari PaddleOCR word confidence ─────────
         # Dihitung SEKARANG dari global scan; nanti akan digabung dengan
@@ -365,8 +382,21 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         fields_config  = mapping_config.get('fields', [])
         tables_config  = mapping_config.get('tables', [])
 
+        field_names = [f.get('field_name', '?') for f in fields_config]
+        table_names = [t.get('table_name', '?') for t in tables_config]
+        print(f"[OCR] Konfigurasi: {len(fields_config)} field, {len(tables_config)} tabel")
+        if field_names:
+            print(f"[OCR] Fields    : {', '.join(field_names)}")
+        if table_names:
+            print(f"[OCR] Tables    : {', '.join(table_names)}")
+
         # 3. Ekstrak field header — printed via global OCR, handwritten via TrOCR crop
+        if fields_config:
+            print(f"\n[OCR] ── Ekstraksi Fields ──────────────────────────────")
         fields_data = extract_fields(ocr_results, fields_config, image_path=clean_img_path)
+        if fields_config:
+            success_fields = sum(1 for v in fields_data.values() if v)
+            print(f"[OCR] Fields selesai: {success_fields}/{len(fields_config)} berhasil diekstrak.")
 
         # 4. Ekstrak tiap tabel (group_by_y + split_by_x, TANPA OCR ulang)
         tables_data      = {}
@@ -374,10 +404,20 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         for table_cfg in tables_config:
             anchor_texts = table_cfg.get('anchor', {}).get('texts', [])
             anchor_text  = anchor_texts[0] if anchor_texts else ''
+            tbl_name     = table_cfg.get('table_name', '?')
+            print(f"\n[OCR] ── Ekstraksi Tabel '{tbl_name}' ─────────────────────")
+            print(f"[OCR] Mencari anchor tabel: '{anchor_text}'...")
             anchor       = find_anchor(ocr_results, anchor_text) if anchor_text else None
+            if anchor:
+                print(f"[OCR] ✅ Anchor '{anchor_text}' ditemukan di ({anchor['x']}, {anchor['y']}) "
+                      f"score={anchor.get('score', '?')}")
+            else:
+                print(f"[OCR] ❌ Anchor '{anchor_text}' TIDAK ditemukan — tabel '{tbl_name}' akan dilewati.")
             rows, tbl_conf = extract_table(ocr_results, table_cfg, anchor, image_path=clean_img_path)
             table_key = table_cfg.get('json_key', table_cfg.get('table_name'))
             tables_data[table_key] = rows
+            conf_str = f"{tbl_conf:.1f}%" if tbl_conf is not None else "N/A"
+            print(f"[OCR] Tabel '{tbl_name}' selesai: {len(rows)} baris | confidence: {conf_str}")
             if tbl_conf is not None:
                 table_confidences.append(tbl_conf)
 

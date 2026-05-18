@@ -50,12 +50,18 @@ def extract_fields(ocr_results: list, fields_config: list, image_path: str = Non
         height      = field.get('height', 50)
         field_type  = field.get('type', 'printed')   # ← "printed" atau "handwritten"
 
+        print(f"[FIELD] '{field_name}' [{field_type}] — mencari anchor '{anchor_text}'...")
+
         # ── Step 1: Cari anchor ───────────────────────────────────
         anchor = find_anchor(ocr_results, anchor_text)
         if not anchor:
+            print(f"[FIELD] ✗ '{field_name}': anchor '{anchor_text}' tidak ditemukan → kosong")
             logger.warning(f"[FieldExtractor] Anchor '{anchor_text}' tidak ketemu untuk field '{field_name}'")
             result[field_name] = ""
             continue
+
+        print(f"[FIELD] ✓ Anchor '{anchor_text}' → match '{anchor['text']}' "
+              f"di ({anchor['x']},{anchor['y']}) score={anchor.get('score','?')}")
 
         # ── Step 2: Hitung bounding box target ───────────────────
         bbox = calculate_target_box(anchor, offset_x, offset_y, width, height)
@@ -63,20 +69,22 @@ def extract_fields(ocr_results: list, fields_config: list, image_path: str = Non
         # ── Step 3: Baca teks sesuai jenis tulisan ───────────────
         if field_type == "checkbox":
             value = _detect_checkbox_field(image_path, bbox, field)
-            engine_log = "Checkbox Detection"
+            engine_log = "Checkbox"
         elif field_type == "handwritten":
             value = _read_handwritten_field(image_path, bbox, field_name)
             if value:
-                engine_log = "TrOCR (Handwritten)"
+                engine_log = "TrOCR"
             else:
-                # Jika TrOCR kosong (karena disabled/gagal), kita coba ambil dari Paddle sebagai fallback
+                # Jika TrOCR kosong (karena disabled/gagal), coba PaddleOCR sebagai fallback
                 value = get_text_in_bbox(ocr_results, bbox)
-                engine_log = "PaddleOCR (Handwritten Fallback)"
+                engine_log = "PaddleOCR (fallback)"
         else:
             # Default: printed → ambil dari hasil global OCR
             value = get_text_in_bbox(ocr_results, bbox)
-            engine_log = "PaddleOCR (Printed)"
+            engine_log = "PaddleOCR"
 
+        status_icon = "✓" if value else "○"
+        print(f"[FIELD] {status_icon} '{field_name}' [{engine_log}] → '{value or '(kosong)'}'")
         logger.info(f"[FieldExtractor] Field '{field_name}' [{engine_log}] → '{value}'")
         result[field_name] = value
 
@@ -126,6 +134,7 @@ def _detect_checkbox_field(image_path: str, bbox: tuple, field_config: dict) -> 
         return checked_val if is_checked else empty_val
 
     except Exception as e:
+        print(f"[FIELD] ❌ Error checkbox detection: {e}")
         logger.error(f"[FieldExtractor] Error deteksi checkbox: {e}")
         return ""
 
@@ -149,12 +158,18 @@ def _read_handwritten_field(image_path: str, bbox: tuple, field_name: str) -> st
 
         crop = crop_image_for_trocr(image_path, bbox)
         if crop is None:
+            print(f"[FIELD] ⚠️  Crop gagal untuk field '{field_name}' (bbox={bbox})")
             logger.warning(f"[FieldExtractor] Gagal crop untuk field '{field_name}'.")
             return ""
 
-        text, _conf = read_handwritten(crop)
+        text, conf = read_handwritten(crop)
+        if text:
+            print(f"[FIELD] TrOCR '{field_name}': '{text}' (conf={conf:.1f}%)")
+        else:
+            print(f"[FIELD] TrOCR '{field_name}': tidak terbaca (conf={conf:.1f}%)")
         return text
 
     except Exception as e:
+        print(f"[FIELD] ❌ TrOCR error untuk '{field_name}': {e}")
         logger.error(f"[FieldExtractor] TrOCR error untuk '{field_name}': {e}")
         return ""

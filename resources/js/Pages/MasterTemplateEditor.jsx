@@ -376,19 +376,27 @@ function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx, setActiveI
                                  targetPreview.itemIdx === idx &&
                                  targetPreview.targetIdx === ti && (
                                     <div className={`mt-1 text-[10px] px-2 py-1.5 rounded-lg border flex items-start gap-1.5 ${
-                                        targetPreview.status === "loading"
-                                            ? "bg-slate-50 border-slate-200 text-slate-400"
-                                            : targetPreview.status === "ok"
-                                                ? "bg-green-50 border-green-200 text-green-700"
-                                                : "bg-amber-50 border-amber-200 text-amber-700"
+                                        targetPreview.status === "loading"       ? "bg-slate-50 border-slate-200 text-slate-400"
+                                        : targetPreview.status === "ok"          ? "bg-green-50 border-green-200 text-green-700"
+                                        : targetPreview.status === "trocr_loading" ? "bg-blue-50 border-blue-200 text-blue-700"
+                                        : targetPreview.status === "trocr_error"   ? "bg-red-50 border-red-200 text-red-700"
+                                        : "bg-amber-50 border-amber-200 text-amber-700"
                                     }`}>
                                         <span className="mt-0.5 flex-shrink-0">
-                                            {targetPreview.status === "loading" && <span className="inline-block w-2 h-2 rounded-full bg-slate-400 animate-ping" />}
-                                            {targetPreview.status === "ok" && "✅"}
-                                            {targetPreview.status === "empty" && "⚠️"}
+                                            {targetPreview.status === "loading"        && <span className="inline-block w-2 h-2 rounded-full bg-slate-400 animate-ping" />}
+                                            {targetPreview.status === "trocr_loading"  && <span className="inline-block w-2 h-2 rounded-full bg-blue-500 animate-ping" />}
+                                            {targetPreview.status === "ok"             && "✅"}
+                                            {targetPreview.status === "empty"          && "⚠️"}
+                                            {targetPreview.status === "trocr_error"    && "❌"}
                                         </span>
                                         <span className="leading-tight">
-                                            {targetPreview.status === "loading" && "Membaca area..."}
+                                            {targetPreview.status === "loading" && "Membaca area dengan TrOCR..."}
+                                            {targetPreview.status === "trocr_loading" && (
+                                                <>{targetPreview.message || "Model TrOCR sedang dimuat, harap tunggu lalu coba lagi."}</>
+                                            )}
+                                            {targetPreview.status === "trocr_error" && (
+                                                <>{targetPreview.message || "TrOCR tidak dapat membaca area ini."}</>
+                                            )}
                                             {targetPreview.status === "ok" && (
                                                 <>
                                                     <span className="font-medium">Preview: </span>
@@ -398,7 +406,7 @@ function FieldPanel({ item, idx, isActive, drawMode, activeTargetIdx, setActiveI
                                                     )}
                                                 </>
                                             )}
-                                            {targetPreview.status === "empty" && "Area kosong atau tidak terbaca — coba geser atau perbesar kotak"}
+                                            {targetPreview.status === "empty" && "TrOCR tidak mendeteksi teks di area ini — coba geser atau perbesar kotak"}
                                         </span>
                                     </div>
                                 )}
@@ -529,16 +537,18 @@ function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, setActiveI
                                          targetPreview.itemIdx === idx &&
                                          targetPreview.targetIdx === ci && (
                                             <div className={`mt-1.5 text-[10px] px-2 py-1.5 rounded-lg border flex items-start gap-1.5 ${
-                                                targetPreview.status === "loading"
-                                                    ? "bg-slate-50 border-slate-200 text-slate-400"
-                                                    : targetPreview.status === "ok"
-                                                        ? "bg-green-50 border-green-200 text-green-700"
-                                                        : "bg-amber-50 border-amber-200 text-amber-700"
+                                                targetPreview.status === "loading"      ? "bg-slate-50 border-slate-200 text-slate-400"
+                                                : targetPreview.status === "ok"         ? "bg-green-50 border-green-200 text-green-700"
+                                                : targetPreview.status === "trocr_loading" ? "bg-blue-50 border-blue-200 text-blue-700"
+                                                : targetPreview.status === "trocr_error"   ? "bg-red-50 border-red-200 text-red-700"
+                                                : "bg-amber-50 border-amber-200 text-amber-700"
                                             }`}>
                                                 <span className="mt-0.5 flex-shrink-0">
-                                                    {targetPreview.status === "loading" && <span className="inline-block w-2 h-2 rounded-full bg-slate-400 animate-ping" />}
-                                                    {targetPreview.status === "ok" && "✅"}
-                                                    {targetPreview.status === "empty" && "⚠️"}
+                                                    {targetPreview.status === "loading"       && <span className="inline-block w-2 h-2 rounded-full bg-slate-400 animate-ping" />}
+                                                    {targetPreview.status === "trocr_loading" && <span className="inline-block w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
+                                                    {targetPreview.status === "trocr_error"   && "❌"}
+                                                    {targetPreview.status === "ok"            && "✅"}
+                                                    {targetPreview.status === "empty"         && "⚠️"}
                                                 </span>
                                                 <span className="leading-tight">
                                                     {targetPreview.status === "loading" && "Membaca area..."}
@@ -551,7 +561,9 @@ function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, setActiveI
                                                             )}
                                                         </>
                                                     )}
-                                                    {targetPreview.status === "empty" && "Area kosong — coba geser atau perbesar kotak"}
+                                                    {targetPreview.status === "trocr_loading" && (targetPreview.message || "Model TrOCR sedang dimuat, harap tunggu...")}
+                                                    {targetPreview.status === "trocr_error"   && (targetPreview.message || "TrOCR gagal — periksa log Python Engine.")}
+                                                    {targetPreview.status === "empty"         && "TrOCR tidak mendeteksi teks di area ini — coba geser atau perbesar kotak"}
                                                 </span>
                                             </div>
                                         )}
@@ -825,7 +837,27 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                     targetIdx,
                     text,
                     status: text.length > 0 ? "ok" : "empty",
-                    engine: data.engine || null   // ← simpan nama engine
+                    engine: data.engine || null,
+                });
+            } else if (data.status === "loading") {
+                // TrOCR masih load model
+                setTargetPreview({
+                    itemIdx,
+                    targetIdx,
+                    text: "",
+                    status: "trocr_loading",
+                    engine: "TrOCR",
+                    message: data.message || "Model TrOCR sedang dimuat...",
+                });
+            } else if (data.status === "error") {
+                // TrOCR gagal load atau crop gagal
+                setTargetPreview({
+                    itemIdx,
+                    targetIdx,
+                    text: "",
+                    status: "trocr_error",
+                    engine: "TrOCR",
+                    message: data.message || "TrOCR tidak dapat membaca area ini.",
                 });
             } else {
                 setTargetPreview({ itemIdx, targetIdx, text: "", status: "empty", engine: null });

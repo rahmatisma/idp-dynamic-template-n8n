@@ -9,7 +9,20 @@ from dotenv import load_dotenv
 load_dotenv()  # Load environment variables dari .env
 
 import os
-print(f"[ENV] TROCR_ENABLED = {os.getenv('TROCR_ENABLED')}")
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] [%(levelname)-8s] %(message)s',
+    datefmt='%H:%M:%S',
+)
+logging.getLogger('ppocr').setLevel(logging.WARNING)
+logging.getLogger('paddle').setLevel(logging.WARNING)
+logging.getLogger('PIL').setLevel(logging.WARNING)
+
+print(f"[ENV] TROCR_ENABLED   = {os.getenv('TROCR_ENABLED')}")
+print(f"[ENV] SUPABASE_URL    = {os.getenv('SUPABASE_URL', '(tidak diset)')[:40]}...")
+print(f"[ENV] LARAVEL_API_URL = {os.getenv('LARAVEL_API_URL', 'http://localhost:8000')}")
 
 from flask import Flask
 from flask_cors import CORS

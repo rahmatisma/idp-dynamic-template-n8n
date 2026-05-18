@@ -564,6 +564,7 @@ def split_by_x(
                 )
 
         except Exception as e:
+            print(f"[TABLE] ❌ Error handwritten cell: {e}")
             logger.error(f"[TableExtractor] Error saat baca handwritten cell: {e}")
 
     # ── Pass 3: Deteksi centang (CHECKBOX) ────────────────────────
@@ -611,6 +612,7 @@ def split_by_x(
                 )
 
         except Exception as e:
+            print(f"[TABLE] ❌ Error checkbox: {e}")
             logger.error(f"[TableExtractor] Error saat deteksi checkbox: {e}")
 
     # ── Hitung rata-rata confidence seluruh sel baris ini ─────────
@@ -952,6 +954,7 @@ def extract_table(
             logger.debug("[TableExtractor][Executor] Anchor TIDAK ditemukan.")
 
     if not anchor:
+        print(f"[TABLE] ❌ Anchor tabel '{table_name}' tidak ditemukan → tabel dilewati.")
         logger.warning(f"[TableExtractor] Anchor tabel '{table_name}' tidak ketemu. Skip.")
         return [], None
 
@@ -1124,6 +1127,7 @@ def extract_table(
             result_raw.append(row_data)
 
         if (idx + 1) % 5 == 0 or (idx + 1) == total_rows:
+            print(f"[TABLE] '{table_name}': {idx + 1}/{total_rows} baris diproses...")
             logger.info(f"[TableExtractor] '{table_name}' progress: {idx + 1}/{total_rows} baris diproses...")
 
     # ── STEP 2: Gabungkan baris fisik ke baris logis (multi-line) ─
