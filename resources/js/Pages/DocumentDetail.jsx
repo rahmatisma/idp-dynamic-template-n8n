@@ -411,7 +411,7 @@ function FieldGrid({ fields }) {
 function flattenFields(fields, fieldOrder = []) {
     const out = {};
     for (const [k, v] of Object.entries(fields)) {
-        if (k === "copyright" || k === "field_order") continue;
+        if (k === "copyright" || k === "field_order" || k === "table_order" || k === "combined_order") continue;
         if (Array.isArray(v)) {
             if (v.length > 0 && typeof v[0] === "string")
                 out[k] = v.join(", ");
@@ -592,10 +592,38 @@ export default function DocumentDetail({ document }) {
                                 const copyright = fields.copyright ?? null;
                                 const fieldOrder = Array.isArray(fields.field_order) ? fields.field_order : [];
                                 const flatFields = flattenFields(fields, fieldOrder);
-                                const tableOrder = Array.isArray(fields.table_order) ? fields.table_order : null;
-                                const tableEntries = tableOrder
-                                    ? tableOrder.filter(k => tables[k]).map(k => [k, tables[k]])
-                                    : Object.entries(tables);
+                                const combinedOrder = Array.isArray(fields.combined_order) ? fields.combined_order : null;
+
+                                let contentItems = null;
+                                if (combinedOrder) {
+                                    contentItems = [];
+                                    let fieldBuf = [];
+                                    const flushFields = () => {
+                                        if (!fieldBuf.length) return;
+                                        const obj = Object.fromEntries(fieldBuf);
+                                        contentItems.push(
+                                            <div key={`fields-${fieldBuf[0][0]}`}>
+                                                <SectionLabel>Informasi Dokumen</SectionLabel>
+                                                <FieldGrid fields={obj} />
+                                            </div>
+                                        );
+                                        fieldBuf = [];
+                                    };
+                                    for (const key of combinedOrder) {
+                                        if (tables[key] && Array.isArray(tables[key]) && tables[key].length > 0) {
+                                            flushFields();
+                                            contentItems.push(
+                                                <div key={key}>
+                                                    <SectionLabel>{colLabel(key)}</SectionLabel>
+                                                    <ChecklistTable rows={tables[key]} />
+                                                </div>
+                                            );
+                                        } else if (key in flatFields) {
+                                            fieldBuf.push([key, flatFields[key]]);
+                                        }
+                                    }
+                                    flushFields();
+                                }
 
                                 return (
                                     <div key={pi} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -641,23 +669,25 @@ export default function DocumentDetail({ document }) {
                                             <ConfidenceAlert score={page.confidence} />
                                             <TemplateMatchWarning score={page.template_match_score} status={page.status} />
 
-                                            {/* ── Fields Section ── */}
-                                            {Object.keys(flatFields).length > 0 && (
-                                                <div>
-                                                    <SectionLabel>Informasi Dokumen</SectionLabel>
-                                                    <FieldGrid fields={flatFields} />
-                                                </div>
+                                            {/* ── Konten Dokumen ── */}
+                                            {contentItems ?? (
+                                                <>
+                                                    {Object.keys(flatFields).length > 0 && (
+                                                        <div>
+                                                            <SectionLabel>Informasi Dokumen</SectionLabel>
+                                                            <FieldGrid fields={flatFields} />
+                                                        </div>
+                                                    )}
+                                                    {Object.entries(tables).map(([tableKey, rows]) => (
+                                                        Array.isArray(rows) && rows.length > 0 && (
+                                                            <div key={tableKey}>
+                                                                <SectionLabel>{colLabel(tableKey)}</SectionLabel>
+                                                                <ChecklistTable rows={rows} />
+                                                            </div>
+                                                        )
+                                                    ))}
+                                                </>
                                             )}
-
-                                            {/* ── Tables ── */}
-                                            {tableEntries.map(([tableKey, rows]) => (
-                                                Array.isArray(rows) && rows.length > 0 && (
-                                                    <div key={tableKey}>
-                                                        <SectionLabel>{colLabel(tableKey)}</SectionLabel>
-                                                        <ChecklistTable rows={rows} />
-                                                    </div>
-                                                )
-                                            ))}
 
                                             {/* ── Copyright footer ── */}
                                             {copyright && (
