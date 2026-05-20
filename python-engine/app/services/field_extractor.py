@@ -42,6 +42,8 @@ def extract_fields(ocr_results: list, fields_config: list, image_path: str = Non
     result = {}
 
     for field in fields_config:
+        if not field.get('field_name'):
+            continue
         field_name  = field.get('field_name', 'unknown')
         anchor_text = field.get('anchor_text', '')
         offset_x    = field.get('offset_x', 0)
@@ -83,6 +85,8 @@ def extract_fields(ocr_results: list, fields_config: list, image_path: str = Non
             value = get_text_in_bbox(ocr_results, bbox)
             engine_log = "PaddleOCR"
 
+        if field_type != "checkbox" and value:
+            value = value.lstrip(":.- ").strip()
         status_icon = "✓" if value else "○"
         print(f"[FIELD] {status_icon} '{field_name}' [{engine_log}] → '{value or '(kosong)'}'")
         logger.info(f"[FieldExtractor] Field '{field_name}' [{engine_log}] → '{value}'")

@@ -450,6 +450,9 @@ def predict_ocr():
 
             print(f"[PredictOCR] TrOCR status → ready={trocr_svc._trocr_ready} | loading={trocr_svc._trocr_loading} | failed={trocr_svc._trocr_failed}")
 
+            if trocr_svc._trocr_loading:
+                return jsonify({"status": "error", "message": "TrOCR masih loading, coba lagi dalam beberapa detik"})
+
             # Konversi box ratio → koordinat pixel absolut
             img = PILImage.open(str(full_path))
             img_w, img_h = img.size
@@ -461,28 +464,17 @@ def predict_ocr():
 
             crop = trocr_svc.crop_image_for_trocr(str(full_path), (x1, y1, x2, y2))
 
-            if trocr_svc._trocr_loading:
-                from app.services.ocr_service import predict_text
-                text   = predict_text(str(full_path), box)
-                engine = "PaddleOCR (TrOCR masih loading...)"
-            elif crop is not None:
-                text, _conf = trocr_svc.read_handwritten(crop)
-                engine = "TrOCR"
-                if not text and not trocr_svc._trocr_ready:
-                    from app.services.ocr_service import predict_text
-                    text   = predict_text(str(full_path), box)
-                    engine = "PaddleOCR (TrOCR belum siap)"
-            else:
-                text   = ""
-                engine = "TrOCR (crop gagal)"
+            if crop is None:
+                return jsonify({"status": "error", "message": "Crop gagal, coba perbesar area seleksi"})
+
+            text, _conf = trocr_svc.read_handwritten(crop)
+            engine = "TrOCR"
 
             print(f"[PredictOCR] Hasil TrOCR: engine={engine} | text='{text}'")
 
         except Exception as e:
             logger.error(f"[PredictOCR] TrOCR error: {e}")
-            from app.services.ocr_service import predict_text
-            text   = predict_text(str(full_path), box)
-            engine = f"PaddleOCR (TrOCR error: {str(e)[:50]})"
+            return jsonify({"status": "error", "message": f"TrOCR error: {str(e)[:100]}"})
     else:
         # Printed text → PaddleOCR
         text   = predict_text(str(full_path), box)

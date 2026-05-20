@@ -1,20 +1,21 @@
 import logging
+import threading
 import cv2
 import numpy as np
 from paddleocr import PaddleOCR
 
 logger = logging.getLogger(__name__)
 
-# Inisialisasi PaddleOCR (lang='en' untuk deteksi teks umum)
-# show_log=False untuk mengurangi polusi log di terminal
 _ocr = None
+_ocr_lock = threading.Lock()
 
 def get_ocr_instance():
     global _ocr
-    if _ocr is None:
-        logger.info("Initializing PaddleOCR instance...")
-        # enable_mkldnn=False seringkali memperbaiki error "could not execute a primitive" di Windows
-        _ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False, enable_mkldnn=False)
+    with _ocr_lock:
+        if _ocr is None:
+            logger.info("Initializing PaddleOCR instance...")
+            _ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False, enable_mkldnn=False,
+                             cpu_threads=4, rec_batch_num=1)
     return _ocr
 
 def predict_text(image_path: str, box: dict = None) -> str:
@@ -58,8 +59,9 @@ def predict_text(image_path: str, box: dict = None) -> str:
 
         # 2. Jalankan OCR
         ocr_engine = get_ocr_instance()
-        result = ocr_engine.ocr(img, cls=True)
-        
+        with _ocr_lock:
+            result = ocr_engine.ocr(img, cls=True)
+
         print(f"[OCR] Raw Result: {result}")
 
         if not result or not result[0]:
@@ -90,19 +92,19 @@ def read_header(image_path: str) -> dict:
         
         h_img, w_img = img.shape[:2]
         ocr_engine = get_ocr_instance()
-        result = ocr_engine.ocr(img, cls=True)
-        
+        with _ocr_lock:
+            result = ocr_engine.ocr(img, cls=True)
+
         if not result or not result[0]:
             return {"title": "", "doc_number": None, "version": None}
-            
+
         header_candidates = []
         for line in result[0]:
             box, (text, conf) = line
             y_coord = box[0][1]
             y_ratio = y_coord / h_img
-            
-            # Area scan 30% (Fokus area header atas, diperbesar karena kadang margin besar)
-            if y_ratio < 0.30:
+
+            if y_ratio < 0.35:
                 box_height = box[2][1] - box[0][1]
                 x_center = ((box[0][0] + box[1][0]) / 2) / w_img
                 header_candidates.append({
@@ -113,16 +115,28 @@ def read_header(image_path: str) -> dict:
                     "conf": conf
                 })
 
+        # Filter noise — buang teks pendek di pojok kiri
+        header_candidates = [
+            c for c in header_candidates
+            if len(c['text'].strip()) >= 3
+            and not (c['x_center'] < 0.20 and len(c['text'].strip()) < 10)
+        ]
+
         if not header_candidates:
             return {"title": "", "doc_number": None, "version": None, "confidence": 0}
 
         # --- 1. EKSTRAK JUDUL (Robust Seed Clustering) ---
-        # Seed: Prioritas yang GEDE, PANJANG, dan di TENGAH
-        # Filter minimal 4 karakter biar nggak ketipu noise/logo
         potential_seeds = [c for c in header_candidates if len(c['text'].strip()) >= 4]
-        if not potential_seeds: potential_seeds = header_candidates
-        
-        primary = max(potential_seeds, key=lambda c: (c['height'] * len(c['text'])) * (c['x_center'] + 0.3))
+        if not potential_seeds:
+            potential_seeds = header_candidates
+
+        center_seeds = [c for c in potential_seeds if 0.35 <= c['x_center'] <= 0.75]
+        seed_pool = center_seeds if center_seeds else potential_seeds
+
+        primary = max(
+            seed_pool,
+            key=lambda c: c['height'] * len(c['text']) * max(0.1, 1.0 - abs(c['x_center'] - 0.5) * 2)
+        )
         target_x_center = primary['x_center']
         
         # Ambil yang 'sejajar' alignment-nya sama si Raja
@@ -221,4 +235,9 @@ def read_header(image_path: str) -> dict:
 
     except Exception as e:
         logger.error(f"Error in read_header: {str(e)}")
+        if "could not execute a primitive" in str(e):
+            global _ocr
+            with _ocr_lock:
+                _ocr = None
+            logger.warning("[OCR] Reset PaddleOCR karena MKL error")
         return {"title": "", "doc_number": None}

@@ -24,7 +24,7 @@ def perform_preprocessing(image_path: str):
 
 import requests
 from rapidfuzz import fuzz
-from app.services.ocr_service import read_header, get_ocr_instance
+from app.services.ocr_service import read_header, get_ocr_instance, _ocr_lock
 from app.services.template_mapper import find_anchor, calculate_target_box, get_text_in_bbox
 from app.services.field_extractor import extract_fields
 from app.services.table_extractor import extract_table
@@ -79,8 +79,31 @@ def run_global_ocr(image_path: str) -> list:
     Normalize output menjadi list [{text, x, y, w, h, confidence}]
     yang bisa dipakai ulang oleh field_extractor dan table_extractor.
     """
-    ocr = get_ocr_instance()
-    raw = ocr.ocr(image_path, cls=True)
+    import time
+    import app.services.ocr_service as ocr_svc
+
+    max_retry = 3
+    last_error = None
+    raw = None
+    for attempt in range(max_retry):
+        try:
+            ocr = get_ocr_instance()
+            with _ocr_lock:
+                raw = ocr.ocr(image_path, cls=True)
+            break
+        except RuntimeError as e:
+            last_error = e
+            if "could not execute a primitive" in str(e):
+                logger.warning(f"[OCR] MKL error attempt {attempt+1}/{max_retry}, reset...")
+                with _ocr_lock:
+                    ocr_svc._ocr = None
+                time.sleep(2)
+                continue
+            else:
+                raise
+    else:
+        raise last_error
+
     results = []
 
     if not raw or not raw[0]:
