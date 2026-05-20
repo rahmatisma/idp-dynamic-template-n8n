@@ -265,12 +265,13 @@ def detect_template(image_path: str, all_templates: list) -> dict:
 # ══════════════════════════════════════════════════════════════
 
 # Field yang masuk ke section "document" (metadata dokumen)
-_DOCUMENT_FIELDS = {'no_dok', 'versi', 'hal', 'label', 'reg_number'}
+_DOCUMENT_FIELDS = {'no_dok', 'versi', 'hal', 'label'}
 
-def _fields_to_fixed_results(fields_data: dict) -> list:
+def _fields_to_fixed_results(fields_data: dict) -> dict:
     """
     Konversi flat dict dari field_extractor ke format yang json_builder harapkan.
     Field dipisah ke dua grup: 'document' (metadata) dan 'header' (info lapangan).
+    field_order menyimpan urutan asli dari fields_config untuk digunakan frontend.
     """
     doc_fields    = []
     header_fields = []
@@ -282,12 +283,11 @@ def _fields_to_fixed_results(fields_data: dict) -> list:
         else:
             header_fields.append(entry)
 
-    results = []
-    if doc_fields:
-        results.append({"group_key": "document", "group_name": "Document", "fields": doc_fields})
-    if header_fields:
-        results.append({"group_key": "header", "group_name": "Header", "fields": header_fields})
-    return results
+    return {
+        "document":    doc_fields,
+        "header":      header_fields,
+        "field_order": list(fields_data.keys()),
+    }
 
 
 def _tables_to_table_results(tables_data: dict) -> list:
@@ -445,9 +445,16 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
                 table_confidences.append(tbl_conf)
 
         # 5. Susun output terstruktur via json_builder
-        fixed_results  = _fields_to_fixed_results(fields_data)
+        fixed_data    = _fields_to_fixed_results(fields_data)
+        field_order   = fixed_data["field_order"]
+        fixed_results = []
+        if fixed_data["document"]:
+            fixed_results.append({"group_key": "document", "group_name": "Document", "fields": fixed_data["document"]})
+        if fixed_data["header"]:
+            fixed_results.append({"group_key": "header", "group_name": "Header", "fields": fixed_data["header"]})
         table_results  = _tables_to_table_results(tables_data)
         structured_out = build_hierarchical_json(fixed_results, table_results)
+        structured_out["field_order"] = field_order
 
         # ── Gabungkan PaddleOCR avg + TrOCR table confidence ─────────────
         # Jika ada data dari tabel (yang mencakup TrOCR handwritten):
