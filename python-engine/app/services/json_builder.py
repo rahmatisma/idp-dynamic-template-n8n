@@ -33,6 +33,7 @@ from typing import Any
 def build_hierarchical_json(
     fixed_results: list[dict],
     table_results: list[dict] | None = None,
+    table_order: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Susun hasil ekstraksi dari semua grup menjadi JSON terstruktur.
@@ -42,6 +43,8 @@ def build_hierarchical_json(
                         { group_type, group_key, group_name, fields: [...] }.
         table_results:  List hasil grup "dynamic_table". Setiap item berisi
                         { group_type, group_key, group_name, data: [...] }.
+        table_order:    Urutan asli nama tabel dari template config. Jika diberikan,
+                        key tabel di output JSON akan diurutkan sesuai urutan ini.
 
     Returns:
         Dict JSON terstruktur lengkap.
@@ -155,5 +158,18 @@ def build_hierarchical_json(
             final_json["checklist"].sort(key=lambda c: c.get("no", 0))
         except (TypeError, AttributeError):
             pass  # Abaikan jika tidak bisa di-sort
+
+    # Reorder key tabel sesuai urutan template (table_order)
+    # Non-table keys (document, header, dll) tetap di posisi awal.
+    if table_order:
+        table_key_set = set(table_order)
+        result: dict[str, Any] = {}
+        for k, v in final_json.items():
+            if k not in table_key_set:
+                result[k] = v
+        for t in table_order:
+            if t in final_json:
+                result[t] = final_json[t]
+        return result
 
     return final_json

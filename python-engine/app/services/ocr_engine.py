@@ -290,9 +290,10 @@ def _fields_to_fixed_results(fields_data: dict) -> dict:
     }
 
 
-def _tables_to_table_results(tables_data: dict) -> list:
+def _tables_to_table_results(tables_data: dict) -> dict:
     """
     Konversi dict tabel dari table_extractor ke format yang json_builder harapkan.
+    table_order menyimpan urutan asli dari tables_config untuk digunakan frontend.
     """
     results = []
     for key, rows in tables_data.items():
@@ -301,7 +302,10 @@ def _tables_to_table_results(tables_data: dict) -> list:
             "group_name": key.replace('_', ' ').title(),
             "data":       rows
         })
-    return results
+    return {
+        "results":     results,
+        "table_order": list(tables_data.keys()),
+    }
 
 
 # ══════════════════════════════════════════════════════════════
@@ -452,9 +456,12 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
             fixed_results.append({"group_key": "document", "group_name": "Document", "fields": fixed_data["document"]})
         if fixed_data["header"]:
             fixed_results.append({"group_key": "header", "group_name": "Header", "fields": fixed_data["header"]})
-        table_results  = _tables_to_table_results(tables_data)
-        structured_out = build_hierarchical_json(fixed_results, table_results)
+        table_data_out = _tables_to_table_results(tables_data)
+        table_results  = table_data_out["results"]
+        table_order    = table_data_out["table_order"]
+        structured_out = build_hierarchical_json(fixed_results, table_results, table_order=table_order)
         structured_out["field_order"] = field_order
+        structured_out["table_order"] = table_order
 
         # ── Gabungkan PaddleOCR avg + TrOCR table confidence ─────────────
         # Jika ada data dari tabel (yang mencakup TrOCR handwritten):
