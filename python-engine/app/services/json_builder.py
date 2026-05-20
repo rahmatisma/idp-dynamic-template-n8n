@@ -57,7 +57,6 @@ def build_hierarchical_json(
         "pelaksana":  [],
         "mengetahui": {},
         "copyright":  "©HakCipta PT. APLIKANUSA LINTASARTA, Indonesia",
-        "form_reference": "",
     }
 
     # ══════════════════════════════════════════════════════════════
