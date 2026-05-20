@@ -283,6 +283,7 @@ function ChecklistTable({ rows }) {
                         const isSectionHeader = isRowSectionHeader(row, noKey, colKeys);
                         const desc = descKey ? (row[descKey] ?? "").trim() : "";
                         const isSubItem = !isSectionHeader && hasNoCol && !(row[noKey] ?? "").trim();
+                        const isCategoryHeader = hasNoCol && (row[noKey] ?? "").trim() !== "";
 
                         if (isSectionHeader) {
                             return (
@@ -325,7 +326,7 @@ function ChecklistTable({ rows }) {
                                     const isMedConf = conf != null && conf >= CONF_LOW && conf < CONF_MED;
                                     const cellBg = isLowConf
                                         ? "bg-red-50/60"
-                                        : (isMedConf || isEmpty)
+                                        : (isMedConf || (isEmpty && !isCategoryHeader))
                                             ? "bg-amber-50/60"
                                             : "";
                                     return (
@@ -339,7 +340,7 @@ function ChecklistTable({ rows }) {
                                                             : <span className="text-slate-300 select-none text-xs">—</span>
                                                     }
                                                 </div>
-                                                {(isLowConf || isMedConf || isEmpty) && (
+                                                {(isLowConf || isMedConf || (isEmpty && !isCategoryHeader)) && (
                                                     <span
                                                         title={
                                                             isEmpty
