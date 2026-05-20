@@ -412,17 +412,15 @@ function flattenFields(fields) {
     const out = {};
     for (const [k, v] of Object.entries(fields)) {
         if (k === "copyright") continue;
-        if (v === null) continue;
         if (Array.isArray(v)) {
             if (v.length > 0 && typeof v[0] === "string")
                 out[k] = v.join(", ");
-        } else if (typeof v === "object") {
+        } else if (v !== null && typeof v === "object") {
             for (const [ik, iv] of Object.entries(v)) {
-                if (iv == null) continue;
-                out[ik] = typeof iv === "string" ? iv : String(iv);
+                out[ik] = iv == null ? "" : (typeof iv === "string" ? iv : String(iv));
             }
-        } else if (typeof v === "string") {
-            out[k] = v;
+        } else if (typeof v === "string" || v === null) {
+            out[k] = v ?? "";
         }
     }
     return out;
