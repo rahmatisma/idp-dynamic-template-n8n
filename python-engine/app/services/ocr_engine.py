@@ -474,7 +474,7 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
                 all_items,
                 key=lambda x: (
                     x[1] is None,
-                    (x[1] or 0) + (0 if x[0] in table_anchor_y else 1),
+                    (x[1] or 0) + (0 if x[0] in table_anchor_y else 50),
                     0 if x[0] in table_anchor_y else 1,
                 )
             )
