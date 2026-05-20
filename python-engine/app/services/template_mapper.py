@@ -6,6 +6,7 @@ Tidak ada I/O, tidak ada OCR. Murni koordinat dan teks filtering.
 """
 
 import logging
+import math
 from rapidfuzz import fuzz
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ def find_anchor(ocr_results: list, anchor_text: str, threshold: int = 65) -> dic
         return None
 
     anchor_lower = anchor_text.strip().lower()
+    min_candidate_len = max(1, math.ceil(len(anchor_lower) * 0.30))
     matches = []
 
     for item in ocr_results:
@@ -46,6 +48,13 @@ def find_anchor(ocr_results: list, anchor_text: str, threshold: int = 65) -> dic
             continue
 
         item_lower = item_text.lower()
+
+        # Validasi panjang: kandidat terlalu pendek tidak mungkin jadi anchor yang benar.
+        # partial_ratio memberi score 100 untuk substring pendek yang kebetulan
+        # ada di dalam anchor_text (misal "O" match ke "Head Of Sub Departement").
+        if len(item_lower) < min_candidate_len:
+            logger.debug(f"[ANCHOR] Skip '{item_text}' — terlalu pendek untuk anchor '{anchor_text}'")
+            continue
 
         # Strategi dua lapis: partial match + token sort (robust vs typo & urutan)
         score = max(
