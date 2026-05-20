@@ -199,7 +199,7 @@ function FieldGrid({ fields }) {
                         </div>
                         <span className="text-sm font-medium">
                             {isEmpty
-                                ? <span className="text-amber-600 italic font-normal text-xs">Tidak terdeteksi</span>
+                                ? <span className="text-slate-400 font-normal">-</span>
                                 : <span className="text-slate-800">{val}</span>
                             }
                         </span>
@@ -342,12 +342,19 @@ export default function ValidasiDokumenDetail({ document }) {
                         const tables = page.tables ?? {};
                         const copyright = fields.copyright;
 
-                        // Kumpulkan field primitif (bukan array/object)
-                        const primitiveFields = Object.fromEntries(
-                            Object.entries(fields).filter(([k, v]) =>
-                                k !== "copyright" && typeof v === "string"
-                            )
-                        );
+                        // Flatten field dari grup nested (document, header, dll) + top-level string
+                        const primitiveFields = {};
+                        for (const [k, v] of Object.entries(fields)) {
+                            if (k === "copyright") continue;
+                            if (typeof v === "string") {
+                                primitiveFields[k] = v;
+                            } else if (typeof v === "object" && v !== null && !Array.isArray(v)) {
+                                for (const [ik, iv] of Object.entries(v)) {
+                                    if (iv == null) continue;
+                                    primitiveFields[ik] = typeof iv === "string" ? iv : String(iv);
+                                }
+                            }
+                        }
 
                         return (
                             <div key={pi} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-0">

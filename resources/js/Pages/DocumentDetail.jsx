@@ -372,7 +372,7 @@ function FieldGrid({ fields }) {
         if (k === "copyright") return false;
         if (Array.isArray(v)) return v.length > 0 && typeof v[0] === "string";
         if (typeof v === "object" && v !== null) return Object.keys(v).length > 0;
-        return typeof v === "string" && v.trim();
+        return typeof v === "string";
     });
 
     if (!entries.length) return null;
@@ -397,7 +397,7 @@ function FieldGrid({ fields }) {
                         </div>
                         <span className="text-sm font-medium leading-snug">
                             {isEmpty
-                                ? <span className="text-amber-600 italic font-normal text-xs">Tidak terdeteksi</span>
+                                ? <span className="text-slate-400 font-normal">-</span>
                                 : <span className="text-slate-800">{display}</span>
                             }
                         </span>
@@ -412,16 +412,16 @@ function flattenFields(fields) {
     const out = {};
     for (const [k, v] of Object.entries(fields)) {
         if (k === "copyright") continue;
-        if (v === null || v === "") continue;
+        if (v === null) continue;
         if (Array.isArray(v)) {
             if (v.length > 0 && typeof v[0] === "string")
                 out[k] = v.join(", ");
         } else if (typeof v === "object") {
             for (const [ik, iv] of Object.entries(v)) {
-                if (iv == null || (typeof iv === "string" && !iv.trim())) continue;
+                if (iv == null) continue;
                 out[ik] = typeof iv === "string" ? iv : String(iv);
             }
-        } else if (typeof v === "string" && v.trim()) {
+        } else if (typeof v === "string") {
             out[k] = v;
         }
     }
