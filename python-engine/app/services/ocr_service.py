@@ -135,7 +135,9 @@ def read_header(image_path: str) -> dict:
 
         primary = max(
             seed_pool,
-            key=lambda c: c['height'] * len(c['text']) * max(0.1, 1.0 - abs(c['x_center'] - 0.5) * 2)
+            key=lambda c: c['height'] * len(c['text'])
+                          * max(0.1, 1.0 - abs(c['x_center'] - 0.5) * 2)
+                          * max(0.1, 1.0 - (c['y'] / h_img) * 5)
         )
         target_x_center = primary['x_center']
         
