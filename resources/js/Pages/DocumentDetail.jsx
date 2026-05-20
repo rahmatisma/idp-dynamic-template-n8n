@@ -592,6 +592,10 @@ export default function DocumentDetail({ document }) {
                                 const copyright = fields.copyright ?? null;
                                 const fieldOrder = Array.isArray(fields.field_order) ? fields.field_order : [];
                                 const flatFields = flattenFields(fields, fieldOrder);
+                                const tableOrder = Array.isArray(fields.table_order) ? fields.table_order : null;
+                                const tableEntries = tableOrder
+                                    ? tableOrder.filter(k => tables[k]).map(k => [k, tables[k]])
+                                    : Object.entries(tables);
 
                                 return (
                                     <div key={pi} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -646,7 +650,7 @@ export default function DocumentDetail({ document }) {
                                             )}
 
                                             {/* ── Tables ── */}
-                                            {Object.entries(tables).map(([tableKey, rows]) => (
+                                            {tableEntries.map(([tableKey, rows]) => (
                                                 Array.isArray(rows) && rows.length > 0 && (
                                                     <div key={tableKey}>
                                                         <SectionLabel>{colLabel(tableKey)}</SectionLabel>
