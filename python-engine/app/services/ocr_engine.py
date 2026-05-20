@@ -472,7 +472,11 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         combined_order = [
             name for name, _ in sorted(
                 all_items,
-                key=lambda x: (x[1] is None, x[1], 0 if x[0] in table_anchor_y else 1)
+                key=lambda x: (
+                    x[1] is None,
+                    (x[1] or 0) + (0 if x[0] in table_anchor_y else 1),
+                    0 if x[0] in table_anchor_y else 1,
+                )
             )
         ]
         structured_out["combined_order"] = combined_order
