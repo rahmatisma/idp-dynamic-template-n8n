@@ -408,10 +408,10 @@ function FieldGrid({ fields }) {
     );
 }
 
-function flattenFields(fields) {
+function flattenFields(fields, fieldOrder = []) {
     const out = {};
     for (const [k, v] of Object.entries(fields)) {
-        if (k === "copyright") continue;
+        if (k === "copyright" || k === "field_order") continue;
         if (Array.isArray(v)) {
             if (v.length > 0 && typeof v[0] === "string")
                 out[k] = v.join(", ");
@@ -423,7 +423,17 @@ function flattenFields(fields) {
             out[k] = v ?? "";
         }
     }
-    return out;
+
+    if (!fieldOrder.length) return out;
+
+    const ordered = {};
+    for (const key of fieldOrder) {
+        if (key in out) ordered[key] = out[key];
+    }
+    for (const key of Object.keys(out)) {
+        if (!(key in ordered)) ordered[key] = out[key];
+    }
+    return ordered;
 }
 
 // ── Raw JSON block ─────────────────────────────────────────────
@@ -580,7 +590,8 @@ export default function DocumentDetail({ document }) {
                                 const fields = page.fields ?? {};
                                 const tables = page.tables ?? {};
                                 const copyright = fields.copyright ?? null;
-                                const flatFields = flattenFields(fields);
+                                const fieldOrder = Array.isArray(fields.field_order) ? fields.field_order : [];
+                                const flatFields = flattenFields(fields, fieldOrder);
 
                                 return (
                                     <div key={pi} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
