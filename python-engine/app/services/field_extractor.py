@@ -39,7 +39,8 @@ def extract_fields(ocr_results: list, fields_config: list, image_path: str = Non
         dict {field_name: value_string}
         Contoh: {"location": "Grand Mall Bekasi", "date_time": "2026-04-01"}
     """
-    result = {}
+    result       = {}
+    anchor_y_dict = {}
 
     for field in fields_config:
         if not field.get('field_name'):
@@ -60,7 +61,10 @@ def extract_fields(ocr_results: list, fields_config: list, image_path: str = Non
             print(f"[FIELD] ✗ '{field_name}': anchor '{anchor_text}' tidak ditemukan → kosong")
             logger.warning(f"[FieldExtractor] Anchor '{anchor_text}' tidak ketemu untuk field '{field_name}'")
             result[field_name] = ""
+            anchor_y_dict[field_name] = None
             continue
+
+        anchor_y_dict[field_name] = anchor['y']
 
         print(f"[FIELD] ✓ Anchor '{anchor_text}' → match '{anchor['text']}' "
               f"di ({anchor['x']},{anchor['y']}) score={anchor.get('score','?')}")
@@ -93,7 +97,7 @@ def extract_fields(ocr_results: list, fields_config: list, image_path: str = Non
         result[field_name] = value
 
     logger.info(f"[FieldExtractor] Selesai. {len(result)} field diekstrak.")
-    return result
+    return result, anchor_y_dict
 
 
 def _detect_checkbox_field(image_path: str, bbox: tuple, field_config: dict) -> str:

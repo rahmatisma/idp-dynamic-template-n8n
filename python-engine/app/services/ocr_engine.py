@@ -420,13 +420,14 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         # 3. Ekstrak field header — printed via global OCR, handwritten via TrOCR crop
         if fields_config:
             print(f"\n[OCR] ── Ekstraksi Fields ──────────────────────────────")
-        fields_data = extract_fields(ocr_results, fields_config, image_path=clean_img_path)
+        fields_data, field_anchor_y = extract_fields(ocr_results, fields_config, image_path=clean_img_path)
         if fields_config:
             success_fields = sum(1 for v in fields_data.values() if v)
             print(f"[OCR] Fields selesai: {success_fields}/{len(fields_config)} berhasil diekstrak.")
 
         # 4. Ekstrak tiap tabel (group_by_y + split_by_x, TANPA OCR ulang)
-        tables_data      = {}
+        tables_data       = {}
+        table_anchor_y    = {}
         table_confidences = []  # confidence per tabel untuk rata-rata akhir
         for table_cfg in tables_config:
             anchor_texts = table_cfg.get('anchor', {}).get('texts', [])
@@ -434,14 +435,15 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
             tbl_name     = table_cfg.get('table_name', '?')
             print(f"\n[OCR] ── Ekstraksi Tabel '{tbl_name}' ─────────────────────")
             print(f"[OCR] Mencari anchor tabel: '{anchor_text}'...")
-            anchor       = find_anchor(ocr_results, anchor_text) if anchor_text else None
+            anchor    = find_anchor(ocr_results, anchor_text) if anchor_text else None
+            table_key = table_cfg.get('json_key', table_cfg.get('table_name'))
+            table_anchor_y[table_key] = anchor['y'] if anchor else None
             if anchor:
                 print(f"[OCR] ✅ Anchor '{anchor_text}' ditemukan di ({anchor['x']}, {anchor['y']}) "
                       f"score={anchor.get('score', '?')}")
             else:
                 print(f"[OCR] ❌ Anchor '{anchor_text}' TIDAK ditemukan — tabel '{tbl_name}' akan dilewati.")
             rows, tbl_conf = extract_table(ocr_results, table_cfg, anchor, image_path=clean_img_path)
-            table_key = table_cfg.get('json_key', table_cfg.get('table_name'))
             tables_data[table_key] = rows
             conf_str = f"{tbl_conf:.1f}%" if tbl_conf is not None else "N/A"
             print(f"[OCR] Tabel '{tbl_name}' selesai: {len(rows)} baris | confidence: {conf_str}")
@@ -462,6 +464,18 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         structured_out = build_hierarchical_json(fixed_results, table_results, table_order=table_order)
         structured_out["field_order"] = field_order
         structured_out["table_order"] = table_order
+
+        all_items = (
+            [(name, y) for name, y in field_anchor_y.items()] +
+            [(key,  y) for key,  y in table_anchor_y.items()]
+        )
+        combined_order = [
+            name for name, _ in sorted(
+                all_items,
+                key=lambda x: (x[1] is None, x[1], 0 if x[0] in table_anchor_y else 1)
+            )
+        ]
+        structured_out["combined_order"] = combined_order
 
         # ── Gabungkan PaddleOCR avg + TrOCR table confidence ─────────────
         # Jika ada data dari tabel (yang mencakup TrOCR handwritten):
