@@ -197,13 +197,35 @@ def read_handwritten(image_crop) -> str:
             skip_special_tokens=True
         )[0].strip()
 
-        # Hitung confidence dari sequences_scores (tersedia otomatis dengan beam search)
-        import torch as _torch
-        if hasattr(outputs, 'sequences_scores') and outputs.sequences_scores is not None:
-            score = outputs.sequences_scores[0].item()
-            confidence = round(float(_torch.sigmoid(_torch.tensor(score + 1)).item()) * 100, 1)
-        else:
+        # Hitung confidence per-token geometric mean (lebih akurat dari sequences_scores)
+        import math as _math
+        try:
+            if outputs.scores and hasattr(outputs, 'beam_indices') and outputs.beam_indices is not None:
+                token_probs = []
+                for step_idx, step_scores in enumerate(outputs.scores):
+                    beam_idx = outputs.beam_indices[0, step_idx].item()
+                    token_id = outputs.sequences[0, step_idx + 1].item()
+                    probs = torch.softmax(step_scores[beam_idx], dim=-1)
+                    token_probs.append(probs[token_id].item())
+                if token_probs:
+                    log_mean = sum(_math.log(max(p, 1e-10)) for p in token_probs) / len(token_probs)
+                    confidence = round(_math.exp(log_mean) * 100, 1)
+                else:
+                    confidence = 50.0
+            elif hasattr(outputs, 'sequences_scores') and outputs.sequences_scores is not None:
+                score = outputs.sequences_scores[0].item()
+                num_tokens = max(1, int(outputs.sequences.shape[1]) - 1)
+                confidence = round(min(100.0, max(0.0, _math.exp(score / num_tokens) * 100)), 1)
+            else:
+                confidence = 50.0
+        except Exception:
             confidence = 50.0
+
+        # Hallucination filter: teks sangat pendek dengan confidence rendah biasanya salah baca
+        HALLUCINATION_CONF_THRESHOLD = 60.0
+        if len(text) <= 2 and confidence < HALLUCINATION_CONF_THRESHOLD:
+            logger.info(f"[TrOCR] '{text}' (conf={confidence:.1f}%) — teks terlalu pendek & tidak yakin, return ''")
+            return "", confidence
 
         logger.info(f"[TrOCR] Crop {w}x{h}px → '{text}' (conf={confidence:.1f}%)")
         return text, confidence
