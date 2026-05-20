@@ -169,6 +169,14 @@ def read_handwritten(image_crop) -> str:
             logger.warning(f"[TrOCR] Crop terlalu kecil ({w}x{h}), skip.")
             return "", 0.0
 
+        # Deteksi area kosong sebelum inference — cegah halusinasi pada area putih
+        # TrOCR bisa return "1" / karakter random dengan confidence tinggi pada area blank
+        gray_arr = np.array(image_crop.convert('L'))
+        bright_ratio = float((gray_arr > 240).mean())
+        if bright_ratio > 0.95:
+            logger.info(f"[TrOCR] Crop {w}x{h}px terlalu terang ({bright_ratio:.1%} pixel >240) → area kosong, skip inference.")
+            return "", 0.0
+
         # Proses gambar → tensor
         with torch.no_grad():
             pixel_values = _trocr_processor(
