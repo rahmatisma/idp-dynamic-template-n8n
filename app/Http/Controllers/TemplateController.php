@@ -165,18 +165,19 @@ class TemplateController extends Controller
             $imageBaseName = pathinfo($pdfPath, PATHINFO_FILENAME) . '_preview.png';
             $localImagePath = 'template-previews/' . $imageBaseName;
 
-            // Coba unduh dari Python engine (Python URL mungkin relatif atau absolut)
-            $fullPythonUrl = str_starts_with($pythonImageUrl, 'http')
-                ? $pythonImageUrl
-                : config('services.python_engine.url') . $pythonImageUrl;
+            // Normalisasi URL dari Python: selalu gunakan base URL engine dari config.
+            // Python bisa mengembalikan "http://localhost:5000/..." yang tidak bisa
+            // diakses browser saat engine berjalan di remote host (misal RunPod).
+            $parsedPath    = parse_url($pythonImageUrl, PHP_URL_PATH) ?? $pythonImageUrl;
+            $fullPythonUrl = rtrim(config('services.python_engine.url'), '/') . $parsedPath;
 
             $imageContent = @file_get_contents($fullPythonUrl);
             if ($imageContent !== false) {
                 Storage::disk('public')->put($localImagePath, $imageContent);
                 $localImageUrl = Storage::url($localImagePath);
             } else {
-                // Fallback ke URL Python jika tidak bisa diunduh
-                $localImageUrl = $pythonImageUrl;
+                // Fallback: gunakan URL yang sudah dinormalisasi, bukan URL mentah dari Python
+                $localImageUrl = $fullPythonUrl;
                 $localImagePath = null;
             }
 
