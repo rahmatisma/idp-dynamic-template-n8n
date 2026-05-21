@@ -14,7 +14,6 @@ import requests as _requests
 from flask import Blueprint, request, jsonify
 from pathlib import Path
 from app.services.pdf_converter import convert_if_not_exists
-from app.services.ocr_engine import extract_document
 from app.services.processor import HybridProcessor
 from config.settings import INPUT_DIR
 
@@ -267,8 +266,7 @@ def process():
 
     try:
         print(f"[PROSES] ▶️  Memulai pipeline OCR...")
-        from app.services.ocr_engine import extract_document
-        result = extract_document(
+        result = HybridProcessor.process(
             pdf_path=str(pdf_path),
             template_code=template_code,
             document_id=document_id,
