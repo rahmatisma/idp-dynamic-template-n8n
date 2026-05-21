@@ -159,6 +159,9 @@ def detect_template(image_path: str, all_templates: list) -> dict:
     def normalize_name(s: str) -> str:
         return (s or '').strip().lower()
 
+    def normalize_version(s: str) -> str:
+        return re.sub(r'[ ()]', '', (s or '').lower())
+
     def extract_suffix(s: str) -> str:
         if not s:
             return ''
@@ -194,7 +197,7 @@ def detect_template(image_path: str, all_templates: list) -> dict:
                 continue
             if not (doc_version and t_version):
                 continue  # salah satu versi kosong → masuk L2
-            if doc_version != t_version:
+            if normalize_version(doc_version) != normalize_version(t_version):
                 logger.debug(f"[Auto-Detect] L1 skip '{t.get('type_name')}' — versi beda doc='{doc_version}' tmpl='{t_version}'")
                 continue
             logger.debug(f"[Auto-Detect] L1 candidate → '{t.get('type_name')}'")

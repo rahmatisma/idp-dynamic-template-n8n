@@ -247,7 +247,7 @@ def read_header(image_path: str) -> dict:
 
                 if versi_label is not None:
                     row_h   = versi_label['height'] if versi_label['height'] > 0 else 20
-                    y_tol   = row_h * 2
+                    y_tol   = row_h * 0.8
                     candidates_right = [
                         c for c in header_candidates
                         if c is not versi_label
@@ -255,7 +255,9 @@ def read_header(image_path: str) -> dict:
                         and c['x_center'] > versi_label['x_center']
                     ]
                     if candidates_right:
-                        nearest = min(candidates_right, key=lambda c: c['x_center'])
+                        min_y_dist = min(abs(c['y'] - versi_label['y']) for c in candidates_right)
+                        same_row   = [c for c in candidates_right if abs(c['y'] - versi_label['y']) == min_y_dist]
+                        nearest    = min(same_row, key=lambda c: c['x_center'])
                         v = nearest['text'].strip()
                         if v:
                             version = v
