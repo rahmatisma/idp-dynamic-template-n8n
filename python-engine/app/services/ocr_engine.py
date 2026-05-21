@@ -324,9 +324,10 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         print(f"[OCR] {len(all_templates)} template aktif ditemukan.")
 
     # FALLBACK SAKTI: Jika di database cuma ada 1 template aktif, langsung pakai itu tanpa nebak-nebak!
-    if not template_code and all_templates and len(all_templates) == 1:
-        template_code = all_templates[0].get("template_code")
-        print(f"[OCR] Auto-Bypass: hanya 1 template di DB → pakai '{template_code}'")
+    # S9: dinonaktifkan untuk testing multi-template
+    # if not template_code and all_templates and len(all_templates) == 1:
+    #     template_code = all_templates[0].get("template_code")
+    #     print(f"[OCR] Auto-Bypass: hanya 1 template di DB → pakai '{template_code}'")
 
     from app.services.pdf_converter import convert_if_not_exists
     print(f"[OCR] Mengkonversi PDF → PNG...")
