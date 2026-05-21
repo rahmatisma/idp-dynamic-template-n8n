@@ -157,7 +157,7 @@ def detect_template(image_path: str, all_templates: list) -> dict:
     logger.info(f"[Auto-Detect] Header raw → title='{title}' | doc_no='{doc_no}' | version='{doc_version}'")
 
     def normalize_name(s: str) -> str:
-        return re.sub(r'\s*\d+\s*$', '', (s or '').strip().lower())
+        return (s or '').strip().lower()
 
     def extract_suffix(s: str) -> str:
         if not s:
