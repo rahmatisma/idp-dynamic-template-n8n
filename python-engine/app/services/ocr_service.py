@@ -258,7 +258,7 @@ def read_header(image_path: str) -> dict:
                         min_y_dist = min(abs(c['y'] - versi_label['y']) for c in candidates_right)
                         same_row   = [c for c in candidates_right if abs(c['y'] - versi_label['y']) == min_y_dist]
                         nearest    = min(same_row, key=lambda c: c['x_center'])
-                        v = nearest['text'].strip()
+                        v = nearest['text'].strip().lstrip(':').strip()
                         if v:
                             version = v
 

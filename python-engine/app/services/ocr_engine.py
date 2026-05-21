@@ -159,6 +159,12 @@ def detect_template(image_path: str, all_templates: list) -> dict:
     def normalize_name(s: str) -> str:
         return (s or '').strip().lower()
 
+    def name_matches(t_name: str, doc_name: str) -> bool:
+        # OCR sering menambahkan teks lokasi di akhir judul (misal "...Battery Grandmall Bekasi")
+        # Template DB hanya simpan nama tanpa lokasi (misal "...Battery")
+        # Cocok jika sama persis ATAU template name adalah prefix dari doc name
+        return t_name == doc_name or doc_name.startswith(t_name + ' ')
+
     def normalize_version(s: str) -> str:
         return re.sub(r'[ ()]', '', (s or '').lower())
 
@@ -193,7 +199,7 @@ def detect_template(image_path: str, all_templates: list) -> dict:
             t_suffix  = extract_suffix(t.get('identifier_text', ''))
             t_name    = normalize_name(t.get('type_name', ''))
             t_version = (t.get('doc_version') or '').strip() or None
-            if t_suffix != doc_suffix or t_name != doc_name:
+            if t_suffix != doc_suffix or not name_matches(t_name, doc_name):
                 continue
             if not (doc_version and t_version):
                 continue  # salah satu versi kosong → masuk L2
@@ -215,7 +221,7 @@ def detect_template(image_path: str, all_templates: list) -> dict:
             t_suffix  = extract_suffix(t.get('identifier_text', ''))
             t_name    = normalize_name(t.get('type_name', ''))
             t_version = (t.get('doc_version') or '').strip() or None
-            if t_suffix != doc_suffix or t_name != doc_name:
+            if t_suffix != doc_suffix or not name_matches(t_name, doc_name):
                 continue
             if doc_version and t_version:
                 continue  # keduanya ada → sudah di-handle L1
@@ -232,7 +238,7 @@ def detect_template(image_path: str, all_templates: list) -> dict:
         l3 = []
         for t in all_templates:
             t_name = normalize_name(t.get('type_name', ''))
-            if t_name == doc_name:
+            if name_matches(t_name, doc_name):
                 logger.debug(f"[Auto-Detect] L3 candidate → '{t.get('type_name')}'")
                 l3.append((t, 75))
         if l3:
