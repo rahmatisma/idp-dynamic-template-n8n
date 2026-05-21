@@ -46,7 +46,7 @@ class ValidationController extends Controller
                 'id'             => $document->id,
                 'original_name'  => $document->original_name,
                 'status'         => $document->status,
-                'file_url'       => Storage::url($document->file_path),
+                'file_url'       => $document->file_path,
                 'extracted_data' => $document->extracted_data,
                 'confidence_score' => $document->confidence_score,
                 'template'       => $document->template ? [
