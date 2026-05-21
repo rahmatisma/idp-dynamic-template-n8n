@@ -119,10 +119,16 @@ def read_header(image_path: str) -> dict:
                     })
 
             # Filter noise — buang teks pendek di pojok kiri
+            # Pengecualian: label "VERSI"/"VERSION" tidak dibuang meski x_center < 0.20
             header_candidates = [
                 c for c in header_candidates
                 if len(c['text'].strip()) >= 3
-                and not (c['x_center'] < 0.20 and len(c['text'].strip()) < 10)
+                and not (
+                    c['x_center'] < 0.20
+                    and len(c['text'].strip()) < 10
+                    and "VERSI" not in c['text'].upper()
+                    and "VERSION" not in c['text'].upper()
+                )
             ]
 
             if not header_candidates:
@@ -229,6 +235,30 @@ def read_header(image_path: str) -> dict:
                         if v:
                             version = v
                             break
+
+            # Fallback: label dan nilai versi di bounding box terpisah (tabel dua kolom)
+            # Cari item "VERSI" sebagai label, lalu ambil item di sebelah kanan + Y berdekatan
+            if version is None:
+                versi_label = None
+                for c in header_candidates:
+                    if "VERSI" in c['text'].upper() or "VERSION" in c['text'].upper():
+                        versi_label = c
+                        break
+
+                if versi_label is not None:
+                    row_h   = versi_label['height'] if versi_label['height'] > 0 else 20
+                    y_tol   = row_h * 2
+                    candidates_right = [
+                        c for c in header_candidates
+                        if c is not versi_label
+                        and abs(c['y'] - versi_label['y']) < y_tol
+                        and c['x_center'] > versi_label['x_center']
+                    ]
+                    if candidates_right:
+                        nearest = min(candidates_right, key=lambda c: c['x_center'])
+                        v = nearest['text'].strip()
+                        if v:
+                            version = v
 
             logger.info(f"[OCR] Header Final -> Title: '{title}', DocNum: '{doc_number}', Conf: {avg_conf:.2f}")
             return {
