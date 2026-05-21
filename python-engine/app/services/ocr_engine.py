@@ -205,6 +205,7 @@ def detect_template(image_path: str, all_templates: list) -> dict:
         if l1:
             best_t, best_s = _pick(l1)
             logger.info(f"[Auto-Detect] LEVEL 1 EXACT → '{best_t.get('type_name')}' (score={best_s})")
+            logger.info(f"[Auto-Detect] WINNER → code='{best_t.get('template_code')}' level='L1' doc_version='{doc_version}' score={best_s}")
             return {"template": best_t, "score": best_s, "status": "matched", "header": searchable_text, "doc_version": doc_version}
 
     # ── LEVEL 2: Partial (suffix + nama, versi tidak tersedia) ───
@@ -223,6 +224,7 @@ def detect_template(image_path: str, all_templates: list) -> dict:
         if l2:
             best_t, best_s = _pick(l2)
             logger.info(f"[Auto-Detect] LEVEL 2 PARTIAL → '{best_t.get('type_name')}' (score={best_s})")
+            logger.info(f"[Auto-Detect] WINNER → code='{best_t.get('template_code')}' level='L2' doc_version='{doc_version}' score={best_s}")
             return {"template": best_t, "score": best_s, "status": "matched", "header": searchable_text, "doc_version": doc_version}
 
     # ── LEVEL 3: Nama saja ────────────────────────────────────────
@@ -236,6 +238,7 @@ def detect_template(image_path: str, all_templates: list) -> dict:
         if l3:
             best_t, best_s = _pick(l3)
             logger.info(f"[Auto-Detect] LEVEL 3 NAME → '{best_t.get('type_name')}' (score={best_s})")
+            logger.info(f"[Auto-Detect] WINNER → code='{best_t.get('template_code')}' level='L3' doc_version='{doc_version}' score={best_s}")
             return {"template": best_t, "score": best_s, "status": "low_confidence", "header": searchable_text, "doc_version": doc_version}
 
     # ── LEVEL 4: Fuzzy fallback (sama seperti logika lama) ────────
@@ -258,6 +261,7 @@ def detect_template(image_path: str, all_templates: list) -> dict:
     if l4:
         best_t, best_s = _pick(l4)
         logger.info(f"[Auto-Detect] LEVEL 4 FUZZY → '{best_t.get('type_name')}' (score={best_s})")
+        logger.info(f"[Auto-Detect] WINNER → code='{best_t.get('template_code')}' level='L4' doc_version='{doc_version}' score={best_s}")
         return {"template": best_t, "score": best_s, "status": "low_confidence", "header": searchable_text, "doc_version": doc_version}
 
     logger.warning(f"[Auto-Detect] SEMUA LEVEL GAGAL. Highest fuzzy score={highest_score}")
