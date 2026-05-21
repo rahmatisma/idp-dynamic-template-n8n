@@ -919,7 +919,7 @@ def extract_table(
     table_config: dict,
     anchor:       dict,
     image_path:   str  = None,
-) -> list:
+) -> tuple:
     """
     Ekstrak satu tabel secara dinamis dari global OCR.
 
@@ -939,7 +939,7 @@ def extract_table(
         image_path   : path PNG halaman — wajib untuk sel handwritten
 
     Returns:
-        list of dict — tiap dict = satu baris tabel
+        tuple (list of dict, float | None) — baris tabel dan confidence score
     """
     table_name = table_config.get('table_name', 'unknown')
 
@@ -980,7 +980,7 @@ def extract_table(
 
     if not area_items:
         logger.warning(f"[TableExtractor] Tidak ada teks di area tabel '{table_name}'")
-        return []
+        return [], None
 
     # ── Fallback crop kolom kiri (no) untuk mendeteksi section header ────────
     # Kolom 'no' sering tidak terdeteksi global OCR karena angkanya kecil.
