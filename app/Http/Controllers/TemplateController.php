@@ -302,7 +302,10 @@ class TemplateController extends Controller
             'image_path'      => 'nullable|string',
         ]);
 
-        $templateCode = Str::slug($validated['template_name'], '_');
+        $versionSuffix = !empty($validated['doc_version'])
+            ? '_v' . Str::slug($validated['doc_version'], '_')
+            : '';
+        $templateCode = Str::slug($validated['template_name'], '_') . $versionSuffix;
 
         // 1. SIMPAN LANGSUNG KE DATABASE (Bypass n8n)
         try {
