@@ -100,6 +100,7 @@ class DocumentController extends Controller
         ]);
 
         $count = 0;
+        $failed = 0;
         $supabaseUrl = config('services.supabase.url');
         $supabaseKey = config('services.supabase.anon_key');
 
@@ -107,7 +108,7 @@ class DocumentController extends Controller
             // 1. Simpan PDF ke Supabase Storage (idp_documents/documents/)
             $filename = uniqid() . '_' . $file->getClientOriginalName();
             $filePath = 'documents/' . $filename;
-            
+
             $fileContent = file_get_contents($file->getRealPath());
             $response = Http::timeout(60)
                 ->withHeaders([
@@ -137,11 +138,16 @@ class DocumentController extends Controller
                 } catch (\Exception $e) {
                     \Log::warning("Gagal trigger n8n untuk file '{$file->getClientOriginalName()}': " . $e->getMessage());
                 }
+
+                $count++;
             } else {
                 \Log::error("Gagal upload PDF ke Supabase: " . $response->body());
+                $failed++;
             }
+        }
 
-            $count++;
+        if ($count === 0) {
+            return back()->with('error', 'Gagal mengupload dokumen. Silakan coba lagi.');
         }
 
         return back()->with('success', 'Dokumen berhasil diunggah.');
