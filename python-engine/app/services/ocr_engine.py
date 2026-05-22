@@ -233,28 +233,42 @@ def detect_template(image_path: str, all_templates: list) -> dict:
             print(f"[TEMPLATE DIPILIH] Nama='{best_t.get('type_name')}' | Kode='{best_t.get('template_code')}' | No.Dok='{best_t.get('identifier_text')}' | Versi='{best_t.get('doc_version')}' | Level=L2 | Score={best_s}%")
             return {"template": best_t, "score": best_s, "status": "matched", "header": searchable_text, "doc_version": doc_version}
 
-    # ── LEVEL 3: Nama saja ────────────────────────────────────────
+    # ── LEVEL 3: Nama + suffix (jika suffix tersedia) ────────────
     if doc_name:
         l3 = []
         for t in all_templates:
             t_name = normalize_name(t.get('type_name', ''))
-            if name_matches(t_name, doc_name):
-                logger.debug(f"[Auto-Detect] L3 candidate → '{t.get('type_name')}'")
-                l3.append((t, 75))
+            if not name_matches(t_name, doc_name):
+                continue
+            if doc_suffix:
+                t_suffix = extract_suffix(t.get('identifier_text', ''))
+                if t_suffix != doc_suffix:
+                    logger.debug(f"[Auto-Detect] L3 skip '{t.get('type_name')}' — suffix beda (doc='{doc_suffix}', tmpl='{t_suffix}')")
+                    continue
+            logger.debug(f"[Auto-Detect] L3 candidate → '{t.get('type_name')}'")
+            l3.append((t, 75))
         if l3:
             best_t, best_s = _pick(l3)
             logger.info(f"[Auto-Detect] LEVEL 3 NAME → '{best_t.get('type_name')}' (score={best_s})")
             print(f"[TEMPLATE DIPILIH] Nama='{best_t.get('type_name')}' | Kode='{best_t.get('template_code')}' | No.Dok='{best_t.get('identifier_text')}' | Versi='{best_t.get('doc_version')}' | Level=L3 | Score={best_s}%")
             return {"template": best_t, "score": best_s, "status": "low_confidence", "header": searchable_text, "doc_version": doc_version}
 
-    # ── LEVEL 4: Fuzzy fallback (sama seperti logika lama) ────────
-    logger.info(f"[Auto-Detect] LEVEL 4 - Fuzzy fallback...")
+    # ── LEVEL 4: Fuzzy fallback (suffix-guarded) ─────────────────
+    # Hanya masukkan template yang suffix-nya cocok dengan dokumen.
+    # Tanpa filter ini, template dengan No.Dok yang sama sekali berbeda
+    # bisa menang hanya karena score fuzzy tinggi (false positive).
+    logger.info(f"[Auto-Detect] LEVEL 4 - Fuzzy fallback (suffix='{doc_suffix}')...")
     l4 = []
     highest_score = 0
     for t in all_templates:
         identifier = t.get('identifier_text')
         if not identifier:
             continue
+        if doc_suffix:
+            t_suffix = extract_suffix(identifier)
+            if t_suffix != doc_suffix:
+                logger.debug(f"[Auto-Detect] L4 skip '{t.get('type_name')}' — suffix beda (doc='{doc_suffix}', tmpl='{t_suffix}')")
+                continue
         score = max(
             fuzz.partial_ratio(identifier.lower(), searchable_text.lower()),
             fuzz.token_sort_ratio(identifier.lower(), searchable_text.lower()),
