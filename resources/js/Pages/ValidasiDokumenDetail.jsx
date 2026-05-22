@@ -48,8 +48,7 @@ function flattenFields(rawFields) {
             result[k] = v;
         } else if (typeof v === "object" && v !== null && !Array.isArray(v)) {
             for (const [ik, iv] of Object.entries(v)) {
-                if (iv == null) continue;
-                result[ik] = typeof iv === "string" ? iv : String(iv);
+                result[ik] = iv == null ? "" : (typeof iv === "string" ? iv : String(iv));
             }
         }
     }
