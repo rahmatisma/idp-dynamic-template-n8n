@@ -72,8 +72,43 @@ function UrgencyBadge({ score }) {
     return null;
 }
 
+// ── Filter Pills ───────────────────────────────────────────────
+const FILTERS = [
+    { key: "need_validation", label: "Perlu Validasi",  accent: "#818cf8" },
+    { key: "completed",       label: "Sudah Selesai",   accent: "#10b981" },
+    { key: "all",             label: "Semua",           accent: "#9ca3af" },
+];
+
+function FilterPills({ current, onChange }) {
+    return (
+        <div className="flex gap-2 flex-wrap">
+            {FILTERS.map(({ key, label, accent }) => {
+                const active = current === key;
+                return (
+                    <button
+                        key={key}
+                        onClick={() => onChange(key)}
+                        className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all"
+                        style={active ? {
+                            background: `${accent}22`,
+                            border: `1px solid ${accent}66`,
+                            color: accent,
+                        } : {
+                            background: "#1a1a1a",
+                            border: "1px solid #2a2a2a",
+                            color: "#666",
+                        }}
+                    >
+                        {label}
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
 // ── Main Page ──────────────────────────────────────────────────
-export default function ValidasiDokumen({ documents, flash = {} }) {
+export default function ValidasiDokumen({ documents, flash = {}, currentStatus = "need_validation" }) {
     const [search, setSearch] = useState("");
 
     const filtered = (documents.data ?? []).filter(doc =>
@@ -81,7 +116,8 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
         (doc.template_name ?? "").toLowerCase().includes(search.toLowerCase())
     );
 
-    const goToPage = (url) => { if (url) router.visit(url, { preserveScroll: true }); };
+    const goToPage    = (url) => { if (url) router.visit(url, { preserveScroll: true }); };
+    const switchFilter = (status) => router.visit("/validasi-dokumen", { data: { status }, preserveState: false });
 
     const totalDocs = documents.total ?? filtered.length;
     const kritis    = (documents.data ?? []).filter(d => (d.confidence_score ?? 0) < 60).length;
@@ -105,11 +141,15 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                 )}
 
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div>
                         <h1 className="text-lg font-semibold" style={{ color: "#f5f5f5" }}>Antrian Validasi</h1>
                         <p className="text-sm mt-0.5" style={{ color: "#888" }}>
-                            Dokumen yang memerlukan pemeriksaan manual oleh admin.
+                            {currentStatus === "need_validation"
+                                ? "Dokumen yang memerlukan pemeriksaan manual oleh admin."
+                                : currentStatus === "completed"
+                                    ? "Dokumen yang sudah selesai divalidasi."
+                                    : "Semua dokumen — perlu validasi dan sudah selesai."}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -119,6 +159,9 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                         </div>
                     </div>
                 </div>
+
+                {/* Filter Pills */}
+                <FilterPills current={currentStatus} onChange={switchFilter} />
 
                 {/* Summary cards */}
                 <div className="grid grid-cols-3 gap-3">
@@ -183,9 +226,15 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                                 <WarningIcon />
                             </div>
                             <p className="text-sm font-medium" style={{ color: "#aaa" }}>
-                                {search ? "Tidak ada dokumen yang cocok" : "Tidak ada dokumen dalam antrian validasi"}
+                                {search
+                                    ? "Tidak ada dokumen yang cocok"
+                                    : currentStatus === "need_validation"
+                                        ? "Tidak ada dokumen dalam antrian validasi"
+                                        : currentStatus === "completed"
+                                            ? "Belum ada dokumen yang selesai divalidasi"
+                                            : "Tidak ada dokumen"}
                             </p>
-                            {!search && (
+                            {!search && currentStatus === "need_validation" && (
                                 <p className="text-xs" style={{ color: "#666" }}>Semua dokumen sudah divalidasi</p>
                             )}
                         </div>
@@ -228,7 +277,14 @@ export default function ValidasiDokumen({ documents, flash = {} }) {
                                                 <span className="text-[10px]" style={{ color: "#666" }}>
                                                     #{doc.id} · {doc.uploaded_by ?? "—"}
                                                 </span>
-                                                <UrgencyBadge score={doc.confidence_score} />
+                                                {doc.status === "completed" ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                                        style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "#10b981" }}>
+                                                        Selesai
+                                                    </span>
+                                                ) : (
+                                                    <UrgencyBadge score={doc.confidence_score} />
+                                                )}
                                             </div>
                                         </div>
                                     </div>

@@ -38,6 +38,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/validasi-dokumen/{document}',           [ValidationController::class, 'show'])->name('validasi-dokumen.show');
     Route::patch('/validasi-dokumen/{document}/approve', [ValidationController::class, 'approve'])->name('validasi-dokumen.approve');
     Route::patch('/validasi-dokumen/{document}/reject',  [ValidationController::class, 'reject'])->name('validasi-dokumen.reject');
+    Route::patch('/validasi-dokumen/{document}/update',  [ValidationController::class, 'update'])->name('validasi-dokumen.update');
 
     // ── Master Template ───────────────────────────────────────
     Route::get('/master-template',                       [TemplateController::class, 'index'])->name('master-template');

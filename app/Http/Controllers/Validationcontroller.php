@@ -11,13 +11,25 @@ use Inertia\Inertia;
 class ValidationController extends Controller
 {
     /**
-     * Daftar dokumen yang menunggu validasi (status: need_validation).
+     * Daftar dokumen validasi — bisa difilter by status via ?status=
+     * Nilai: need_validation (default) | completed | all
      */
-    public function index()
+    public function index(Request $request)
     {
-        $documents = Document::with(['uploader', 'template'])
-            ->where('status', 'need_validation')
-            ->orderByDesc('processing_ended_at')
+        $status = $request->get('status', 'need_validation');
+
+        $query = Document::with(['uploader', 'template']);
+
+        if ($status === 'completed') {
+            $query->where('status', 'completed');
+        } elseif ($status === 'all') {
+            $query->whereIn('status', ['need_validation', 'completed']);
+        } else {
+            $status = 'need_validation';
+            $query->where('status', 'need_validation');
+        }
+
+        $documents = $query->orderByDesc('processing_ended_at')
             ->paginate(15)
             ->through(fn($doc) => [
                 'id'             => $doc->id,
@@ -31,7 +43,8 @@ class ValidationController extends Controller
             ]);
 
         return Inertia::render('ValidasiDokumen', [
-            'documents' => $documents,
+            'documents'     => $documents,
+            'currentStatus' => $status,
         ]);
     }
 
@@ -61,20 +74,48 @@ class ValidationController extends Controller
 
     /**
      * Simpan hasil validasi — data disetujui dan dokumen selesai.
+     * Menerima revised_data (data yang sudah diedit operator) dan
+     * menyimpannya sebagai extracted_data final.
      */
     public function approve(Request $request, Document $document)
     {
         $request->validate([
-            'extracted_data' => 'required|array',
+            'revised_data' => 'nullable|array',
         ]);
+
+        // Gunakan revised_data jika ada, fallback ke extracted_data yang tersimpan
+        $dataToSave = ($request->has('revised_data') && $request->revised_data !== null)
+            ? $request->revised_data
+            : $document->extracted_data;
 
         $document->update([
             'status'         => 'completed',
-            'extracted_data' => $request->extracted_data,
+            'extracted_data' => $dataToSave,
             'validated_by'   => Auth::id(),
         ]);
 
-        return back()->with('success', 'Dokumen berhasil divalidasi.');
+        return redirect()->route('documents.detail', $document)->with('success', 'Dokumen berhasil divalidasi.');
+    }
+
+    /**
+     * Update extracted_data saja tanpa mengubah status (untuk dokumen completed).
+     */
+    public function update(Request $request, Document $document)
+    {
+        $request->validate([
+            'revised_data' => 'nullable|array',
+        ]);
+
+        $dataToSave = ($request->has('revised_data') && $request->revised_data !== null)
+            ? $request->revised_data
+            : $document->extracted_data;
+
+        $document->update([
+            'extracted_data' => $dataToSave,
+            'validated_by'   => Auth::id(),
+        ]);
+
+        return redirect()->route('documents.detail', $document)->with('success', 'Data berhasil diperbarui.');
     }
 
     /**
