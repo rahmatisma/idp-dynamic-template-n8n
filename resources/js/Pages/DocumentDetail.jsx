@@ -370,6 +370,7 @@ function FieldGrid({ fields }) {
     if (!fields) return null;
 
     const entries = Object.entries(fields).filter(([k, v]) => {
+        if (k.startsWith("_")) return false;   // metadata keys (_conf_*, _ocr_source_*)
         if (k === "copyright") return false;
         if (Array.isArray(v)) return v.length > 0 && typeof v[0] === "string";
         if (typeof v === "object" && v !== null) return Object.keys(v).length > 0;
@@ -381,17 +382,32 @@ function FieldGrid({ fields }) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
             {entries.map(([key, value]) => {
-                const label   = colLabel(key);
-                const display = Array.isArray(value) ? value.join(", ") : String(value);
-                const isEmpty = !display.trim();
+                const label     = colLabel(key);
+                const display   = Array.isArray(value) ? value.join(", ") : String(value);
+                const ocr_src   = fields[`_ocr_source_${key}`];
+                const wasAttempted = ocr_src !== undefined && ocr_src !== null && ocr_src !== "";
+                const conf      = wasAttempted ? parseFloat(fields[`_conf_${key}`]) : NaN;
+                const isEmpty   = display.trim() === "" && wasAttempted;
+                const isLowConf = !isNaN(conf) && conf < CONF_LOW;
+                const isMedConf = !isNaN(conf) && conf >= CONF_LOW && conf < CONF_MED;
+                const hasWarning = isEmpty || isLowConf || isMedConf;
                 return (
                     <div key={key} className={`flex flex-col gap-0.5 p-3 rounded-lg border ${
-                        isEmpty ? "bg-amber-50/50 border-amber-100" : "bg-slate-50 border-slate-100"
+                        isLowConf                ? "bg-red-50/50 border-red-100"
+                        : (isMedConf || isEmpty) ? "bg-amber-50/50 border-amber-100"
+                                                 : "bg-slate-50 border-slate-100"
                     }`}>
                         <div className="flex items-center gap-1">
                             <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{label}</span>
-                            {isEmpty && (
-                                <span title="Field tidak terdeteksi — perlu diperiksa" className="text-amber-400">
+                            {hasWarning && (
+                                <span
+                                    title={
+                                        isEmpty
+                                            ? "Field tidak terdeteksi — perlu diperiksa"
+                                            : `Confidence rendah (${Math.round(conf)}%) — perlu diperiksa`
+                                    }
+                                    className={isLowConf ? "text-red-400" : "text-amber-400"}
+                                >
                                     <WarningIcon />
                                 </span>
                             )}
@@ -621,6 +637,10 @@ export default function DocumentDetail({ document }) {
                                             );
                                         } else if (key in flatFields) {
                                             fieldBuf.push([key, flatFields[key]]);
+                                            const confKey = `_conf_${key}`;
+                                            const srcKey  = `_ocr_source_${key}`;
+                                            if (confKey in flatFields) fieldBuf.push([confKey, flatFields[confKey]]);
+                                            if (srcKey  in flatFields) fieldBuf.push([srcKey,  flatFields[srcKey]]);
                                         }
                                     }
                                     flushFields();

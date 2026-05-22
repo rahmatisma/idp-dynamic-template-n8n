@@ -159,7 +159,8 @@ class HybridProcessor:
                 if not isinstance(row, dict):
                     continue
 
-                row_values = [str(v or "").strip() for v in row.values()]
+                # Skip metadata keys (_conf_*, _ocr_source_*) — bukan nilai field
+                row_values = [str(v or "").strip() for k, v in row.items() if not k.startswith("_")]
                 non_empty  = [v for v in row_values if v and v.lower() not in ("null", "none")]
 
                 if not non_empty:
@@ -200,6 +201,9 @@ class HybridProcessor:
         for group_key, group_val in fields_section.items():
             if isinstance(group_val, dict):
                 for field_key, field_val in group_val.items():
+                    # Skip metadata keys (_conf_*, _ocr_source_*) — bukan field nyata
+                    if field_key.startswith("_"):
+                        continue
                     # Hanya scalar values yang dievaluasi di sini
                     if not isinstance(field_val, (dict, list)):
                         flat[f"{group_key}.{field_key}"] = field_val

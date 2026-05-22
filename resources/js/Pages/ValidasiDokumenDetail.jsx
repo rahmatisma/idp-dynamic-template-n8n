@@ -177,6 +177,7 @@ function ResultTable({ rows }) {
 // ── Field Grid ─────────────────────────────────────────────────
 function FieldGrid({ fields }) {
     const entries = Object.entries(fields ?? {}).filter(([k, v]) => {
+        if (k.startsWith("_")) return false;   // metadata keys (_conf_*, _ocr_source_*)
         if (k === "copyright") return false;
         if (Array.isArray(v)) return false;
         if (typeof v === "object") return false;
@@ -187,15 +188,34 @@ function FieldGrid({ fields }) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {entries.map(([k, v]) => {
-                const val     = String(v ?? "").trim();
-                const isEmpty = !val;
+                const val        = String(v ?? "").trim();
+                const ocr_src    = fields[`_ocr_source_${k}`];
+                const wasAttempted = ocr_src !== undefined && ocr_src !== null && ocr_src !== "";
+                const conf       = wasAttempted ? parseFloat(fields[`_conf_${k}`]) : NaN;
+                const isEmpty    = val === "" && wasAttempted;
+                const isLowConf  = !isNaN(conf) && conf < CONF_LOW;
+                const isMedConf  = !isNaN(conf) && conf >= CONF_LOW && conf < CONF_MED;
+                const hasWarning = isEmpty || isLowConf || isMedConf;
                 return (
                     <div key={k} className={`p-3 rounded-lg border flex flex-col gap-0.5 ${
-                        isEmpty ? "bg-amber-50/50 border-amber-100" : "bg-slate-50 border-slate-100"
+                        isLowConf                ? "bg-red-50/50 border-red-100"
+                        : (isMedConf || isEmpty) ? "bg-amber-50/50 border-amber-100"
+                                                 : "bg-slate-50 border-slate-100"
                     }`}>
                         <div className="flex items-center gap-1">
                             <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{colLabel(k)}</span>
-                            {isEmpty && <span title="Tidak terdeteksi" className="text-amber-400"><WarningIcon /></span>}
+                            {hasWarning && (
+                                <span
+                                    title={
+                                        isEmpty
+                                            ? "Tidak terdeteksi — perlu diperiksa"
+                                            : `Confidence rendah (${Math.round(conf)}%) — perlu diperiksa`
+                                    }
+                                    className={isLowConf ? "text-red-400" : "text-amber-400"}
+                                >
+                                    <WarningIcon />
+                                </span>
+                            )}
                         </div>
                         <span className="text-sm font-medium">
                             {isEmpty

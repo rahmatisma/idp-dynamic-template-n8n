@@ -298,22 +298,32 @@ def _fields_to_fixed_results(fields_data: dict) -> dict:
     """
     Konversi flat dict dari field_extractor ke format yang json_builder harapkan.
     Field dipisah ke dua grup: 'document' (metadata) dan 'header' (info lapangan).
-    field_order menyimpan urutan asli dari fields_config untuk digunakan frontend.
+    field_order hanya menyimpan key nyata (bukan _conf_* / _ocr_source_* metadata).
     """
     doc_fields    = []
     header_fields = []
+    field_order   = []
 
     for key, value in fields_data.items():
         entry = {"field_key": key, "extracted_values": {"result": value}}
-        if key in _DOCUMENT_FIELDS:
-            doc_fields.append(entry)
+        if key.startswith("_"):
+            # _conf_X / _ocr_source_X → ikut grup parent field X, tidak masuk field_order
+            parent_key = re.sub(r'^_(conf|ocr_source)_', '', key)
+            if parent_key in _DOCUMENT_FIELDS:
+                doc_fields.append(entry)
+            else:
+                header_fields.append(entry)
         else:
-            header_fields.append(entry)
+            if key in _DOCUMENT_FIELDS:
+                doc_fields.append(entry)
+            else:
+                header_fields.append(entry)
+            field_order.append(key)
 
     return {
         "document":    doc_fields,
         "header":      header_fields,
-        "field_order": list(fields_data.keys()),
+        "field_order": field_order,
     }
 
 
@@ -450,7 +460,7 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
             print(f"\n[OCR] ── Ekstraksi Fields ──────────────────────────────")
         fields_data, field_anchor_y = extract_fields(ocr_results, fields_config, image_path=clean_img_path)
         if fields_config:
-            success_fields = sum(1 for v in fields_data.values() if v)
+            success_fields = sum(1 for k, v in fields_data.items() if not k.startswith('_') and v)
             print(f"[OCR] Fields selesai: {success_fields}/{len(fields_config)} berhasil diekstrak.")
 
         # 4. Ekstrak tiap tabel (group_by_y + split_by_x, TANPA OCR ulang)

@@ -102,6 +102,42 @@ def calculate_target_box(
     return (x1, y1, x2, y2)
 
 
+def get_text_and_conf_in_bbox(
+    ocr_results: list,
+    bbox: tuple,
+    overlap_threshold: float = 0.5
+) -> tuple:
+    """
+    Seperti get_text_in_bbox() tapi juga mengembalikan rata-rata confidence (0–100).
+    Returns (text, avg_conf). avg_conf adalah None jika tidak ada item yang overlap.
+    """
+    x1, y1, x2, y2 = bbox
+    matched = []
+
+    for item in ocr_results:
+        ix = item['x']
+        iy = item['y']
+        iw = item['w']
+        ih = item['h']
+        item_area = iw * ih
+        if item_area <= 0:
+            continue
+        overlap_w = max(0, min(x2, ix + iw) - max(x1, ix))
+        overlap_h = max(0, min(y2, iy + ih) - max(y1, iy))
+        ratio = (overlap_w * overlap_h) / item_area
+        if ratio >= overlap_threshold:
+            matched.append(item)
+
+    if not matched:
+        return "", None
+
+    matched.sort(key=lambda x: x['x'])
+    text = " ".join(r['text'] for r in matched if r.get('text')).strip()
+    conf_vals = [r['confidence'] * 100 for r in matched if r.get('confidence') is not None]
+    avg_conf = round(sum(conf_vals) / len(conf_vals), 1) if conf_vals else None
+    return text, avg_conf
+
+
 def get_text_in_bbox(ocr_results: list, bbox: tuple, overlap_threshold: float = 0.5) -> str:
     """
     Filter semua teks dari global OCR yang overlap dengan bbox target.
