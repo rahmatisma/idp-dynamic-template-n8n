@@ -142,8 +142,8 @@ class HybridProcessor:
             if val_str == "" or val_str.lower() in ("null", "none"):
                 fn += 1  # Field ada di config tapi tidak berhasil dibaca
                 logger.debug(f"[Eval] FN → '{field_key}': kosong")
-            elif len(val_str) == 1:
-                fp += 1  # Terlalu pendek → kemungkinan noise OCR
+            elif len(val_str) == 1 and not val_str.isalnum():
+                fp += 1  # 1 karakter non-alfanumerik → kemungkinan noise OCR (huruf/angka valid seperti "v","1","A" → TP)
                 logger.debug(f"[Eval] FP → '{field_key}': '{val_str}' (terlalu pendek)")
             else:
                 tp += 1  # Berhasil diekstrak
@@ -170,8 +170,8 @@ class HybridProcessor:
                     for val in row_values:
                         if val == "" or val.lower() in ("null", "none"):
                             fn += 1
-                        elif len(val) == 1:
-                            fp += 1
+                        elif len(val) == 1 and not val.isalnum():
+                            fp += 1  # 1 karakter non-alfanumerik → noise; huruf/angka valid seperti "v","1","A" → TP
                         else:
                             tp += 1
 

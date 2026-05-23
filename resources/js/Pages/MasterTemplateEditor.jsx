@@ -483,7 +483,7 @@ function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, setActiveI
                         </div>
                         <p className="text-[9px] text-slate-400">Gambar area vertikal seluruh baris.</p>
                         {item.table_area && item.anchor_box && (
-                            <p className="text-[9px] text-emerald-600 font-mono mt-0.5 px-1 bg-emerald-50 rounded inline-block">offset_y: {Math.round(item.table_area.y - item.anchor_box.y)}px</p>
+                            <p className="text-[9px] text-emerald-600 font-mono mt-0.5 px-1 bg-emerald-50 rounded inline-block">offset_y: {naturalSize ? Math.round((item.table_area.y - item.anchor_box.y) * naturalSize.height) : Math.round(item.table_area.y - item.anchor_box.y)}px</p>
                         )}
                     </div>
 
@@ -1148,7 +1148,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                     texts: tab.table_anchor.split(",").map(s => s.trim()).filter(s => s), 
                     match_type: tab.table_anchor_match_type || "contains" 
                 },
-                area: { offset_y: Math.round(areaBox.y - aBox.y), height: areaBox.height },
+                area: { offset_y: Math.round(areaBox.y - aBox.y), height: Math.round(areaBox.height) },
                 row_detection: { 
                     method: "anchor_based", 
                     primary_column: rowAnchor?.key || null,
@@ -1393,7 +1393,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                                                     },
                                                     row_detection: { 
                                                         method: "anchor_based", 
-                                                        primary_column: rowAnchor?.key || "desc",
+                                                        primary_column: rowAnchor?.key || null,
                                                         fallback_column: fallbackCol?.key || null,
                                                         y_threshold: "auto"
                                                     },

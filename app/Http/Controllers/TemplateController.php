@@ -31,7 +31,7 @@ class TemplateController extends Controller
                 'template_code'   => $t->template_code,
                 'identifier_text' => $t->identifier_text,
                 'is_active'       => $t->is_active,
-                'field_count'     => count($t->mapping_config ?? []),
+                'field_count'     => count($t->mapping_config['fields'] ?? []),
                 'created_by'      => $t->creator?->name,
                 'created_at'      => $t->created_at->format('d M Y'),
                 'total_docs'      => $t->documents_count,

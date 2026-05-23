@@ -614,13 +614,16 @@ export default function DocumentDetail({ document }) {
                                 let contentItems = null;
                                 if (combinedOrder) {
                                     contentItems = [];
+                                    let fieldGroupIndex = 0;
                                     let fieldBuf = [];
                                     const flushFields = () => {
                                         if (!fieldBuf.length) return;
                                         const obj = Object.fromEntries(fieldBuf);
+                                        const sectionLabel = fieldGroupIndex === 0 ? "Informasi Dokumen" : "Informasi Tambahan";
+                                        fieldGroupIndex += 1;
                                         contentItems.push(
                                             <div key={`fields-${fieldBuf[0][0]}`}>
-                                                <SectionLabel>Informasi Dokumen</SectionLabel>
+                                                <SectionLabel>{sectionLabel}</SectionLabel>
                                                 <FieldGrid fields={obj} />
                                             </div>
                                         );
