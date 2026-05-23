@@ -483,7 +483,7 @@ function TablePanel({ item, idx, isActive, drawMode, activeColumnIdx, setActiveI
                         </div>
                         <p className="text-[9px] text-slate-400">Gambar area vertikal seluruh baris.</p>
                         {item.table_area && item.anchor_box && (
-                            <p className="text-[9px] text-emerald-600 font-mono mt-0.5 px-1 bg-emerald-50 rounded inline-block">offset_y: {naturalSize ? Math.round((item.table_area.y - item.anchor_box.y) * naturalSize.height) : Math.round(item.table_area.y - item.anchor_box.y)}px</p>
+                            <p className="text-[9px] text-emerald-600 font-mono mt-0.5 px-1 bg-emerald-50 rounded inline-block">offset_y: {Math.round(item.table_area.y - item.anchor_box.y)}px</p>
                         )}
                     </div>
 

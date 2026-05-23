@@ -175,6 +175,11 @@ export default function MasterTemplate({ templates = [], flash = {} }) {
                                         <tr key={t.id} className="hover:bg-slate-50/60 transition">
                                             <td className="px-5 py-4 font-medium text-slate-800">{t.type_name}</td>
                                             <td className="px-5 py-4">
+                                                <code className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-mono">
+                                                    {t.template_code || "-"}
+                                                </code>
+                                            </td>
+                                            <td className="px-5 py-4">
                                                 <code className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-mono">{t.identifier_text || "-"}</code>
                                             </td>
                                             <td className="px-5 py-4">
