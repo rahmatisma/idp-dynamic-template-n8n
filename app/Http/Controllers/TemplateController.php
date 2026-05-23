@@ -305,7 +305,10 @@ class TemplateController extends Controller
         $versionSuffix = !empty($validated['doc_version'])
             ? '_v' . Str::slug($validated['doc_version'], '_')
             : '';
-        $templateCode = Str::slug($validated['template_name'], '_') . $versionSuffix;
+        $identifierSuffix = !empty($validated['identifier_text'])
+            ? '_' . substr(str_replace('-', '', $validated['identifier_text']), -3)
+            : '';
+        $templateCode = Str::slug($validated['template_name'], '_') . $versionSuffix . $identifierSuffix;
 
         // 1. SIMPAN LANGSUNG KE DATABASE (Bypass n8n)
         try {

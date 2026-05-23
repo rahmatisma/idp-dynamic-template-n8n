@@ -1093,10 +1093,14 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                     const b1 = cols[i].box;
                     const b2 = cols[j].box;
                     if (b1 && b2) {
-                        const start = Math.max(b1.x, b2.x);
-                        const end = Math.min(b1.x + b1.width, b2.x + b2.width);
+                        const b1x = b1.x ?? b1.left ?? 0;
+                        const b2x = b2.x ?? b2.left ?? 0;
+                        const b1w = b1.w ?? b1.width ?? 0;
+                        const b2w = b2.w ?? b2.width ?? 0;
+                        const start = Math.max(b1x, b2x);
+                        const end = Math.min(b1x + b1w, b2x + b2w);
                         const overlap = Math.max(0, end - start);
-                        if (overlap > 10) return alert(`Error: Kolom "${cols[i].label}" dan "${cols[j].label}" tumpang tindih (>10px). Harap rapikan.`);
+                        if (overlap > 0.004) return alert(`Error: Kolom "${cols[i].label}" dan "${cols[j].label}" tumpang tindih. Harap rapikan.`);
                     }
                 }
             }
