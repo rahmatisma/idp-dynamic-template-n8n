@@ -31,20 +31,25 @@ from typing import Any
 
 
 def build_hierarchical_json(
-    fixed_results: list[dict],
-    table_results: list[dict] | None = None,
-    table_order: list[str] | None = None,
+    fixed_results:     list[dict],
+    table_results:     list[dict]      | None = None,
+    table_order:       list[str]       | None = None,
+    repeating_results: dict[str, dict] | None = None,
 ) -> dict[str, Any]:
     """
     Susun hasil ekstraksi dari semua grup menjadi JSON terstruktur.
 
     Args:
-        fixed_results:  List hasil grup "fixed". Setiap item berisi
-                        { group_type, group_key, group_name, fields: [...] }.
-        table_results:  List hasil grup "dynamic_table". Setiap item berisi
-                        { group_type, group_key, group_name, data: [...] }.
-        table_order:    Urutan asli nama tabel dari template config. Jika diberikan,
-                        key tabel di output JSON akan diurutkan sesuai urutan ini.
+        fixed_results:     List hasil grup "fixed". Setiap item berisi
+                           { group_type, group_key, group_name, fields: [...] }.
+        table_results:     List hasil grup "dynamic_table". Setiap item berisi
+                           { group_type, group_key, group_name, data: [...] }.
+        table_order:       Urutan asli nama tabel dari template config. Jika diberikan,
+                           key tabel di output JSON akan diurutkan sesuai urutan ini.
+        repeating_results: Dict hasil repeating_sections.
+                           Format: { sec_key: { inst_key: { fields+tables } } }
+                           Contoh: { "banks": { "bank_1": {...}, "bank_2": {...} } }
+                           Diletakkan setelah "header" di output JSON.
 
     Returns:
         Dict JSON terstruktur lengkap.
@@ -94,6 +99,22 @@ def build_hierarchical_json(
                 target_node[field_key] = next(iter(extracted.values()), "")
             else:
                 target_node[field_key] = ""
+
+    # ══════════════════════════════════════════════════════════════
+    # BAGIAN 1b: Repeating Sections (Battery Bank, dll)
+    # ══════════════════════════════════════════════════════════════
+    # Format masuk: { sec_key: { field_name: value, tbl_key: [...] } }
+    #   — flat dict, satu section per key, tanpa wrapper instances[].
+    # Format keluar di JSON: final_json[sec_key] = { field: value, ... }
+    # Diletakkan setelah "header" agar urutan output JSON konsisten.
+    if repeating_results:
+        for sec_key, sec_data in repeating_results.items():
+            # Simpan _conf_* agar UI bisa tampilkan confidence indicator.
+            # Hanya buang _ocr_source_* (tidak dipakai UI).
+            final_json[sec_key] = {
+                k: v for k, v in sec_data.items()
+                if not k.startswith('_ocr_source_')
+            }
 
     # ══════════════════════════════════════════════════════════════
     # BAGIAN 2: Proses Grup Pelaksana (List/Array)

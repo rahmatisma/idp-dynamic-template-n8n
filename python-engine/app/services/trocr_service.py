@@ -93,11 +93,11 @@ def _load_trocr():
         _trocr_device = device
 
         print("[TrOCR] Sedang memuat model ke RAM (0/2)...")
-        _trocr_processor = TrOCRProcessor.from_pretrained("models/trocr-finetuned")
+        _trocr_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
 
         print(f"[TrOCR] Sedang memuat weights model ke {device.type.upper()} (1/2)...")
         _trocr_model = VisionEncoderDecoderModel.from_pretrained(
-            "models/trocr-finetuned",
+            "models/model_finetuned/checkpoint-30618",
             use_safetensors=True
         )
 

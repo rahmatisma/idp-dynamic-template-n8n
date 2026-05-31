@@ -5,6 +5,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\DebugOCRController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -56,6 +57,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/user-management/{user}',             [UserManagementController::class, 'destroy'])->name('user-management.destroy');
     });
 
+    // ── Debug OCR (Admin only) ─────────────────────────────────
+    Route::middleware('admin')->group(function () {
+        Route::get('/debug-ocr', [DebugOCRController::class, 'index'])->name('debug.ocr');
+    });
+
     // ── Internal API (dipanggil fetch() dari React) ───────────
     Route::prefix('internal-api')->name('api.')->group(function () {
 
@@ -79,6 +85,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Polling status dokumen dari React (setiap 5 detik)
         Route::get('/documents/{document}/status', [DocumentController::class, 'getStatus'])->name('documents.status');
+
+        // Debug OCR — proxy ke Python engine /debug-ocr (Paddle global scan)
+        Route::post('/debug-ocr', [DebugOCRController::class, 'proxy'])->name('debug-ocr.proxy');
+
+        // Debug Template — proxy ke Python engine /debug-template (template mapping)
+        Route::post('/debug-template', [DebugOCRController::class, 'debugTemplate'])->name('debug-template.proxy');
     });
 });
 

@@ -166,6 +166,12 @@ const Icon = {
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/>
         </svg>
     ),
+    Search: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+    ),
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -177,6 +183,7 @@ const navItems = [
     { label: "Validasi Dokumen", icon: Icon.Clipboard, href: "/validasi-dokumen" },
     { label: "Master Template",  icon: Icon.Template,  href: "/master-template" },
     { label: "User Management",  icon: Icon.Users,     href: "/user-management", roles: ["admin"] },
+    { label: "Debug OCR",        icon: Icon.Search,    href: "/debug-ocr",       roles: ["admin"] },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

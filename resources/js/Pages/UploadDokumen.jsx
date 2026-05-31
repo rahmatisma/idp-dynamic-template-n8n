@@ -247,7 +247,7 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
                                     Ya, Hapus
                                 </button>
                             </div>
-                        </div>
+                        </div>\
                     </div>
                 )}
 

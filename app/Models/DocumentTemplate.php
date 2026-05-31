@@ -43,7 +43,7 @@ class DocumentTemplate extends Model
         return [
             'mapping_config' => 'array',
             'ui_metadata' => 'array',
-            'is_active' => 'boolean',
+            'is_active' => 'bool',
             'template_version' => 'integer',
             'structural_fingerprint' => 'array',
         ];

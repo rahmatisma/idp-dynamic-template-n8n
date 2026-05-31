@@ -608,8 +608,79 @@ export default function DocumentDetail({ document }) {
                                 const tables = page.tables ?? {};
                                 const copyright = fields.copyright ?? null;
                                 const fieldOrder = Array.isArray(fields.field_order) ? fields.field_order : [];
-                                const flatFields = flattenFields(fields, fieldOrder);
                                 const combinedOrder = Array.isArray(fields.combined_order) ? fields.combined_order : null;
+
+                                // ── Repeating section inference (sama dengan ValidasiDokumenDetail) ──
+                                const _STATIC = new Set([
+                                    'document','header','checklist','notes','pelaksana',
+                                    'mengetahui','copyright','field_order','table_order','combined_order'
+                                ]);
+                                const _storedRs = fields._repeating_sections ?? {};
+                                const rsMeta = Object.keys(_storedRs).length > 0
+                                    ? _storedRs
+                                    : (() => {
+                                        const inf = {};
+                                        for (const [k, v] of Object.entries(fields)) {
+                                            if (k.startsWith('_') || _STATIC.has(k)) continue;
+                                            if (typeof v !== 'object' || v === null || Array.isArray(v)) continue;
+                                            const sTbls = Object.keys(tables).filter(tk => tk.startsWith(`${k}_`));
+                                            const sFlds = Object.keys(v).filter(fk => !fk.startsWith('_') && !Array.isArray(v[fk]));
+                                            if (sTbls.length > 0 || sFlds.length > 0) {
+                                                inf[k] = {
+                                                    section_name: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                                                    fields: sFlds,
+                                                    tables: sTbls,
+                                                };
+                                            }
+                                        }
+                                        return inf;
+                                    })();
+                                const secKeySet = new Set(Object.keys(rsMeta));
+                                const secTableKeys = new Set([
+                                    ...Object.values(rsMeta).flatMap(s => s.tables ?? []),
+                                    ...Object.keys(tables).filter(k =>
+                                        Object.keys(rsMeta).some(sk => k.startsWith(`${sk}_`))
+                                    )
+                                ]);
+
+                                // flatFields: kecualikan section keys agar tidak campur di Informasi Dokumen
+                                const flatFields = flattenFields(
+                                    Object.fromEntries(Object.entries(fields).filter(([k]) => !secKeySet.has(k))),
+                                    fieldOrder
+                                );
+
+                                // JSX untuk setiap repeating section (Bank 1, Bank 2, dll)
+                                const sectionItems = Object.entries(rsMeta).map(([secKey, secMeta]) => {
+                                    const secFields = fields[secKey] ?? {};
+                                    const secHasFields = (secMeta.fields ?? []).length > 0;
+                                    const allSecTbls = [...new Set([
+                                        ...(secMeta.tables ?? []),
+                                        ...Object.keys(tables).filter(k => k.startsWith(`${secKey}_`))
+                                    ])];
+                                    const secHasTables = allSecTbls.some(k => (tables[k] ?? []).length > 0);
+                                    if (!secHasFields && !secHasTables) return null;
+                                    const secLabel = secMeta.section_name ?? secKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                    return (
+                                        <div key={secKey} className="rounded-xl overflow-hidden border border-violet-200">
+                                            <div className="px-4 py-2 bg-violet-600 flex items-center gap-2">
+                                                <span className="text-xs font-bold text-white uppercase tracking-widest">{secLabel}</span>
+                                            </div>
+                                            <div className="p-4 space-y-4 bg-violet-50/20">
+                                                {secHasFields && <FieldGrid fields={secFields} />}
+                                                {allSecTbls.map(combinedKey => {
+                                                    const rows = tables[combinedKey] ?? [];
+                                                    const tblLabel = combinedKey.replace(new RegExp(`^${secKey}_`), '');
+                                                    return rows.length > 0 ? (
+                                                        <div key={combinedKey}>
+                                                            <SectionLabel>{colLabel(tblLabel)}</SectionLabel>
+                                                            <ChecklistTable rows={rows} />
+                                                        </div>
+                                                    ) : null;
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                }).filter(Boolean);
 
                                 let contentItems = null;
                                 if (combinedOrder) {
@@ -630,7 +701,8 @@ export default function DocumentDetail({ document }) {
                                         fieldBuf = [];
                                     };
                                     for (const key of combinedOrder) {
-                                        if (tables[key] && Array.isArray(tables[key]) && tables[key].length > 0) {
+                                        // Section tables dirender di sectionItems, bukan di sini
+                                        if (tables[key] && Array.isArray(tables[key]) && tables[key].length > 0 && !secTableKeys.has(key)) {
                                             flushFields();
                                             contentItems.push(
                                                 <div key={key}>
@@ -647,6 +719,8 @@ export default function DocumentDetail({ document }) {
                                         }
                                     }
                                     flushFields();
+                                    // Tambahkan section groups setelah konten biasa
+                                    sectionItems.forEach(item => contentItems.push(item));
                                 }
 
                                 return (
@@ -702,14 +776,17 @@ export default function DocumentDetail({ document }) {
                                                             <FieldGrid fields={flatFields} />
                                                         </div>
                                                     )}
-                                                    {Object.entries(tables).map(([tableKey, rows]) => (
-                                                        Array.isArray(rows) && rows.length > 0 && (
-                                                            <div key={tableKey}>
-                                                                <SectionLabel>{colLabel(tableKey)}</SectionLabel>
-                                                                <ChecklistTable rows={rows} />
-                                                            </div>
-                                                        )
-                                                    ))}
+                                                    {sectionItems}
+                                                    {Object.entries(tables)
+                                                        .filter(([k]) => !secTableKeys.has(k))
+                                                        .map(([tableKey, rows]) => (
+                                                            Array.isArray(rows) && rows.length > 0 && (
+                                                                <div key={tableKey}>
+                                                                    <SectionLabel>{colLabel(tableKey)}</SectionLabel>
+                                                                    <ChecklistTable rows={rows} />
+                                                                </div>
+                                                            )
+                                                        ))}
                                                 </>
                                             )}
 

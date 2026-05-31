@@ -69,20 +69,43 @@ class TemplateController extends Controller
             $previewUrl = null;
         }
 
+        // Bangun array halaman berdasarkan total_pages di mapping_config
+        $totalPages = $template->mapping_config['total_pages'] ?? 1;
+        $pageImages  = [];
+        $pythonPaths = [];
+        if ($template->master_image_path) {
+            $imgStem = pathinfo($template->master_image_path, PATHINFO_FILENAME); // "STEM_preview"
+            $pdfStem = str_replace('_preview', '', $imgStem);                     // "STEM"
+            for ($i = 1; $i <= $totalPages; $i++) {
+                // Page 1: STEM_preview.png | Page N: STEM_preview_pN.png
+                $imgFilename  = $i === 1 ? "{$imgStem}.png" : "{$imgStem}_p{$i}.png";
+                $imgPath      = 'template-previews/' . $imgFilename;
+                $pageImages[] = Storage::disk('public')->exists($imgPath)
+                    ? Storage::url($imgPath)
+                    : $previewUrl;  // fallback ke page 1 jika file belum ada
+                $pythonPaths[] = "storage/pages/{$pdfStem}/page_{$i}.png";
+            }
+        } else {
+            $pageImages  = $previewUrl ? [$previewUrl] : [];
+            $pythonPaths = [];
+        }
+
         return Inertia::render('MasterTemplateEditor', [
             'editingTemplate' => [
-                'id'               => $template->id,
-                'type_name'        => $template->type_name,
-                'template_code'    => $template->template_code,
-                'identifier_text'  => $template->identifier_text,
-                'mapping_config'   => $template->mapping_config,
-                'ui_metadata'      => $template->ui_metadata,
-                'master_file_url'  => $previewUrl,
-                'master_file_path' => $template->master_file_path,
-                'image_path'       => $template->master_image_path,
-                'python_image_path' => $template->master_image_path
-                    ? 'storage/pages/' . str_replace('_preview', '', pathinfo($template->master_image_path, PATHINFO_FILENAME)) . '/page_1.png'
-                    : null,
+                'id'                 => $template->id,
+                'type_name'          => $template->type_name,
+                'template_code'      => $template->template_code,
+                'identifier_text'    => $template->identifier_text,
+                'doc_version'        => $template->doc_version,
+                'mapping_config'     => $template->mapping_config,
+                'ui_metadata'        => $template->ui_metadata,
+                'master_file_url'    => $previewUrl,
+                'master_file_path'   => $template->master_file_path,
+                'image_path'         => $template->master_image_path,
+                'python_image_path'  => $pythonPaths[0] ?? null,   // backward compat
+                'page_images'        => $pageImages,
+                'python_image_paths' => $pythonPaths,
+                'total_pages'        => $totalPages,
             ],
         ]);
     }
@@ -158,35 +181,55 @@ class TemplateController extends Controller
                 ], 500);
             }
 
-            $data = $response->json();
-            $pythonImageUrl = $data['image_url'];
+            $data             = $response->json();
+            $totalPages       = $data['total_pages'] ?? 1;
+            $pythonPageImages = $data['page_images'] ?? [$data['image_url']];
+            $pythonImagePaths = $data['python_image_paths'] ?? [
+                'storage/pages/' . pathinfo($pdfPath, PATHINFO_FILENAME) . '/page_1.png',
+            ];
 
-            // 3. Unduh PNG dari Python Engine dan simpan ke storage lokal
-            $imageBaseName = pathinfo($pdfPath, PATHINFO_FILENAME) . '_preview.png';
-            $localImagePath = 'template-previews/' . $imageBaseName;
+            // 3. Unduh semua halaman PNG dari Python Engine ke storage lokal
+            // Konvensi nama: page 1 → STEM_preview.png (backward compat)
+            //                page N → STEM_preview_pN.png
+            $baseStem        = pathinfo($pdfPath, PATHINFO_FILENAME);
+            $localPageImages = [];
+            $localImagePath  = null;
 
-            // Normalisasi URL dari Python: selalu gunakan base URL engine dari config.
-            // Python bisa mengembalikan "http://localhost:5000/..." yang tidak bisa
-            // diakses browser saat engine berjalan di remote host (misal RunPod).
-            $parsedPath    = parse_url($pythonImageUrl, PHP_URL_PATH) ?? $pythonImageUrl;
-            $fullPythonUrl = rtrim(config('services.python_engine.url'), '/') . $parsedPath;
+            foreach ($pythonPageImages as $idx => $pageUrl) {
+                $pageNum       = $idx + 1;
+                $imageBaseName = $pageNum === 1
+                    ? "{$baseStem}_preview.png"
+                    : "{$baseStem}_preview_p{$pageNum}.png";
+                $imgLocalPath  = 'template-previews/' . $imageBaseName;
 
-            $imageContent = @file_get_contents($fullPythonUrl);
-            if ($imageContent !== false) {
-                Storage::disk('public')->put($localImagePath, $imageContent);
-                $localImageUrl = Storage::url($localImagePath);
-            } else {
-                // Fallback: gunakan URL yang sudah dinormalisasi, bukan URL mentah dari Python
-                $localImageUrl = $fullPythonUrl;
-                $localImagePath = null;
+                $parsedPath    = parse_url($pageUrl, PHP_URL_PATH) ?? $pageUrl;
+                $fullPythonUrl = rtrim(config('services.python_engine.url'), '/') . $parsedPath;
+
+                \Log::info("[ConvertPdf] page {$pageNum}: {$fullPythonUrl} → {$imgLocalPath}");
+
+                $imageContent = @file_get_contents($fullPythonUrl);
+                if ($imageContent !== false) {
+                    Storage::disk('public')->put($imgLocalPath, $imageContent);
+                    $localPageImages[] = Storage::url($imgLocalPath);
+                } else {
+                    $localPageImages[] = $fullPythonUrl;
+                }
+
+                if ($pageNum === 1) {
+                    $localImagePath = $imageContent !== false ? $imgLocalPath : null;
+                }
             }
 
+            $localImageUrl = $localPageImages[0] ?? null;
+
             return response()->json([
-                'image_url'         => $localImageUrl,
-                'image_path'        => $localImagePath,  // path untuk disimpan di DB
-                'python_image_path' => 'storage/pages/' . pathinfo($pdfPath, PATHINFO_FILENAME) . '/page_1.png',
-                'pdf_path'          => $pdfPath,
-                'total_pages'       => $data['total_pages'] ?? 1,
+                'image_url'          => $localImageUrl,       // backward compat
+                'image_path'         => $localImagePath,      // path untuk disimpan di DB (page 1)
+                'python_image_path'  => $pythonImagePaths[0] ?? null,  // backward compat
+                'page_images'        => $localPageImages,     // semua halaman (local URL)
+                'python_image_paths' => $pythonImagePaths,    // semua halaman (Python path)
+                'pdf_path'           => $pdfPath,
+                'total_pages'        => $totalPages,
             ]);
 
         } catch (\Exception $e) {

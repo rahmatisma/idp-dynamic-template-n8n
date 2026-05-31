@@ -157,11 +157,14 @@ def convert_pdf():
         try:
             pages = convert_if_not_exists(str(save_path))
             stem  = save_path.stem
+            base  = f"http://localhost:5000/static/pages/{stem}"
 
             return jsonify({
-                "status":      "ok",
-                "total_pages": len(pages),
-                "image_url":   f"http://localhost:5000/static/pages/{stem}/page_1.png",
+                "status":             "ok",
+                "total_pages":        len(pages),
+                "image_url":          f"{base}/page_1.png",
+                "page_images":        [f"{base}/page_{i+1}.png" for i in range(len(pages))],
+                "python_image_paths": [f"storage/pages/{stem}/page_{i+1}.png" for i in range(len(pages))],
             })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -487,6 +490,326 @@ def predict_ocr():
     })
 
 
+# ── 6. Debug OCR (Global Scan Bounding Boxes) ─────────────────
+@api_bp.route("/debug-ocr", methods=["POST"])
+def debug_ocr():
+    """
+    Jalankan global OCR scan dan kembalikan seluruh bounding box
+    beserta dimensi gambar. Berguna untuk debugging anchor/offset
+    di template editor.
+
+    Request JSON:
+        { "image_path": "storage/pages/namafile/page_1.png" }
+
+    Response:
+        {
+            "image_width": 2499,
+            "image_height": 3513,
+            "boxes": [
+                { "text": "No.Dok.", "x": 351, "y": 171,
+                  "w": 185, "h": 62, "confidence": 0.97 }
+            ]
+        }
+    """
+    from config.settings import BASE_DIR
+    from app.services.ocr_engine import run_global_ocr
+    from PIL import Image as PILImage
+
+    data     = request.get_json()
+    rel_path = data.get("image_path") if data else None
+
+    if not rel_path:
+        return jsonify({"error": "image_path wajib diisi"}), 400
+
+    if Path(rel_path).is_absolute():
+        full_path = Path(rel_path)
+    elif "storage/" in rel_path:
+        full_path = BASE_DIR / rel_path
+    else:
+        full_path = BASE_DIR / "storage" / rel_path
+
+    print(f"[DebugOCR] image_path  : {rel_path[:80]}")
+    print(f"[DebugOCR] full_path   : {full_path}")
+    print(f"[DebugOCR] file_exists : {full_path.exists()}")
+
+    if not full_path.exists():
+        return jsonify({"error": f"Gambar tidak ditemukan: {full_path}"}), 404
+
+    try:
+        img = PILImage.open(str(full_path))
+        img_w, img_h = img.size
+
+        boxes = run_global_ocr(str(full_path))
+        print(f"[DebugOCR] ✅ {len(boxes)} box ditemukan | ukuran: {img_w}×{img_h}")
+
+        return jsonify({
+            "image_width":  img_w,
+            "image_height": img_h,
+            "boxes":        boxes,
+        })
+
+    except Exception as e:
+        logger.error(f"[DebugOCR] Error: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+# ── 7. Debug Template Mapping ──────────────────────────────────
+@api_bp.route("/debug-template", methods=["POST"])
+def debug_template():
+    """
+    Jalankan global OCR + template mapping dan kembalikan posisi anchor/value
+    per field dan per tabel. Berguna untuk debug config mapping_config.
+
+    Request JSON:
+        {
+            "image_path":     "storage/pages/namafile/page_1.png",
+            "mapping_config": { "fields": [...], "tables": [...] }
+        }
+
+    Response:
+        {
+            "image_width": 2499,
+            "image_height": 3513,
+            "fields": [
+                {
+                    "field_name": "no_dok",
+                    "anchor_text": "No.Dok.",
+                    "field_type": "printed",
+                    "found": true,
+                    "anchor":    {"text": "No.Dok.", "x": 351, "y": 171, "w": 185, "h": 62},
+                    "value_box": {"x": 589, "y": 169, "w": 524, "h": 67}
+                }
+            ],
+            "tables": [
+                {
+                    "table_name": "Checklist",
+                    "anchor_text": "Descriptions",
+                    "found": true,
+                    "anchor": {"text": "Descriptions", "x": 690, "y": 754, "w": 250, "h": 58},
+                    "area":   {"x": 351, "y": 812, "w": 1322, "h": 1143},
+                    "columns": [
+                        {"name": "No", "x_start": 351, "x_end": 447, "type": "printed"}
+                    ]
+                }
+            ]
+        }
+    """
+    from config.settings import BASE_DIR
+    from app.services.ocr_engine import run_global_ocr
+    from app.services.template_mapper import find_anchor, calculate_target_box
+    from PIL import Image as PILImage
+
+    data           = request.get_json()
+    rel_path       = data.get("image_path") if data else None
+    mapping_config = data.get("mapping_config", {}) if data else {}
+
+    if not rel_path:
+        return jsonify({"error": "image_path wajib diisi"}), 400
+
+    if Path(rel_path).is_absolute():
+        full_path = Path(rel_path)
+    elif "storage/" in rel_path:
+        full_path = BASE_DIR / rel_path
+    else:
+        full_path = BASE_DIR / "storage" / rel_path
+
+    print(f"[DebugTemplate] image_path  : {rel_path[:80]}")
+    print(f"[DebugTemplate] full_path   : {full_path}")
+    print(f"[DebugTemplate] file_exists : {full_path.exists()}")
+
+    if not full_path.exists():
+        return jsonify({"error": f"Gambar tidak ditemukan: {full_path}"}), 404
+
+    try:
+        img = PILImage.open(str(full_path))
+        img_w, img_h = img.size
+
+        ocr_results = run_global_ocr(str(full_path))
+        print(f"[DebugTemplate] Global OCR: {len(ocr_results)} item terdeteksi")
+
+        fields_config = mapping_config.get("fields", [])
+        tables_config = mapping_config.get("tables", [])
+
+        # ── Proses Fields ──────────────────────────────────────────
+        fields_out = []
+        for field in fields_config:
+            field_name  = field.get("field_name", "unknown")
+            anchor_text = (field.get("anchor_text") or "").strip()
+            offset_x    = int(field.get("offset_x", 0))
+            offset_y    = int(field.get("offset_y", 0))
+            width       = int(field.get("width", 100))
+            height      = int(field.get("height", 50))
+
+            anchor = find_anchor(ocr_results, anchor_text) if anchor_text else None
+
+            entry = {
+                "field_name":  field_name,
+                "anchor_text": anchor_text,
+                "field_type":  field.get("type", "printed"),
+                "found":       anchor is not None,
+                "anchor":      None,
+                "value_box":   None,
+            }
+
+            if anchor:
+                entry["anchor"] = {
+                    "text": anchor["text"],
+                    "x": anchor["x"], "y": anchor["y"],
+                    "w": anchor["w"], "h": anchor["h"],
+                }
+                x1, y1, x2, y2 = calculate_target_box(anchor, offset_x, offset_y, width, height)
+                entry["value_box"] = {
+                    "x": int(x1), "y": int(y1),
+                    "w": int(x2 - x1), "h": int(y2 - y1),
+                }
+
+            fields_out.append(entry)
+
+        # ── Proses Tables ──────────────────────────────────────────
+        tables_out = []
+        for table_cfg in tables_config:
+            table_name   = table_cfg.get("table_name", "unknown")
+            anchor_texts = table_cfg.get("anchor", {}).get("texts", [])
+            anchor_text  = (anchor_texts[0] if anchor_texts else "").strip()
+
+            anchor = find_anchor(ocr_results, anchor_text) if anchor_text else None
+
+            entry = {
+                "table_name":  table_name,
+                "anchor_text": anchor_text,
+                "found":       anchor is not None,
+                "anchor":      None,
+                "area":        None,
+                "columns":     [],
+            }
+
+            if anchor:
+                entry["anchor"] = {
+                    "text": anchor["text"],
+                    "x": anchor["x"], "y": anchor["y"],
+                    "w": anchor["w"], "h": anchor["h"],
+                }
+
+                area_cfg     = table_cfg.get("area", {})
+                offset_y_val = int(area_cfg.get("offset_y", 0))
+                area_height  = int(area_cfg.get("height", 500))
+                area_y1      = anchor["y"] + offset_y_val
+
+                print(f"[DebugTemplate] Table '{table_name}' anchor at x={anchor['x']}, "
+                      f"offset_y={offset_y_val}")
+
+                columns_cfg = table_cfg.get("columns", [])
+                if columns_cfg:
+                    xs = (
+                        [anchor["x"] + int(c.get("offset_x_start", 0)) for c in columns_cfg]
+                        + [anchor["x"] + int(c.get("offset_x_end",   0)) for c in columns_cfg]
+                    )
+                    area_x1 = max(0, min(xs))
+                    area_x2 = max(xs)
+                else:
+                    area_x1 = anchor["x"]
+                    area_x2 = anchor["x"] + 500
+
+                entry["area"] = {
+                    "x": int(area_x1), "y": int(area_y1),
+                    "w": int(area_x2 - area_x1), "h": int(area_height),
+                }
+
+                for col in columns_cfg:
+                    entry["columns"].append({
+                        "name":    col.get("name", col.get("col_name", "?")),
+                        "x_start": int(anchor["x"] + int(col.get("offset_x_start", 0))),
+                        "x_end":   int(anchor["x"] + int(col.get("offset_x_end",   0))),
+                        "type":    col.get("type", "printed"),
+                    })
+
+            tables_out.append(entry)
+
+        # ── Proses Repeating Sections ────────────────────────────────
+        repeating_out = []
+        for sec_cfg in mapping_config.get("repeating_sections", []):
+            sec_name    = sec_cfg.get("section_name", "section")
+            sec_key     = sec_cfg.get("json_key", sec_name)
+            sec_hint    = sec_cfg.get("hint_position")
+            sec_tol     = float(sec_cfg.get("hint_tolerance", 0.08))
+            sec_anchor_text = (sec_cfg.get("anchor_text") or "").strip()
+            img_size    = (img_w, img_h)
+
+            sec_anchor = find_anchor(ocr_results, sec_anchor_text, hint_position=sec_hint, hint_tolerance=sec_tol, image_size=img_size) if sec_anchor_text else None
+
+            sec_entry = {
+                "section_name": sec_name,
+                "json_key":     sec_key,
+                "anchor_text":  sec_anchor_text,
+                "found":        sec_anchor is not None,
+                "anchor":       None,
+                "fields":       [],
+                "tables":       [],
+            }
+
+            if sec_anchor:
+                sec_entry["anchor"] = {
+                    "text": sec_anchor["text"],
+                    "x": sec_anchor["x"], "y": sec_anchor["y"],
+                    "w": sec_anchor["w"], "h": sec_anchor["h"],
+                }
+
+            for field in sec_cfg.get("fields", []):
+                f_name      = field.get("field_name", "unknown")
+                f_anchor    = (field.get("anchor_text") or "").strip()
+                f_hint      = field.get("hint_position") or sec_hint
+                f_tol       = float(field.get("hint_tolerance", sec_tol))
+                f_off_x     = int(field.get("offset_x", 0))
+                f_off_y     = int(field.get("offset_y", 0))
+                f_width     = int(field.get("width", 100))
+                f_height    = int(field.get("height", 50))
+
+                f_anchor_r  = find_anchor(ocr_results, f_anchor, hint_position=f_hint, hint_tolerance=f_tol, image_size=img_size) if f_anchor else None
+                f_entry     = {
+                    "field_name":  f_name,
+                    "anchor_text": f_anchor,
+                    "found":       f_anchor_r is not None,
+                    "anchor":      None,
+                    "value_box":   None,
+                }
+                if f_anchor_r:
+                    f_entry["anchor"] = {"text": f_anchor_r["text"], "x": f_anchor_r["x"], "y": f_anchor_r["y"], "w": f_anchor_r["w"], "h": f_anchor_r["h"]}
+                    x1, y1, x2, y2 = calculate_target_box(f_anchor_r, f_off_x, f_off_y, f_width, f_height)
+                    f_entry["value_box"] = {"x": int(x1), "y": int(y1), "w": int(x2-x1), "h": int(y2-y1)}
+                sec_entry["fields"].append(f_entry)
+
+            for tbl in sec_cfg.get("tables", []):
+                t_name   = tbl.get("table_name", "table")
+                t_texts  = tbl.get("anchor", {}).get("texts", [])
+                t_anchor_text = (t_texts[0] if t_texts else "").strip()
+                t_hint   = tbl.get("anchor", {}).get("hint_position") or sec_hint
+                t_tol    = float(tbl.get("anchor", {}).get("hint_tolerance", sec_tol))
+                t_anchor_r = find_anchor(ocr_results, t_anchor_text, hint_position=t_hint, hint_tolerance=t_tol, image_size=img_size) if t_anchor_text else None
+                t_entry  = {"table_name": t_name, "anchor_text": t_anchor_text, "found": t_anchor_r is not None, "anchor": None}
+                if t_anchor_r:
+                    t_entry["anchor"] = {"text": t_anchor_r["text"], "x": t_anchor_r["x"], "y": t_anchor_r["y"], "w": t_anchor_r["w"], "h": t_anchor_r["h"]}
+                sec_entry["tables"].append(t_entry)
+
+            repeating_out.append(sec_entry)
+
+        found_f  = sum(1 for f in fields_out if f["found"])
+        found_t  = sum(1 for t in tables_out if t["found"])
+        found_rs = sum(1 for s in repeating_out if s["found"])
+        print(f"[DebugTemplate] ✅ Fields: {found_f}/{len(fields_out)} | Tables: {found_t}/{len(tables_out)} | Sections: {found_rs}/{len(repeating_out)}")
+
+        return jsonify({
+            "image_width":       img_w,
+            "image_height":      img_h,
+            "fields":            fields_out,
+            "tables":            tables_out,
+            "repeating_sections": repeating_out,
+        })
+
+    except Exception as e:
+        logger.error(f"[DebugTemplate] Error: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Register semua blueprint ke Flask app ─────────────────────
 def register_routes(app):
     """
@@ -516,5 +839,9 @@ def register_routes(app):
     print("  GET  /health")
     print("  POST /convert-pdf")
     print("  POST /process")
+    print("  POST /detect-header")
+    print("  POST /predict-ocr")
+    print("  POST /debug-ocr")
+    print("  POST /debug-template")
     print("  GET  /static/pages/<filename>")
     print("  GET  /static/crops/<filename>")

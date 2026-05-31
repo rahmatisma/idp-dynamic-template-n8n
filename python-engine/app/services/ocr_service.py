@@ -2,8 +2,6 @@ import logging
 import threading
 import cv2
 import numpy as np
-from paddleocr import PaddleOCR
-
 logger = logging.getLogger(__name__)
 
 _ocr = None
@@ -13,6 +11,7 @@ def get_ocr_instance():
     global _ocr
     with _ocr_lock:
         if _ocr is None:
+            from paddleocr import PaddleOCR
             logger.info("Initializing PaddleOCR instance...")
             _ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False, enable_mkldnn=False,
                              cpu_threads=4, rec_batch_num=1)

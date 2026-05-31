@@ -443,9 +443,13 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         )
 
         # 2. Ambil mapping_config dari template yang terdeteksi
-        mapping_config = selected_template.get('mapping_config', {})
-        fields_config  = mapping_config.get('fields', [])
-        tables_config  = mapping_config.get('tables', [])
+        mapping_config    = selected_template.get('mapping_config', {})
+        all_fields_config = mapping_config.get('fields', [])
+        all_tables_config = mapping_config.get('tables', [])
+
+        # Filter per halaman — field/tabel tanpa attr 'page' dianggap halaman 1 (backward compat)
+        fields_config = [f for f in all_fields_config if f.get('page', 1) == page_num]
+        tables_config = [t for t in all_tables_config if t.get('page', 1) == page_num]
 
         field_names = [f.get('field_name', '?') for f in fields_config]
         table_names = [t.get('table_name', '?') for t in tables_config]
@@ -488,6 +492,79 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
             if tbl_conf is not None:
                 table_confidences.append(tbl_conf)
 
+        # 4b. Ekstrak repeating_sections (opsional — Battery Bank, dll)
+        # Tidak mengubah perilaku template yang sudah ada karena kunci ini
+        # hanya ada di mapping_config template yang memang membutuhkannya.
+        repeating_data        = {}
+        repeating_section_meta = {}
+        all_repeating_config  = mapping_config.get('repeating_sections', [])
+        repeating_config     = [s for s in all_repeating_config if s.get('page', 1) == page_num]
+        if repeating_config:
+            from app.services.repeating_extractor import extract_repeating_section
+
+            # Dapatkan ukuran gambar untuk konversi hint rasio → piksel
+            try:
+                from PIL import Image as _PILImg
+                with _PILImg.open(clean_img_path) as _pil:
+                    _img_size = _pil.size   # (width, height)
+            except Exception as _e:
+                logger.warning(f"[OCR] Gagal baca ukuran gambar untuk hint: {_e}")
+                _img_size = None
+
+            for sec_cfg in repeating_config:
+                sec_name = sec_cfg.get('section_name', 'section')
+                sec_key  = sec_cfg.get('json_key', sec_name)
+                print(f"\n[OCR] ── Repeating Section '{sec_name}' "
+                      f"────────────────────────────────────")
+                sec_result, sec_conf = extract_repeating_section(
+                    ocr_results, sec_cfg,
+                    image_path=clean_img_path,
+                    image_size=_img_size,
+                )
+                repeating_data[sec_key] = sec_result
+                n_inst   = len(sec_result)
+                conf_str = f"{sec_conf:.1f}%" if sec_conf is not None else "N/A"
+                print(f"[OCR] Repeating section '{sec_name}' selesai: "
+                      f"{n_inst} instances | confidence={conf_str}")
+                if sec_conf is not None:
+                    table_confidences.append(sec_conf)
+
+            # Pisahkan tabel dalam section ke tables_data.
+            # Key tabel diambil dari sec_cfg['tables'][i]['json_key'] (nama yg
+            # didefinisikan admin), bukan dari key hasil OCR — agar key gabungan
+            # menjadi "bank_1_battery_data" bukan "bank_1_no".
+            for sec_cfg in repeating_config:
+                sec_key  = sec_cfg.get('json_key', sec_cfg.get('section_name', 'section'))
+                sec_name = sec_cfg.get('section_name', sec_key)
+                if sec_key not in repeating_data:
+                    continue
+                sec_result = repeating_data[sec_key]
+                table_keys = []
+
+                # Pindahkan tabel berdasarkan json_key dari mapping_config
+                for tbl in sec_cfg.get('tables', []):
+                    tbl_key = tbl.get('json_key') or tbl.get('table_name')
+                    if not tbl_key:
+                        continue
+                    if tbl_key in sec_result and isinstance(sec_result[tbl_key], list):
+                        combined_key              = f"{sec_key}_{tbl_key}"
+                        tables_data[combined_key] = sec_result.pop(tbl_key)
+                        table_keys.append(combined_key)
+
+                # Scalar keys = semua key tersisa yang bukan _ dan bukan list
+                scalar_keys = [
+                    k for k in sec_result.keys()
+                    if not k.startswith('_') and not isinstance(sec_result[k], list)
+                ]
+                repeating_section_meta[sec_key] = {
+                    'section_name': sec_name,
+                    'fields':       scalar_keys,
+                    'tables':       table_keys,
+                }
+                print(f"[OCR] Section '{sec_key}': "
+                      f"{len(scalar_keys)} scalar fields, "
+                      f"{len(table_keys)} tables → {table_keys}")
+
         # 5. Susun output terstruktur via json_builder
         fixed_data    = _fields_to_fixed_results(fields_data)
         field_order   = fixed_data["field_order"]
@@ -499,7 +576,11 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         table_data_out = _tables_to_table_results(tables_data)
         table_results  = table_data_out["results"]
         table_order    = table_data_out["table_order"]
-        structured_out = build_hierarchical_json(fixed_results, table_results, table_order=table_order)
+        structured_out = build_hierarchical_json(
+            fixed_results, table_results,
+            table_order=table_order,
+            repeating_results=repeating_data if repeating_data else None,
+        )
         structured_out["field_order"] = field_order
         structured_out["table_order"] = table_order
 
@@ -518,6 +599,8 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
             )
         ]
         structured_out["combined_order"] = combined_order
+        if repeating_section_meta:
+            structured_out["_repeating_sections"] = repeating_section_meta
 
         # ── Gabungkan PaddleOCR avg + TrOCR table confidence ─────────────
         # Jika ada data dari tabel (yang mencakup TrOCR handwritten):
@@ -555,11 +638,56 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
     all_match_scores = [p.get('template_match_score', 0) for p in results_per_page]
     avg_match_score  = round(sum(all_match_scores) / len(all_match_scores), 1) if all_match_scores else 0.0
 
+    # ── Merge hasil dari semua halaman menjadi satu output terpadu ────────────
+    merged_fields = {}
+    merged_tables = {}
+
+    for page_result in results_per_page:
+        if page_result.get('status') in ('matched', 'low_confidence'):
+            page_fields = page_result.get('fields', {})
+            page_tables = page_result.get('tables', {})
+
+            # Merge dict sections (document, header, dll) dan list sections (checklist, dll)
+            for key, val in page_fields.items():
+                if key in ('field_order', 'table_order', 'combined_order', 'copyright'):
+                    continue
+                if isinstance(val, dict):
+                    if key not in merged_fields:
+                        merged_fields[key] = {}
+                    merged_fields[key].update(val)
+                elif isinstance(val, list):
+                    if key not in merged_fields:
+                        merged_fields[key] = []
+                    merged_fields[key].extend(val)
+                else:
+                    merged_fields[key] = val
+
+            merged_tables.update(page_tables)
+
+    # Gabungkan metadata order dari semua halaman (dedup, pertahankan urutan)
+    all_field_orders    = []
+    all_table_orders    = []
+    all_combined_orders = []
+    for page_result in results_per_page:
+        pf = page_result.get('fields', {})
+        all_field_orders.extend(pf.get('field_order', []))
+        all_table_orders.extend(pf.get('table_order', []))
+        all_combined_orders.extend(pf.get('combined_order', []))
+
+    seen = set()
+    merged_fields['field_order']    = [x for x in all_field_orders    if not (x in seen or seen.add(x))]
+    seen = set()
+    merged_fields['table_order']    = [x for x in all_table_orders    if not (x in seen or seen.add(x))]
+    seen = set()
+    merged_fields['combined_order'] = [x for x in all_combined_orders if not (x in seen or seen.add(x))]
+
     return {
         "status":                "ok",
         "document_id":           document_id,
-        "confidence_score":      avg_ocr_score,    # ← kualitas baca OCR (yang dikirim ke Laravel)
-        "template_match_score":  avg_match_score,  # ← kecocokan template (informasi tambahan)
-        "pages":                 results_per_page,
-        "total_pages":           len(images)
+        "confidence_score":      avg_ocr_score,    # kualitas baca OCR
+        "template_match_score":  avg_match_score,  # kecocokan template
+        "pages":                 results_per_page,  # detail per halaman (tetap ada)
+        "total_pages":           len(images),
+        "merged_fields":         merged_fields,    # hasil terpadu semua halaman
+        "merged_tables":         merged_tables,    # tabel terpadu semua halaman
     }

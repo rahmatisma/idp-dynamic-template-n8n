@@ -40,10 +40,13 @@ const STATUS_OK  = new Set(["ok", "yes", "ya", "baik", "normal"]);
 const STATUS_NOK = new Set(["nok", "no", "tidak", "rusak", "abnormal"]);
 const STATUS_KEYS = new Set(["status", "status_ok", "status_nok", "ok", "nok", "result_ok", "result_nok", "kondisi"]);
 
-// Flatten page.fields satu level — group object dijadikan flat
+// Flatten page.fields satu level — group object dijadikan flat.
+// Top-level key yang dimulai _ (mis. _repeating_sections) di-skip agar
+// tidak tercampur ke field grid biasa.
 function flattenFields(rawFields) {
     const result = {};
     for (const [k, v] of Object.entries(rawFields ?? {})) {
+        if (k.startsWith('_')) continue;
         if (typeof v === "string") {
             result[k] = v;
         } else if (typeof v === "object" && v !== null && !Array.isArray(v)) {
@@ -564,7 +567,52 @@ export default function ValidasiDokumenDetail({ document }) {
                                     const origTables = origPage.tables ?? {};
                                     const copyright  = fields.copyright;
 
-                                    const flat = flattenFields(fields);
+                                    // Pisahkan repeating sections dari field biasa.
+                                    // Fallback: jika _repeating_sections tidak ada di metadata
+                                    // (dokumen diproses sebelum fix), inferensi dari objek
+                                    // non-standar di fields yang punya tabel dengan prefix di tables.
+                                    const STATIC_FIELD_KEYS = new Set([
+                                        'document','header','checklist','notes','pelaksana',
+                                        'mengetahui','copyright','field_order','table_order','combined_order'
+                                    ]);
+                                    const storedRsMeta = fields._repeating_sections ?? {};
+                                    const rsMeta = Object.keys(storedRsMeta).length > 0
+                                        ? storedRsMeta
+                                        : (() => {
+                                            const inferred = {};
+                                            for (const [k, v] of Object.entries(fields)) {
+                                                if (k.startsWith('_') || STATIC_FIELD_KEYS.has(k)) continue;
+                                                if (typeof v !== 'object' || v === null || Array.isArray(v)) continue;
+                                                const secTables    = Object.keys(tables).filter(tk => tk.startsWith(`${k}_`));
+                                                const scalarFields = Object.keys(v).filter(fk => !fk.startsWith('_') && !Array.isArray(v[fk]));
+                                                if (secTables.length > 0 || scalarFields.length > 0) {
+                                                    inferred[k] = {
+                                                        section_name: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                                                        fields:       scalarFields,
+                                                        tables:       secTables,
+                                                    };
+                                                }
+                                            }
+                                            return inferred;
+                                        })();
+                                    const secKeySet = new Set(Object.keys(rsMeta));
+                                    console.log('[DEBUG] storedRsMeta:', storedRsMeta);
+                                    console.log('[DEBUG] rsMeta:', rsMeta);
+                                    console.log('[DEBUG] secKeySet:', [...secKeySet]);
+                                    console.log('[DEBUG] fields keys:', Object.keys(fields));
+                                    console.log('[DEBUG] tables keys:', Object.keys(tables));
+                                    const secTableKeys = new Set([
+                                        ...Object.values(rsMeta).flatMap(s => s.tables ?? []),
+                                        ...Object.keys(tables).filter(k =>
+                                            Object.keys(rsMeta).some(sk => k.startsWith(`${sk}_`))
+                                        )
+                                    ]);
+
+                                    // Field biasa: buang section keys & underscore keys
+                                    const nonSecFields    = Object.fromEntries(Object.entries(fields).filter(([k]) => !secKeySet.has(k) && !k.startsWith('_')));
+                                    const nonSecOrigFields = Object.fromEntries(Object.entries(origFields).filter(([k]) => !secKeySet.has(k) && !k.startsWith('_')));
+
+                                    const flat      = flattenFields(nonSecFields);
                                     const hasFields = Object.keys(flat).some(k => !k.startsWith("_") && k !== "copyright");
 
                                     return (
@@ -585,7 +633,7 @@ export default function ValidasiDokumenDetail({ document }) {
                                             <div className="p-5 space-y-6">
                                                 <ConfidenceAlert score={page.confidence} />
 
-                                                {/* Editable Fields */}
+                                                {/* Editable Fields (tanpa section fields) */}
                                                 {hasFields && (
                                                     <div>
                                                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
@@ -593,30 +641,87 @@ export default function ValidasiDokumenDetail({ document }) {
                                                         </p>
                                                         <EditableFieldGrid
                                                             pageIdx={pi}
-                                                            fields={fields}
-                                                            originalFields={origFields}
+                                                            fields={nonSecFields}
+                                                            originalFields={nonSecOrigFields}
                                                             onFieldChange={handleFieldChange}
                                                         />
                                                     </div>
                                                 )}
 
-                                                {/* Editable Tables */}
-                                                {Object.entries(tables).map(([tableKey, rows]) =>
-                                                    Array.isArray(rows) && rows.length > 0 ? (
-                                                        <div key={tableKey}>
-                                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
-                                                                {colLabel(tableKey)}
-                                                            </p>
-                                                            <EditableResultTable
-                                                                pageIdx={pi}
-                                                                tableKey={tableKey}
-                                                                rows={rows}
-                                                                originalRows={origTables[tableKey] ?? []}
-                                                                onCellChange={handleCellChange}
-                                                            />
+                                                {/* Repeating Sections (Bank 1, Bank 2, dll) */}
+                                                {Object.entries(rsMeta).map(([secKey, secMeta]) => {
+                                                    const secFields     = fields[secKey] ?? {};
+                                                    const origSecFields = origFields[secKey] ?? {};
+                                                    const secHasFields  = (secMeta.fields ?? []).length > 0;
+                                                    const secHasTables  = Object.keys(tables).some(
+                                                        k => k.startsWith(`${secKey}_`) && (tables[k] ?? []).length > 0
+                                                    );
+                                                    if (!secHasFields && !secHasTables) return null;
+                                                    const secLabel = secMeta.section_name ?? secKey.replace(/_/g, " ").toUpperCase();
+                                                    return (
+                                                        <div key={secKey} className="rounded-xl overflow-hidden border border-violet-200">
+                                                            <div className="px-4 py-2 bg-violet-600 flex items-center gap-2">
+                                                                <span className="text-xs font-bold text-white uppercase tracking-widest">
+                                                                    {secLabel}
+                                                                </span>
+                                                            </div>
+                                                            <div className="p-4 space-y-4 bg-violet-50/20">
+                                                                {secHasFields && (
+                                                                    <EditableFieldGrid
+                                                                        pageIdx={pi}
+                                                                        fields={{ [secKey]: secFields }}
+                                                                        originalFields={{ [secKey]: origSecFields }}
+                                                                        onFieldChange={handleFieldChange}
+                                                                    />
+                                                                )}
+                                                                {(() => {
+                                                                    const metaTables   = new Set(secMeta.tables ?? []);
+                                                                    const prefixTables = Object.keys(tables).filter(k => k.startsWith(`${secKey}_`));
+                                                                    const allSecTables = [...new Set([...metaTables, ...prefixTables])];
+                                                                    return allSecTables.map(combinedKey => {
+                                                                        const rows     = tables[combinedKey] ?? [];
+                                                                        const origRows = origTables[combinedKey] ?? [];
+                                                                        const tblLabel = combinedKey.replace(new RegExp(`^${secKey}_`), "");
+                                                                        return rows.length > 0 ? (
+                                                                            <div key={combinedKey}>
+                                                                                <p className="text-xs font-bold text-violet-400 uppercase tracking-widest mb-2">
+                                                                                    {colLabel(tblLabel)}
+                                                                                </p>
+                                                                                <EditableResultTable
+                                                                                    pageIdx={pi}
+                                                                                    tableKey={combinedKey}
+                                                                                    rows={rows}
+                                                                                    originalRows={origRows}
+                                                                                    onCellChange={handleCellChange}
+                                                                                />
+                                                                            </div>
+                                                                        ) : null;
+                                                                    });
+                                                                })()}
+                                                            </div>
                                                         </div>
-                                                    ) : null
-                                                )}
+                                                    );
+                                                })}
+
+                                                {/* Editable Tables (checklist, dll — bukan section tables) */}
+                                                {Object.entries(tables)
+                                                    .filter(([k]) => !secTableKeys.has(k))
+                                                    .map(([tableKey, rows]) =>
+                                                        Array.isArray(rows) && rows.length > 0 ? (
+                                                            <div key={tableKey}>
+                                                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
+                                                                    {colLabel(tableKey)}
+                                                                </p>
+                                                                <EditableResultTable
+                                                                    pageIdx={pi}
+                                                                    tableKey={tableKey}
+                                                                    rows={rows}
+                                                                    originalRows={origTables[tableKey] ?? []}
+                                                                    onCellChange={handleCellChange}
+                                                                />
+                                                            </div>
+                                                        ) : null
+                                                    )}
 
                                                 {copyright && (
                                                     <p className="text-center text-[10px] text-slate-400 pt-4 border-t border-slate-100">
