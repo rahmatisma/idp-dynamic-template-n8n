@@ -60,10 +60,11 @@ logger = logging.getLogger(__name__)
 
 
 def extract_repeating_section(
-    ocr_results:  list,
-    section_cfg:  dict,
-    image_path:   str        = None,
-    image_size:   tuple      | None = None,
+    ocr_results:          list,
+    section_cfg:          dict,
+    image_path:           str        = None,
+    image_size:           tuple      | None = None,
+    ocr_results_original: list       | None = None,
 ) -> tuple:
     """
     Ekstrak satu repeating_section dari mapping_config.
@@ -84,10 +85,12 @@ def extract_repeating_section(
     Fallback ke section-level hint jika anchor tabel tidak punya hint sendiri.
 
     Args:
-        ocr_results  : hasil global OCR satu halaman (list of dict)
-        section_cfg  : satu item dari mapping_config['repeating_sections']
-        image_path   : path PNG halaman — wajib untuk field handwritten/checkbox
-        image_size   : (img_w, img_h) piksel — wajib agar hint rasio bisa dikonversi
+        ocr_results          : hasil global OCR satu halaman (list of dict)
+        section_cfg          : satu item dari mapping_config['repeating_sections']
+        image_path           : path PNG halaman — wajib untuk field handwritten/checkbox
+        image_size           : (img_w, img_h) piksel — wajib agar hint rasio bisa dikonversi
+        ocr_results_original : OCR dari gambar asli (sebelum preprocessing) — diteruskan ke
+                               find_anchor() sebagai fallback jika skor primer < 85
 
     Returns:
         (result_dict, avg_confidence)
@@ -142,6 +145,7 @@ def extract_repeating_section(
                 hint_position=field_hint,
                 hint_tolerance=field_tol,
                 image_size=image_size,
+                ocr_results_fallback=ocr_results_original,
             )
             if anchor_text else None
         )
@@ -227,6 +231,7 @@ def extract_repeating_section(
                 hint_position=tbl_hint,
                 hint_tolerance=tbl_tol,
                 image_size=image_size,
+                ocr_results_fallback=ocr_results_original,
             )
             if anchor_text else None
         )
@@ -244,6 +249,11 @@ def extract_repeating_section(
             ocr_results, tbl_cfg, tbl_anchor, image_path=image_path
         )
         inst_result[tbl_key] = rows
+        _tbl_col_cfg = tbl_cfg.get('columns', [])
+        if _tbl_col_cfg:
+            inst_result[tbl_key + '__col_order'] = [
+                col['key'] for col in sorted(_tbl_col_cfg, key=lambda c: c.get('offset_x_start', 0))
+            ]
 
         conf_str = f'{tbl_conf:.1f}%' if tbl_conf is not None else 'N/A'
         print(f"[RepeatSection] Tabel '{tbl_name}': "

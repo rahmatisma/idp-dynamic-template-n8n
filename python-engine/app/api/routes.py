@@ -780,14 +780,49 @@ def debug_template():
 
             for tbl in sec_cfg.get("tables", []):
                 t_name   = tbl.get("table_name", "table")
+                t_key    = tbl.get("json_key", t_name)
                 t_texts  = tbl.get("anchor", {}).get("texts", [])
                 t_anchor_text = (t_texts[0] if t_texts else "").strip()
                 t_hint   = tbl.get("anchor", {}).get("hint_position") or sec_hint
                 t_tol    = float(tbl.get("anchor", {}).get("hint_tolerance", sec_tol))
                 t_anchor_r = find_anchor(ocr_results, t_anchor_text, hint_position=t_hint, hint_tolerance=t_tol, image_size=img_size) if t_anchor_text else None
-                t_entry  = {"table_name": t_name, "anchor_text": t_anchor_text, "found": t_anchor_r is not None, "anchor": None}
+                t_entry  = {
+                    "table_name":  t_name,
+                    "anchor_text": t_anchor_text,
+                    "found":       t_anchor_r is not None,
+                    "anchor":      None,
+                    "area":        None,
+                    "area_label":  f"{sec_key}_{t_key}_area",
+                    "columns":     [],
+                }
                 if t_anchor_r:
                     t_entry["anchor"] = {"text": t_anchor_r["text"], "x": t_anchor_r["x"], "y": t_anchor_r["y"], "w": t_anchor_r["w"], "h": t_anchor_r["h"]}
+                    t_area_cfg  = tbl.get("area", {})
+                    t_offset_y  = int(t_area_cfg.get("offset_y", 0))
+                    t_height    = int(t_area_cfg.get("height", 500))
+                    t_area_y1   = t_anchor_r["y"] + t_offset_y
+                    t_cols_cfg  = tbl.get("columns", [])
+                    if t_cols_cfg:
+                        xs = (
+                            [t_anchor_r["x"] + int(c.get("offset_x_start", 0)) for c in t_cols_cfg]
+                            + [t_anchor_r["x"] + int(c.get("offset_x_end",   0)) for c in t_cols_cfg]
+                        )
+                        t_area_x1 = max(0, min(xs))
+                        t_area_x2 = max(xs)
+                    else:
+                        t_area_x1 = t_anchor_r["x"]
+                        t_area_x2 = t_anchor_r["x"] + 500
+                    t_entry["area"] = {
+                        "x": int(t_area_x1), "y": int(t_area_y1),
+                        "w": int(t_area_x2 - t_area_x1), "h": int(t_height),
+                    }
+                    for col in t_cols_cfg:
+                        t_entry["columns"].append({
+                            "name":    col.get("name", col.get("col_name", "?")),
+                            "x_start": int(t_anchor_r["x"] + int(col.get("offset_x_start", 0))),
+                            "x_end":   int(t_anchor_r["x"] + int(col.get("offset_x_end",   0))),
+                            "type":    col.get("type", "printed"),
+                        })
                 sec_entry["tables"].append(t_entry)
 
             repeating_out.append(sec_entry)

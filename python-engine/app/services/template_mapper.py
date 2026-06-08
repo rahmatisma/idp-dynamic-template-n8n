@@ -12,13 +12,114 @@ from rapidfuzz import fuzz
 logger = logging.getLogger(__name__)
 
 
+def merge_vertical_neighbors(ocr_results: list) -> list:
+    """
+    Gabungkan pasangan bbox yang merupakan satu label tercetak dalam dua baris fisik.
+
+    Kondisi merge (keduanya harus terpenuhi):
+      1. delta_center_x ≤ max(w_a, w_b) * 0.15  — center-x hampir sama
+      2. gap_vertikal = b.y - (a.y + a.h) ≤ 10px — hampir menyentuh
+      3. Tidak ada bbox lain yang center_y-nya di antara keduanya
+         dengan center_x dalam rentang x kedua bbox
+
+    Merge bersifat chained: A→B→C menghasilkan "A B C".
+    Tidak mengubah list asli — bekerja pada salinan.
+    """
+    if not ocr_results:
+        return ocr_results
+
+    items = [dict(r) for r in ocr_results]
+    items.sort(key=lambda r: (r['y'], r['x']))
+
+    merged = True
+    while merged:
+        merged = False
+        result = []
+        used   = set()
+
+        for i, a in enumerate(items):
+            if i in used:
+                continue
+
+            a_cx  = a['x'] + a['w'] // 2
+            a_bot = a['y'] + a['h']
+
+            best_j    = None
+            best_gap  = float('inf')
+
+            for j, b in enumerate(items):
+                if j <= i or j in used:
+                    continue
+
+                b_cx    = b['x'] + b['w'] // 2
+                gap_v   = b['y'] - a_bot
+                delta_x = abs(b_cx - a_cx)
+                tol_x   = min(a['w'], b['w']) * 0.10
+
+                if gap_v < 0 or gap_v > 10:
+                    continue
+                if delta_x > tol_x:
+                    continue
+
+                # Kondisi 3: tidak ada bbox lain di antara a dan b
+                a_cy    = a['y'] + a['h'] // 2
+                b_cy    = b['y'] + b['h'] // 2
+                x_left  = min(a['x'], b['x'])
+                x_right = max(a['x'] + a['w'], b['x'] + b['w'])
+                blocker = any(
+                    k != i and k != j and k not in used
+                    and a_cy < (items[k]['y'] + items[k]['h'] // 2) < b_cy
+                    and x_left <= (items[k]['x'] + items[k]['w'] // 2) <= x_right
+                    for k in range(len(items))
+                )
+                if blocker:
+                    continue
+
+                if gap_v < best_gap:
+                    best_gap = gap_v
+                    best_j   = j
+
+            if best_j is not None:
+                b    = items[best_j]
+                x1   = min(a['x'], b['x'])
+                x2   = max(a['x'] + a['w'], b['x'] + b['w'])
+                merged_item = {
+                    'text':       a['text'] + ' ' + b['text'],
+                    'x':          x1,
+                    'y':          a['y'],
+                    'w':          x2 - x1,
+                    'h':          (b['y'] + b['h']) - a['y'],
+                    'confidence': min(
+                        a.get('confidence', 1.0),
+                        b.get('confidence', 1.0),
+                    ),
+                }
+                result.append(merged_item)
+                used.add(i)
+                used.add(best_j)
+                merged = True
+            else:
+                result.append(a)
+                used.add(i)
+
+        # Tambahkan sisa item yang belum masuk result
+        for i, a in enumerate(items):
+            if i not in used:
+                result.append(a)
+
+        items = result
+
+    return items
+
+
 def find_anchor(
-    ocr_results:    list,
-    anchor_text:    str,
-    threshold:      int   = 65,
-    hint_position:  dict  | None  = None,
-    hint_tolerance: float = 0.08,
-    image_size:     tuple | None  = None,
+    ocr_results:          list,
+    anchor_text:          str,
+    threshold:            int   = 65,
+    hint_position:        dict  | None  = None,
+    hint_tolerance:       float = 0.08,
+    image_size:           tuple | None  = None,
+    ocr_results_fallback: list  | None  = None,
 ) -> dict | None:
     """
     Cari posisi anchor_text dalam hasil global OCR menggunakan fuzzy matching.
@@ -43,17 +144,26 @@ def find_anchor(
       - Fallback       : jika zona kosong, pakai semua kandidat (jangan return None
                          hanya karena hint tidak match).
 
+    Fallback OCR (opsional):
+      - ocr_results_fallback : hasil OCR dari gambar asli (sebelum preprocessing)
+      - Jika kandidat terbaik dari ocr_results memiliki score < 85, pencarian
+        diulangi pada ocr_results_fallback menggunakan parameter hint yang sama.
+      - Hasil fallback digunakan jika scorenya lebih tinggi dari hasil primer.
+      - Berguna ketika preprocessing (CLAHE/denoise) menyebabkan label tertentu
+        tidak terdeteksi atau terdeteksi dengan kualitas buruk.
+
     Kalau ada banyak match → ambil yang:
       1. Skor tertinggi (setelah penalty)
       2. Posisi Y paling atas (tiebreaker)
 
     Args:
-        ocr_results    : list of dict [{text, x, y, w, h, confidence}]
-        anchor_text    : kata kunci yang dicari (misal: "Location", "Date/time")
-        threshold      : minimum fuzzy score (0–100), default 65
-        hint_position  : titik tengah anchor di canvas (rasio 0–1), opsional
-        hint_tolerance : radius zona dalam rasio (default 0.15 = 15% dimensi gambar)
-        image_size     : (img_w, img_h) dalam piksel, diperlukan jika hint_position ada
+        ocr_results          : list of dict [{text, x, y, w, h, confidence}]
+        anchor_text          : kata kunci yang dicari (misal: "Location", "Date/time")
+        threshold            : minimum fuzzy score (0–100), default 65
+        hint_position        : titik tengah anchor di canvas (rasio 0–1), opsional
+        hint_tolerance       : radius zona dalam rasio (default 0.15 = 15% dimensi gambar)
+        image_size           : (img_w, img_h) dalam piksel, diperlukan jika hint_position ada
+        ocr_results_fallback : OCR dari gambar asli — dipakai jika skor primer < 85
 
     Returns:
         dict {text, x, y, w, h, score} atau None kalau tidak ketemu
@@ -70,9 +180,13 @@ def find_anchor(
     # Anchor 3+ kata → naikkan threshold agar fragment pendek tidak menang
     effective_threshold = max(threshold, 75) if anchor_word_count >= 3 else threshold
 
+    # Pre-merge: gabungkan bbox yang merupakan label satu baris tercetak dua baris
+    # (contoh: "Head Of Sub" + "Departement" → "Head Of Sub Departement")
+    ocr_results_merged = merge_vertical_neighbors(ocr_results)
+
     matches = []
 
-    for item in ocr_results:
+    for item in ocr_results_merged:
         # Guard: item text bisa None dari PaddleOCR → skip
         item_text = item.get('text') or ''
         if not item_text:
@@ -126,6 +240,25 @@ def find_anchor(
         if score >= effective_threshold:
             matches.append({**item, 'score': round(score, 2)})
 
+    # [DEBUG 2 — DebugBug-3: anchor panjang (3+ kata) rawan gagal match]
+    if anchor_word_count >= 3 and matches:
+        _top5_dbg   = sorted(matches, key=lambda _m: -_m['score'])[:5]
+        _top5_parts = []
+        for _cand in _top5_dbg:
+            _in_zone_dbg = True
+            if hint_position and image_size:
+                _iw_dbg, _ih_dbg = image_size
+                _hx_dbg = hint_position.get('x', 0.5) * _iw_dbg
+                _hy_dbg = hint_position.get('y', 0.5) * _ih_dbg
+                _tx_dbg = hint_tolerance * _iw_dbg
+                _ty_dbg = hint_tolerance * _ih_dbg
+                _in_zone_dbg = (
+                    abs(_cand['x'] - _hx_dbg) <= _tx_dbg
+                    and abs((_cand['y'] + _cand['h'] / 2) - _hy_dbg) <= _ty_dbg
+                )
+            _top5_parts.append(f"{_cand['text']} score={_cand['score']:.1f} in_zone={_in_zone_dbg}")
+        print(f"[ANCHOR-DEBUG] anchor='{anchor_text}' | top candidates: [{', '.join(_top5_parts)}]")
+
     # ── Hint-position filter (opsional) ──────────────────────────────────────
     # Terapkan SETELAH scoring selesai agar threshold tetap sama.
     # Konversi rasio → piksel, lalu filter kandidat yang center-nya masuk zona.
@@ -138,7 +271,7 @@ def find_anchor(
         tol_y = hint_tolerance * img_h
         zoned = [
             m for m in matches
-            if abs((m['x'] + m['w'] / 2) - hx) <= tol_x
+            if abs(m['x'] - hx) <= tol_x
             and abs((m['y'] + m['h'] / 2) - hy) <= tol_y
         ]
         if zoned:
@@ -164,6 +297,24 @@ def find_anchor(
 
     # Skor tertinggi dulu, kalau sama → pilih yang paling atas (Y terkecil)
     best = sorted(matches, key=lambda x: (-x['score'], x['y']))[0]
+
+    # Fallback OCR: jika skor terbaik rendah (<85) dan ada OCR dari gambar asli,
+    # coba ulang pencarian pada ocr_results_fallback dan ambil yang lebih baik.
+    # Kasus utama: preprocessing (CLAHE/denoise) menghilangkan label tertentu.
+    if best['score'] < 85 and ocr_results_fallback is not None:
+        fb_best = find_anchor(
+            ocr_results_fallback, anchor_text, threshold,
+            hint_position, hint_tolerance, image_size,
+            ocr_results_fallback=None,  # cegah rekursi
+        )
+        if fb_best and fb_best['score'] > best['score']:
+            logger.info(
+                f"[Mapper] Fallback OCR menang untuk '{anchor_text}': "
+                f"'{fb_best['text']}' score={fb_best['score']} "
+                f"> primer '{best['text']}' score={best['score']}"
+            )
+            best = fb_best
+
     logger.info(
         f"[Mapper] Anchor '{anchor_text}' → '{best['text']}' "
         f"di ({best['x']},{best['y']}) score={best['score']}"

@@ -59,6 +59,7 @@ class DocumentController extends Controller
             'document' => [
                 'id'               => $document->id,
                 'original_name'    => $document->original_name,
+                'file_path'        => $document->file_path,
                 'status'           => $document->status,
                 'confidence_score' => $document->confidence_score,
                 'uploaded_at'      => $document->created_at->format('d M Y, H:i'),
@@ -109,14 +110,20 @@ class DocumentController extends Controller
             $filename = uniqid() . '_' . $file->getClientOriginalName();
             $filePath = 'documents/' . $filename;
 
-            $fileContent = file_get_contents($file->getRealPath());
-            $response = Http::timeout(60)
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . $supabaseKey,
-                    'apikey'        => $supabaseKey,
-                ])
-                ->withBody($fileContent, $file->getMimeType())
-                ->post("$supabaseUrl/storage/v1/object/idp_documents/$filePath");
+            try {
+                $fileContent = file_get_contents($file->getRealPath());
+                $response = Http::timeout(60)
+                    ->withHeaders([
+                        'Authorization' => 'Bearer ' . $supabaseKey,
+                        'apikey'        => $supabaseKey,
+                    ])
+                    ->withBody($fileContent, $file->getMimeType())
+                    ->post("$supabaseUrl/storage/v1/object/idp_documents/$filePath");
+            } catch (\Exception $e) {
+                \Log::warning("Supabase upload timeout/error untuk file '{$file->getClientOriginalName()}': " . $e->getMessage());
+                $failed++;
+                continue;
+            }
 
             if ($response->successful()) {
                 $publicUrl = "$supabaseUrl/storage/v1/object/public/idp_documents/$filePath";
@@ -170,13 +177,16 @@ class DocumentController extends Controller
 
         // 3. Pemicu n8n buat hapus baris di DB (Centralized logic)
         try {
-            Http::post(env('N8N_WEBHOOK_URL'), [
-                'action'      => 'delete',
-                'document_id' => $document->id,
-                'user_id'     => Auth::id(),
-            ]);
+            $n8nUrl = config('services.n8n.webhook_url');
+            if ($n8nUrl) {
+                Http::timeout(5)->post($n8nUrl, [
+                    'action'      => 'delete',
+                    'document_id' => $document->id,
+                    'user_id'     => Auth::id(),
+                ]);
+            }
         } catch (\Exception $e) {
-            // Log error if needed
+            \Log::warning('Gagal notify n8n saat hapus dokumen #' . $document->id . ': ' . $e->getMessage());
         }
 
         // 4. Hapus di lokal biar UI langsung update (Fail-safe)
@@ -307,9 +317,11 @@ class DocumentController extends Controller
             $hasLowConfCell = false;
             foreach ($extractedData['pages'] as $page) {
                 $tables = $page['tables'] ?? [];
-                foreach ($tables as $rows) {
+                foreach ($tables as $tableKey => $rows) {
                     if (!is_array($rows)) continue;
+                    if (str_ends_with($tableKey, '__col_order')) continue;
                     foreach ($rows as $row) {
+                        if (!is_array($row)) continue;
                         foreach ($row as $key => $value) {
                             if (str_starts_with($key, '_conf_') && is_numeric($value) && $value < $CELL_CONF_THRESHOLD) {
                                 $hasLowConfCell = true;

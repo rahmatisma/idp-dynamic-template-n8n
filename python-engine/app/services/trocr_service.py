@@ -32,6 +32,10 @@ logger = logging.getLogger(__name__)
 # Default: false (pakai PaddleOCR untuk semua field, tidak ada timeout)
 TROCR_ENABLED = os.getenv("TROCR_ENABLED", "false").lower() == "true"
 
+# ── Model path via .env ────────────────────────────────────────
+# Override dengan TROCR_MODEL_PATH=path/ke/checkpoint di .env
+MODEL_PATH = os.getenv("TROCR_MODEL_PATH", "models/trocr-finetuned")
+
 if not TROCR_ENABLED:
     logger.info("[TrOCR] DINONAKTIFKAN via env. Field handwritten → fallback PaddleOCR.")
 
@@ -97,7 +101,7 @@ def _load_trocr():
 
         print(f"[TrOCR] Sedang memuat weights model ke {device.type.upper()} (1/2)...")
         _trocr_model = VisionEncoderDecoderModel.from_pretrained(
-            "models/model_finetuned/checkpoint-30618",
+            MODEL_PATH,
             use_safetensors=True
         )
 

@@ -8,6 +8,7 @@ python-engine/MEKANISME.md
 python-engine/MEKANISME_OCR.md
 python-engine/implementation.md
 python-engine/rancangan.md
+python-engine/venv
 
 *.log
 .DS_Store

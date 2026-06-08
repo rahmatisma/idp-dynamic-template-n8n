@@ -154,13 +154,23 @@ function EditableFieldGrid({ pageIdx, fields, originalFields, onFieldChange }) {
 }
 
 // ── Editable Result Table ──────────────────────────────────────
-function EditableResultTable({ pageIdx, tableKey, rows, originalRows, onCellChange }) {
+function EditableResultTable({ pageIdx, tableKey, rows, originalRows, onCellChange, columnOrder }) {
     if (!rows?.length) return <p className="text-sm text-slate-400 italic">Tidak ada data tabel.</p>;
 
-    const rawKeys  = Object.keys(rows[0]).filter(k => !k.startsWith("_"));
-    const noKey    = rawKeys.find(k => ["no", "nomor", "number", "#"].includes(k.toLowerCase())) ?? null;
-    const descKey  = rawKeys.find(k => ["descriptions", "description", "desc", "deskripsi", "item", "uraian"].includes(k.toLowerCase())) ?? null;
-    const otherKeys = rawKeys.filter(k => k !== noKey && k !== descKey);
+    const rawKeys    = Object.keys(rows[0]).filter(k => !k.startsWith("_"));
+    const sortedKeys = columnOrder?.length
+        ? [...rawKeys].sort((a, b) => {
+            const iA = columnOrder.indexOf(a);
+            const iB = columnOrder.indexOf(b);
+            if (iA === -1 && iB === -1) return 0;
+            if (iA === -1) return 1;
+            if (iB === -1) return -1;
+            return iA - iB;
+          })
+        : rawKeys;
+    const noKey    = sortedKeys.find(k => ["no", "nomor", "number", "#"].includes(k.toLowerCase())) ?? null;
+    const descKey  = sortedKeys.find(k => ["descriptions", "description", "desc", "deskripsi", "item", "uraian"].includes(k.toLowerCase())) ?? null;
+    const otherKeys = sortedKeys.filter(k => k !== noKey && k !== descKey);
     const colKeys  = [...(noKey ? [noKey] : []), ...(descKey ? [descKey] : []), ...otherKeys];
 
     const editedCount = rows.reduce((acc, row, ri) => {
@@ -676,7 +686,7 @@ export default function ValidasiDokumenDetail({ document }) {
                                                                 )}
                                                                 {(() => {
                                                                     const metaTables   = new Set(secMeta.tables ?? []);
-                                                                    const prefixTables = Object.keys(tables).filter(k => k.startsWith(`${secKey}_`));
+                                                                    const prefixTables = Object.keys(tables).filter(k => k.startsWith(`${secKey}_`) && !k.endsWith('__col_order'));
                                                                     const allSecTables = [...new Set([...metaTables, ...prefixTables])];
                                                                     return allSecTables.map(combinedKey => {
                                                                         const rows     = tables[combinedKey] ?? [];
@@ -693,6 +703,7 @@ export default function ValidasiDokumenDetail({ document }) {
                                                                                     rows={rows}
                                                                                     originalRows={origRows}
                                                                                     onCellChange={handleCellChange}
+                                                                                    columnOrder={tables[combinedKey + '__col_order']}
                                                                                 />
                                                                             </div>
                                                                         ) : null;
@@ -705,7 +716,7 @@ export default function ValidasiDokumenDetail({ document }) {
 
                                                 {/* Editable Tables (checklist, dll — bukan section tables) */}
                                                 {Object.entries(tables)
-                                                    .filter(([k]) => !secTableKeys.has(k))
+                                                    .filter(([k]) => !secTableKeys.has(k) && !k.endsWith('__col_order'))
                                                     .map(([tableKey, rows]) =>
                                                         Array.isArray(rows) && rows.length > 0 ? (
                                                             <div key={tableKey}>
@@ -718,6 +729,7 @@ export default function ValidasiDokumenDetail({ document }) {
                                                                     rows={rows}
                                                                     originalRows={origTables[tableKey] ?? []}
                                                                     onCellChange={handleCellChange}
+                                                                    columnOrder={tables[tableKey + '__col_order']}
                                                                 />
                                                             </div>
                                                         ) : null

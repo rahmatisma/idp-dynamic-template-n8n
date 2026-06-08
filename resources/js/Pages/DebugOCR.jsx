@@ -285,14 +285,34 @@ function TemplateMappingOverlay({ fields, tables, repeatingSections, scaleX, sca
                         );
                     })}
 
-                    {/* Tables within section — anchor rose solid */}
+                    {/* Tables within section — area orange dashed + anchor rose solid */}
                     {(sec.tables ?? []).map((t, ti) => {
                         if (!t.found || !t.anchor) return null;
-                        const a = t.anchor;
+                        const a  = t.anchor;
+                        const ar = t.area;
                         const ax = a.x * scaleX, ay = a.y * scaleY, aw = a.w * scaleX, ah = a.h * scaleY;
-                        const hovTA = hovered?.kind === "sec_table_anchor" && hovered.secIdx === si && hovered.tableIdx === ti;
+                        const hovTA  = hovered?.kind === "sec_table_anchor" && hovered.secIdx === si && hovered.tableIdx === ti;
+                        const hovTAr = hovered?.kind === "sec_table_area"   && hovered.secIdx === si && hovered.tableIdx === ti;
                         return (
                             <g key={`st${si}-${ti}`}>
+                                {/* Table area (orange dashed) */}
+                                {ar && (<>
+                                    <rect x={ar.x * scaleX} y={ar.y * scaleY} width={ar.w * scaleX} height={ar.h * scaleY} fill="transparent"
+                                        style={{ pointerEvents: "all", cursor: "crosshair" }}
+                                        onMouseEnter={() => onHover({ kind: "sec_table_area", secIdx: si, tableIdx: ti })}
+                                        onMouseLeave={() => onHover(null)} />
+                                    <rect x={ar.x * scaleX} y={ar.y * scaleY} width={ar.w * scaleX} height={ar.h * scaleY}
+                                        fill={hovTAr ? "rgba(249,115,22,0.15)" : "rgba(249,115,22,0.05)"}
+                                        stroke="#f97316" strokeWidth={1} strokeDasharray="7 4"
+                                        style={{ pointerEvents: "none" }} />
+                                    {showLabels && (
+                                        <text x={ar.x * scaleX + 2} y={ar.y * scaleY - 3} fontSize={8} fill="#f97316"
+                                            fontFamily="monospace" fontWeight={600} style={{ pointerEvents: "none" }}>
+                                            {t.area_label ?? `${sec.json_key}_${t.table_name}_area`}
+                                        </text>
+                                    )}
+                                </>)}
+                                {/* Table anchor (rose solid) */}
                                 <rect x={ax} y={ay} width={aw} height={ah} fill="transparent"
                                     style={{ pointerEvents: "all", cursor: "crosshair" }}
                                     onMouseEnter={() => onHover({ kind: "sec_table_anchor", secIdx: si, tableIdx: ti })}
@@ -555,9 +575,13 @@ export default function DebugOCR({ documents, templates, pythonEngineUrl }) {
                             if (showLabels) drawLabel(f.field_name, f.anchor.x, f.anchor.y, "#6366f1");
                         }
                     }
-                    // Section table anchors (rose)
+                    // Section table areas (orange dashed) + anchors (rose solid)
                     for (const t of (sec.tables ?? [])) {
                         if (!t.found || !t.anchor) continue;
+                        if (t.area) {
+                            drawBox(t.area.x, t.area.y, t.area.w, t.area.h, "#f97316", 0.06, DASH_VALUE);
+                            if (showLabels) drawLabel(t.area_label ?? `${sec.json_key}_${t.table_name}_area`, t.area.x, t.area.y, "#f97316");
+                        }
                         drawBox(t.anchor.x, t.anchor.y, t.anchor.w, t.anchor.h, "#e11d48", 0.18);
                         if (showLabels) drawLabel(t.table_name, t.anchor.x, t.anchor.y, "#e11d48");
                     }
@@ -681,6 +705,7 @@ export default function DebugOCR({ documents, templates, pythonEngineUrl }) {
                 <LegendItem color="#6366f1" label="Section Field Anchor" />
                 <LegendItem color="#6366f1" label="Section Field Value" dashed />
                 <LegendItem color="#e11d48" label="Section Table Anchor" />
+                <LegendItem color="#f97316" label="Section Table Area" dashed />
             </div>
         );
     };

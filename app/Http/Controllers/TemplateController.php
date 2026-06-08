@@ -210,8 +210,15 @@ class TemplateController extends Controller
                 $imageContent = @file_get_contents($fullPythonUrl);
                 if ($imageContent !== false) {
                     Storage::disk('public')->put($imgLocalPath, $imageContent);
+                    $fullLocalPath = storage_path('app/public/' . $imgLocalPath);
+                    if (file_exists($fullLocalPath)) {
+                        chmod($fullLocalPath, 0644);
+                    } else {
+                        \Log::warning("[ConvertPdf] File tidak tertulis ke disk: {$fullLocalPath}");
+                    }
                     $localPageImages[] = Storage::url($imgLocalPath);
                 } else {
+                    \Log::warning("[ConvertPdf] Gagal download PNG dari Python: {$fullPythonUrl}");
                     $localPageImages[] = $fullPythonUrl;
                 }
 

@@ -36,6 +36,12 @@ const WarningIcon = () => (
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
     </svg>
 );
+const ExternalLinkIcon = () => (
+    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+    </svg>
+);
 
 // ── Status Badge ───────────────────────────────────────────────
 const STATUS_MAP = {
@@ -247,10 +253,20 @@ function isStatusKey(key) {
     return STATUS_KEY_HINTS.has(key.toLowerCase());
 }
 
-function ChecklistTable({ rows }) {
+function ChecklistTable({ rows, columnOrder }) {
     if (!rows?.length) return null;
 
-    const colKeys = Object.keys(rows[0]).filter(k => !k.startsWith("_"));
+    const rawKeys = Object.keys(rows[0]).filter(k => !k.startsWith("_"));
+    const colKeys = columnOrder?.length
+        ? [...rawKeys].sort((a, b) => {
+            const iA = columnOrder.indexOf(a);
+            const iB = columnOrder.indexOf(b);
+            if (iA === -1 && iB === -1) return 0;
+            if (iA === -1) return 1;
+            if (iB === -1) return -1;
+            return iA - iB;
+          })
+        : rawKeys;
     const { noKey, descKey } = detectColumns(colKeys);
     const hasNoCol   = !!noKey;
     const hasDescCol = !!descKey;
@@ -524,7 +540,20 @@ export default function DocumentDetail({ document }) {
                                 {document.processing_ended_at && <> · Selesai {document.processing_ended_at}</>}
                             </p>
                         </div>
-                        <StatusBadge status={document.status} />
+                        <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                            <StatusBadge status={document.status} />
+                            {document.file_path && (
+                                <a
+                                    href={document.file_path}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition"
+                                >
+                                    <ExternalLinkIcon />
+                                    Buka PDF
+                                </a>
+                            )}
+                        </div>
                     </div>
 
                     <div className="px-6 pb-5 grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-slate-100 pt-4">
@@ -655,7 +684,7 @@ export default function DocumentDetail({ document }) {
                                     const secHasFields = (secMeta.fields ?? []).length > 0;
                                     const allSecTbls = [...new Set([
                                         ...(secMeta.tables ?? []),
-                                        ...Object.keys(tables).filter(k => k.startsWith(`${secKey}_`))
+                                        ...Object.keys(tables).filter(k => k.startsWith(`${secKey}_`) && !k.endsWith('__col_order'))
                                     ])];
                                     const secHasTables = allSecTbls.some(k => (tables[k] ?? []).length > 0);
                                     if (!secHasFields && !secHasTables) return null;
@@ -673,7 +702,7 @@ export default function DocumentDetail({ document }) {
                                                     return rows.length > 0 ? (
                                                         <div key={combinedKey}>
                                                             <SectionLabel>{colLabel(tblLabel)}</SectionLabel>
-                                                            <ChecklistTable rows={rows} />
+                                                            <ChecklistTable rows={rows} columnOrder={tables[combinedKey + '__col_order']} />
                                                         </div>
                                                     ) : null;
                                                 })}
@@ -707,7 +736,7 @@ export default function DocumentDetail({ document }) {
                                             contentItems.push(
                                                 <div key={key}>
                                                     <SectionLabel>{colLabel(key)}</SectionLabel>
-                                                    <ChecklistTable rows={tables[key]} />
+                                                    <ChecklistTable rows={tables[key]} columnOrder={tables[key + '__col_order']} />
                                                 </div>
                                             );
                                         } else if (key in flatFields) {
@@ -778,12 +807,12 @@ export default function DocumentDetail({ document }) {
                                                     )}
                                                     {sectionItems}
                                                     {Object.entries(tables)
-                                                        .filter(([k]) => !secTableKeys.has(k))
+                                                        .filter(([k]) => !secTableKeys.has(k) && !k.endsWith('__col_order'))
                                                         .map(([tableKey, rows]) => (
                                                             Array.isArray(rows) && rows.length > 0 && (
                                                                 <div key={tableKey}>
                                                                     <SectionLabel>{colLabel(tableKey)}</SectionLabel>
-                                                                    <ChecklistTable rows={rows} />
+                                                                    <ChecklistTable rows={rows} columnOrder={tables[tableKey + '__col_order']} />
                                                                 </div>
                                                             )
                                                         ))}

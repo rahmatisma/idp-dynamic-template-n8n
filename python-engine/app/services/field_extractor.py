@@ -15,6 +15,7 @@ Untuk field checkbox, tidak pakai OCR — analisis rasio piksel gelap.
 """
 
 import logging
+import re
 from app.services.template_mapper import find_anchor, calculate_target_box, get_text_in_bbox, get_text_and_conf_in_bbox
 
 logger = logging.getLogger(__name__)
@@ -105,6 +106,22 @@ def extract_fields(ocr_results: list, fields_config: list, image_path: str = Non
 
         if field_type != "checkbox" and value:
             value = value.lstrip(":.- ").strip()
+            # Strip anchor text jika ikut terbaca di awal nilai (rule-based, generic)
+            if anchor_text and value:
+                anchor_alnum = re.sub(r'[^a-zA-Z0-9]', '', anchor_text).lower()
+                value_prefix_alnum = re.sub(r'[^a-zA-Z0-9]', '', value[:len(anchor_text) + 5]).lower()
+                if len(anchor_alnum) >= 3 and value_prefix_alnum.startswith(anchor_alnum):
+                    skipped = 0
+                    cut = 0
+                    for i, ch in enumerate(value):
+                        if ch.isalnum():
+                            skipped += 1
+                        if skipped == len(anchor_alnum):
+                            cut = i + 1
+                            break
+                    stripped = value[cut:].lstrip(' .:-/').strip()
+                    if stripped:
+                        value = stripped
         status_icon = "✓" if value else "○"
         print(f"[FIELD] {status_icon} '{field_name}' [{engine_log}] → '{value or '(kosong)'}'"
               + (f" (conf={conf}%)" if conf is not None else ""))

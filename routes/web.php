@@ -94,41 +94,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-// ── Webhook dari n8n (PUBLIC — tidak butuh login, tidak butuh CSRF) ──────────
-//
-// Semua route di bawah ini dipanggil oleh n8n, bukan oleh browser user.
-// Oleh karena itu tidak perlu auth middleware dan CSRF token.
-
-Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
-    ->group(function () {
-
-        // n8n Node 2 — INSERT dokumen baru ke database
-        // Dipanggil setelah n8n menerima trigger dari Laravel
-        Route::post('/api/webhook/create-document', [DocumentController::class, 'createFromN8n'])
-            ->name('webhook.create-document');
-
-        // n8n Node 3 & Node 6 — UPDATE status + hasil OCR
-        // Node 3: status = "processing"
-        // Node 6: status = "need_validation" + extracted_data + confidence_score
-        Route::patch('/api/webhook/ocr-result', [DocumentController::class, 'receiveOcrResult'])
-            ->name('webhook.ocr-result');
-
-        // Alias sesuai request Step 4 & 5
-        Route::patch('/api/documents/{document}', [DocumentController::class, 'receiveOcrResult'])
-            ->name('webhook.ocr-result-alias');
-
-        Route::post('/api/documents', [DocumentController::class, 'createFromN8n'])
-            ->name('webhook.create-document-alias');
-
-        // n8n Template Workflow — INSERT/UPDATE template ke database
-        Route::post('/api/webhook/create-template', [TemplateController::class, 'createFromN8n'])
-            ->name('webhook.create-template');
-
-        // External API for n8n/Other systems
-        Route::get('/api/templates', [TemplateController::class, 'listApi'])
-            ->name('api.templates.list_external');
-        Route::get('/api/templates/{template}', [TemplateController::class, 'showApi'])
-            ->name('api.templates.show_external');
-    });
-
 require __DIR__ . '/auth.php';

@@ -73,10 +73,18 @@ def group_by_y(ocr_items: list, y_threshold: float = None) -> list:
     return rows
 
 
+def _is_subitem_prefix(text: str) -> bool:
+    """Return True jika teks diawali sub-item prefix (a., b., c., I., 1., dll.)."""
+    import re as _re
+    t = (text or '').strip()
+    return bool(_re.match(r'^[a-zA-Z]\.|^-\s|^[IVX]+\.|^\d+\.', t))
+
+
 def group_by_y_anchor(
     area_items:     list,
     columns_config: list,
     anchor_x:       int,
+    table_name:     str = "unknown",
 ) -> list:
     """
     Kelompokkan item OCR berdasarkan posisi Y — metode ANCHOR-BASED.
@@ -115,6 +123,10 @@ def group_by_y_anchor(
         return group_by_y(area_items)
 
     anchor_items_sorted = sorted(anchor_items, key=lambda i: i["y"])
+    _anchor_texts_debug = [f"{i.get('text', '?')}@y={i['y']}" for i in anchor_items_sorted]
+    print(f"[ANCHOR-ROWS-DEBUG] {table_name} | found={len(anchor_items_sorted)} anchors | texts=[{', '.join(_anchor_texts_debug)}]")
+    if len(anchor_items_sorted) < 5:
+        print(f"[ANCHOR-ROWS-DEBUG] {table_name} | WARNING: hanya {len(anchor_items_sorted)} anchor ditemukan — banyak baris kemungkinan tidak terdeteksi")
     avg_h = sum(i["h"] for i in anchor_items_sorted) / len(anchor_items_sorted)
 
     # ── Kumpulkan semua non-anchor items (printed + handwritten) ─────────────
@@ -155,6 +167,137 @@ def group_by_y_anchor(
         left_x_start = None
         left_x_end   = None
 
+    # ── STEP 0: Zone-based grouping dari kolom No ─────────────────────────────
+    # Gunakan item di kolom kiri (No) sebagai zone boundary.
+    # Hanya angka/roman numeral yang valid sebagai zone marker (FIX 1).
+    # Zona tanpa sub-item prefix → single multi-line row dengan deteksi header (FIX 2).
+    # Zona dengan sub-item prefix → tiap anchor item menjadi physical row mandiri.
+    import re as _re_zone
+    _SECTION_NUM_PAT = _re_zone.compile(r'^\d+\.?$|^[IVX]+\.?$', _re_zone.IGNORECASE)
+    _ZONE_SKIP = {'no', 'no.', 'number', '#', 'nama', 'mitra'}
+    _left_zone_items = []
+    if left_x_start is not None:
+        _left_zone_items = sorted(
+            [i for i in area_items
+             if left_x_start <= (i['x'] + i['w'] / 2) <= left_x_end
+             and i.get('text', '').strip().lower() not in _ZONE_SKIP
+             and _SECTION_NUM_PAT.match(i.get('text', '').strip())],
+            key=lambda r: r['y']
+        )
+
+    if _left_zone_items and len(anchor_items_sorted) >= 2:
+        _zone_bounds = []
+        for _zi, _li in enumerate(_left_zone_items):
+            _y_end = (
+                _left_zone_items[_zi + 1]['y']
+                if _zi + 1 < len(_left_zone_items)
+                else float('inf')
+            )
+            _zone_bounds.append({'y_start': _li['y'], 'y_end': _y_end})
+
+        # Kolom kanan PRINTED saja untuk deteksi zone header (FIX 2).
+        # Handwritten cols dikecualikan: global OCR bisa salah deteksi tulisan
+        # tangan dan menghasilkan false-positive pada _has_right_here.
+        _right_cols = [
+            col for col in columns_config
+            if not col.get('is_row_anchor')
+            and col.get('offset_x_start', 0) > 0
+            and col.get('type', 'printed') == 'printed'
+        ]
+
+        _result_zone = []
+        for _zi, _zb in enumerate(_zone_bounds):
+            # Anchor items dalam zone ini (berdasarkan center_y)
+            _zone_ancs = [
+                a for a in anchor_items_sorted
+                if _zb['y_start'] <= (a['y'] + a['h'] / 2) < _zb['y_end']
+            ]
+            if not _zone_ancs:
+                continue
+
+            # Non-anchor items dalam zone ini
+            _zone_non = [
+                na for na in non_anchor_sorted
+                if _zb['y_start'] <= (na['y'] + na['h'] / 2) < _zb['y_end']
+            ]
+            _next_zone_y = (
+                _zone_bounds[_zi + 1]['y_start']
+                if _zi + 1 < len(_zone_bounds)
+                else None
+            )
+            # Deteksi tipe zone: ada sub-item prefix → multi sub-row
+            _has_sub = any(_is_subitem_prefix(a.get('text', '')) for a in _zone_ancs)
+            # Index sub-item pertama: untuk deteksi multi-line header sebelum sub-items
+            _first_sub_idx = next(
+                (j for j, a in enumerate(_zone_ancs)
+                 if _is_subitem_prefix(a.get('text', ''))),
+                len(_zone_ancs)
+            )
+            # Inisialisasi flag header zone (FIX 2)
+            _first_has_right = True  # default: ai=0 punya right-data → semua merge
+
+            for _ai, _anc in enumerate(_zone_ancs):
+                _a_y      = _anc['y']
+                _next_a_y = (
+                    _zone_ancs[_ai + 1]['y']
+                    if _ai + 1 < len(_zone_ancs)
+                    else (_next_zone_y if _next_zone_y is not None else float('inf'))
+                )
+                _a_non = [
+                    na for na in _zone_non
+                    if _a_y <= (na['y'] + na['h'] / 2) < _next_a_y
+                ]
+                _next_ref = (
+                    _zone_ancs[_ai + 1]['y']
+                    if _ai + 1 < len(_zone_ancs)
+                    else _next_zone_y
+                )
+
+                if not _has_sub:
+                    # Cek apakah anchor ini punya right-data sendiri (FIX 2)
+                    _has_right_here = any(
+                        any(
+                            anchor_x + int(rc.get('offset_x_start', 0)) - 30
+                            <= (na['x'] + na['w'] / 2) <=
+                            anchor_x + int(rc.get('offset_x_end', 200)) + 30
+                            for rc in _right_cols
+                        )
+                        for na in _a_non
+                    )
+                    if _ai == 0:
+                        _first_has_right = _has_right_here
+                        _is_cont = False
+                    elif _ai == 1 and not _first_has_right:
+                        # ai=0 tidak punya right → bedakan Zone 3 vs Zone 4:
+                        # ai=1 punya right  → ai=0 awal multi-line desc, all merge (Zone 3)
+                        # ai=1 tidak punya right → ai=0 zone header, start fresh (Zone 4)
+                        _is_cont = _has_right_here
+                    else:
+                        _is_cont = True
+                else:
+                    # has_sub zone: anchors sebelum sub-item pertama bisa multi-line
+                    if _first_sub_idx > 1 and _ai < _first_sub_idx:
+                        _is_cont = (_ai > 0)
+                    else:
+                        _is_cont = False
+                _result_zone.append({
+                    'items':                   [_anc] + _a_non,
+                    'ref_y':                   _a_y,
+                    'next_ref_y':              _next_ref,
+                    'is_continuation_of_prev': _is_cont,
+                })
+
+        if _result_zone:
+            print(
+                f"[ZONE-BASED] {table_name} | "
+                f"{len(_zone_bounds)} zones | {len(_result_zone)} physical rows"
+            )
+            logger.debug(
+                f"[TableExtractor] Zone-based: {len(_zone_bounds)} zones "
+                f"→ {len(_result_zone)} physical rows."
+            )
+            return _result_zone
+
     # ── STEP 1: Tentukan envelope per anchor candidate ────────────────────────
     anchor_envelopes = []
     for i, item in enumerate(anchor_items_sorted):
@@ -185,7 +328,11 @@ def group_by_y_anchor(
             ]
             is_header = len(no_items) > 0
         else:
-            is_header = len(candidate_envelope) == 0
+            # Anchor numerik (nomor baris) tidak pernah menjadi section header —
+            # hanya teks non-numerik tanpa nilai di kolom lain yang bisa header.
+            _anchor_text = item.get('text', '').strip()
+            _is_numeric  = bool(_anchor_text) and _anchor_text.replace('.', '').isdigit()
+            is_header    = (not _is_numeric) and (len(candidate_envelope) == 0)
 
         anchor_envelopes.append({
             "item":        item,
@@ -259,7 +406,7 @@ def group_by_y_anchor(
 
             own_non_anchors = [
                 na for na in group_non_anchors
-                if anchor_y <= (na["y"] + na["h"] / 2) < (next_anchor_in_group_y + tolerance)
+                if anchor_y <= (na["y"] + na["h"] / 2) < next_anchor_in_group_y
                 and id(na) not in claimed
             ]
 
@@ -289,7 +436,7 @@ def group_by_y_anchor(
 
                 if ancestor:
                     ancestor_env_bottom = max(
-                        na["y"] + na["h"] for na in ancestor["own_non_anchors"]
+                        na["y"] + na["h"] / 2 for na in ancestor["own_non_anchors"]
                     )
                     if rg["ref_y"] < ancestor_env_bottom:
                         rg["is_continuation_of_prev"] = True
@@ -393,12 +540,16 @@ def split_by_x(
     Returns:
         dict {col_key: value_string}
     """
-    result = {col['key']: "" for col in columns_config}
+    # Urutkan kolom berdasarkan offset_x_start agar urutan fisik (kiri→kanan)
+    # terjaga di dict output — Python 3.7+ dan JSON keduanya preserve insertion order,
+    # sehingga Object.keys() di JavaScript akan mengembalikan urutan yang benar.
+    _cols_sorted = sorted(columns_config, key=lambda c: c.get('offset_x_start', 0))
+    result = {col['key']: "" for col in _cols_sorted}
 
     # ── Pass 1: Assign teks PRINTED dari global OCR ──────────────
     # Hitung tolerance per-kolom: 10% lebar kolom atau min 8px
     # Track confidence per kolom: { col_key: [conf_values] }
-    _col_conf_acc: dict = {col['key']: [] for col in columns_config}
+    _col_conf_acc: dict = {col['key']: [] for col in _cols_sorted}
 
     for item in row_items:
         center_x = (item['x'] + item['w'] / 2) - anchor_x
@@ -596,16 +747,19 @@ def split_by_x(
 
                 if x2 <= x1 or y2 <= y1:
                     result[col['key']] = empty_val
+                    result[f"_conf_{col['key']}"] = 0.0
                     continue
 
                 crop = img_gray[y1:y2, x1:x2]
                 if crop.size == 0:
                     result[col['key']] = empty_val
+                    result[f"_conf_{col['key']}"] = 0.0
                     continue
 
                 dark_ratio = float((crop < 180).mean())
                 is_checked = dark_ratio > threshold
                 result[col['key']] = checked_val if is_checked else empty_val
+                result[f"_conf_{col['key']}"] = 95.0 if is_checked else 90.0
                 logger.info(
                     f"[TableExtractor] Kolom '{col['key']}' [Checkbox] "
                     f"dark={dark_ratio:.3f} threshold={threshold} → '{result[col['key']]}'"
@@ -762,6 +916,16 @@ def merge_multi_line_rows(physical_rows: list, columns_config: list) -> list:
 
         if is_cont and current_logical is not None:
             # ── LANJUTAN: gabung ke baris logis sebelumnya ────────────────────
+            _row_ref_y_dbg       = row.get('_ref_y', 'N/A')
+            _target_ref_y_dbg    = current_logical.get('_ref_y', 'N/A')
+            _anchor_text_dbg     = (row.get(anchor_col) or '').strip()
+            _flag_cont_dbg       = row.get('_is_continuation_of_prev', False)
+            _prev_has_anchor_dbg = bool((prev_physical.get(anchor_col) or '').strip()) if prev_physical else False
+            _reason_dbg          = "continuation" if _flag_cont_dbg else (
+                "forward_merge" if (_prev_has_anchor_dbg and not _has_right(prev_physical) and _has_anchor(row))
+                else "continuation"
+            )
+            print(f"[MERGE-DEBUG] baris ref_y={_row_ref_y_dbg} '{_anchor_text_dbg}' → merge ke logical_row ref_y={_target_ref_y_dbg} | alasan={_reason_dbg}")
             for key, val in row.items():
                 if key.startswith('_'):
                     continue
@@ -868,27 +1032,71 @@ def merge_multi_line_rows(physical_rows: list, columns_config: list) -> list:
         col['key'] for col in columns_config
         if col.get('multi_line') and not col.get('is_row_anchor')
     ]
-    _subitem_pat = _re2.compile(r'^[-a-zA-Z]\.|^-\s|^\d+\.')
+    _subitem_pat = _re2.compile(
+        r'^[-a-zA-Z]\.|^-\s|^\d+\.?|^[IVX]+\.',
+        _re2.IGNORECASE
+    )
 
     # ── POST-PROCESSING: append description-only row ke baris sebelumnya ──────
     # Kasus: baris fisik terakhir dari deskripsi panjang (multi-line) tidak
     # ter-merge karena baris sebelumnya sudah prev_was_standalone=True.
     # Syarat gabung: hanya punya description, bukan sub-item baru,
     # dan baris sebelumnya sudah punya nilai di right_data_cols.
-    merged_to_prev = []
-    for row in logical_rows:
-        row_desc  = (row.get(anchor_col) or '').strip()
+    merged_to_prev  = []
+    _pending_append = ''
+    _left_no_cols = [col['key'] for col in columns_config
+                     if col.get('offset_x_start', 0) < 0
+                     and not col.get('is_row_anchor')]
+    for i, row in enumerate(logical_rows):
+        # Terapkan pending forward-merge dari iterasi sebelumnya
+        if _pending_append:
+            _existing        = (row.get(anchor_col) or '').strip()
+            row[anchor_col]  = (_existing + ' ' + _pending_append).strip()
+            row_desc         = row[anchor_col]
+            _pending_append  = ''
+        else:
+            row_desc = (row.get(anchor_col) or '').strip()
+
         all_empty = all(not (row.get(k) or '').strip() for k in _all_non_anchor)
         has_right_prev = (
             merged_to_prev
             and any((merged_to_prev[-1].get(k) or '').strip() for k in right_data_cols)
         )
-        if all_empty and row_desc and not _subitem_pat.match(row_desc) and has_right_prev:
+        # Jika baris berikutnya punya nomor → baris ini adalah section header, jangan di-append
+        next_has_no = False
+        next_idx = i + 1
+        if next_idx < len(logical_rows):
+            next_row = logical_rows[next_idx]
+            for lc in _left_no_cols:
+                if (next_row.get(lc) or '').strip():
+                    next_has_no = True
+                    break
+        # Guard ZB-Spare: jika baris berikutnya adalah stub prefix (mis. "a.")
+        # baris ini kemungkinan milik next row — forward-merge ke depan
+        _next_is_stub = False
+        if next_idx < len(logical_rows):
+            _nxt       = logical_rows[next_idx]
+            _nxt_desc  = (_nxt.get(anchor_col) or '').strip()
+            _next_is_stub = (
+                len(_nxt_desc) <= 3
+                and bool(_subitem_pat.match(_nxt_desc))
+                and any(c.isalpha() for c in _nxt_desc)
+            )
+
+        if (all_empty and row_desc
+                and not _subitem_pat.match(row_desc)
+                and not next_has_no
+                and has_right_prev
+                and not _next_is_stub):
             prev_desc = (merged_to_prev[-1].get(anchor_col) or '').strip()
             merged_to_prev[-1][anchor_col] = (prev_desc + ' ' + row_desc).strip()
             logger.info(f"[TableExtractor] Append desc ke prev: '{row_desc[:40]}'")
         else:
-            merged_to_prev.append(row)
+            if _next_is_stub and all_empty and row_desc:
+                _pending_append = row_desc
+                logger.info(f"[TableExtractor] Forward-merge '{row_desc[:40]}' → next stub '{_nxt_desc}'")
+            else:
+                merged_to_prev.append(row)
     logical_rows = merged_to_prev
 
     # ── POST-PROCESSING: hapus trailing rows tanpa nilai (footer) ─────────────
@@ -963,10 +1171,11 @@ def extract_table(
     area_y1  = anchor['y'] + raw_offset_y
     area_y2  = area_y1 + area_cfg.get('height', 500)
 
-    # Filter Y: mulai dari bawah baris anchor (header tabel).
-    # Gunakan tinggi aktual anchor (h) + 2px margin agar baris header
-    # tabel (yg berisi "No", "Descriptions", dsb) tidak ikut terekstrak.
-    filter_y1 = anchor['y'] + anchor.get('h', 20) + 2
+    # Filter Y: mulai dari bawah baris anchor (header tabel) ATAU dari
+    # area_y1 (offset_y dari config), mana yang lebih besar.
+    # Ini memastikan offset_y pada config (misal Executor offset_y=152)
+    # benar-benar dipakai sebagai batas atas — bukan hanya batas bawah.
+    filter_y1 = max(anchor['y'] + anchor.get('h', 20) + 2, area_y1)
 
     area_items = [
         i for i in ocr_results
@@ -992,6 +1201,12 @@ def extract_table(
          if not col.get('is_row_anchor') and col.get('offset_x_start', 0) < 0),
         None
     )
+    for _col in columns_config:
+        print(f"[TABLE-DEBUG] {table_name} | col='{_col.get('key', '?')}' offset_x_start={_col.get('offset_x_start', 0)} is_row_anchor={_col.get('is_row_anchor', False)} type={_col.get('type', 'printed')}")
+    if left_col:
+        print(f"[TABLE-DEBUG] {table_name} | fallback_crop=True | left_col='{left_col.get('key', '?')}' offset_x_start={left_col.get('offset_x_start', 0)}")
+    else:
+        print(f"[TABLE-DEBUG] {table_name} | fallback_crop=False | alasan=tidak ada kolom non-anchor dengan offset_x_start < 0")
     if left_col and image_path:
         try:
             from PIL import Image as _Image
@@ -1015,9 +1230,10 @@ def extract_table(
                 _raw = _ocr.ocr(_crop_bgr, cls=True)
 
                 if _raw and _raw[0]:
-                    _existing_texts = {i['text'] for i in area_items}
                     # Skip teks yang merupakan header kolom
                     _skip_texts = {'no', 'no.', 'number', '#'}
+                    _dedup_injected = 0
+                    _dedup_skipped  = 0
                     for _line in _raw[0]:
                         _text = _line[1][0].strip()
                         _conf = _line[1][1]
@@ -1030,9 +1246,15 @@ def extract_table(
                         _lx = int(_line[0][0][0]) + _x1
                         _lw = int(_line[0][2][0]) - int(_line[0][0][0])
                         _lh = int(_line[0][2][1]) - int(_line[0][0][1])
-                        # Inject hanya jika belum ada di area_items
-                        _key = f"{_text}_{_ly}"
-                        if _key not in _existing_texts:
+                        # Inject hanya jika belum ada di area_items (tolerance ±10px).
+                        # PaddleOCR mengembalikan Y berbeda hingga ~8px antara
+                        # global scan dan crop scan untuk teks yang sama — ±5px
+                        # tidak cukup, ±10px aman karena line-height tabel >30px.
+                        _already = any(
+                            i['text'].rstrip('.') == _text.rstrip('.') and abs(i['y'] - _ly) <= 15
+                            for i in area_items
+                        )
+                        if not _already:
                             area_items.append({
                                 'text':       _text,
                                 'x':          _lx,
@@ -1042,8 +1264,87 @@ def extract_table(
                                 'confidence': _conf,
                             })
                             logger.debug(f"[TableExtractor] Inject kolom no: '{_text}' y={_ly}")
+                            _dedup_injected += 1
+                            print(f"[DEDUP-DEBUG] {table_name} | text='{_text}' abs_y={_ly} | status=injected | total_injected={_dedup_injected} skipped={_dedup_skipped}")
+                        else:
+                            _dedup_skipped += 1
+                            print(f"[DEDUP-DEBUG] {table_name} | text='{_text}' abs_y={_ly} | status=skipped | total_injected={_dedup_injected} skipped={_dedup_skipped}")
         except Exception as _e:
             logger.warning(f"[TableExtractor] Fallback crop kolom no gagal: {_e}")
+
+    # ── Fallback crop kolom is_row_anchor (nomor baris) ──────────────────────
+    # Blok di atas hanya menyentuh non-anchor columns. Kolom is_row_anchor
+    # ('no' di Executor) sering berisi digit tunggal kecil yang dilewati global
+    # OCR — crop kolom sempit ini secara khusus agar angka 1,2,3 terdeteksi.
+    anchor_col_for_crop = next(
+        (col for col in columns_config
+         if col.get('is_row_anchor')
+         and col.get('offset_x_start', 0) < 0
+         and col.get('type', 'printed') == 'printed'
+         and (int(col.get('offset_x_end', 0))
+              - int(col.get('offset_x_start', 0))) <= 150),
+        None
+    )
+    if anchor_col_for_crop and image_path:
+        try:
+            from PIL import Image as _Image_ac
+            import numpy as _np_ac
+            from app.services.ocr_service import get_ocr_instance
+            import cv2 as _cv2_ac
+
+            _img_ac    = _Image_ac.open(image_path).convert('RGB')
+            _img_np_ac = _np_ac.array(_img_ac)
+            _ih_ac, _iw_ac = _img_np_ac.shape[:2]
+
+            _ax1 = max(0,      anchor['x'] + int(anchor_col_for_crop['offset_x_start']) - 5)
+            _ax2 = min(_iw_ac, anchor['x'] + int(anchor_col_for_crop['offset_x_end'])   + 5)
+            _ay1 = max(0,      int(filter_y1))
+            _ay2 = min(_ih_ac, int(area_y2))
+
+            if _ax2 > _ax1 and _ay2 > _ay1:
+                _acrop     = _img_np_ac[_ay1:_ay2, _ax1:_ax2]
+                _acrop_bgr = _cv2_ac.cvtColor(_acrop, _cv2_ac.COLOR_RGB2BGR)
+                _aocr      = get_ocr_instance()
+                _araw      = _aocr.ocr(_acrop_bgr, cls=True)
+
+                if _araw and _araw[0]:
+                    _skip_texts = {'no', 'no.', 'number', '#'}
+                    _a_injected = 0
+                    _a_skipped  = 0
+                    for _aline in _araw[0]:
+                        _atext = _aline[1][0].strip()
+                        _aconf = _aline[1][1]
+                        if _aconf < 0.5 or not _atext:
+                            continue
+                        if _atext.lower() in _skip_texts:
+                            continue
+                        _aly  = int(_aline[0][0][1]) + _ay1
+                        _alx  = int(_aline[0][0][0]) + _ax1
+                        _alw  = int(_aline[0][2][0]) - int(_aline[0][0][0])
+                        _alh  = int(_aline[0][2][1]) - int(_aline[0][0][1])
+                        # Tolerance-based dedup: skip jika teks sama sudah ada dalam ±5px Y
+                        # (menghindari duplikat akibat rounding koordinat crop vs global OCR)
+                        _already = any(
+                            i['text'].rstrip('.') == _atext.rstrip('.') and abs(i['y'] - _aly) <= 15
+                            for i in area_items
+                        )
+                        if not _already:
+                            area_items.append({
+                                'text':       _atext,
+                                'x':          _alx,
+                                'y':          _aly,
+                                'w':          max(_alw, 10),
+                                'h':          max(_alh, 20),
+                                'confidence': _aconf,
+                            })
+                            _a_injected += 1
+                        else:
+                            _a_skipped += 1
+                    print(f"[ANCHOR-CROP-DEBUG] {table_name} | "
+                          f"col='{anchor_col_for_crop['key']}' "
+                          f"x=[{_ax1},{_ax2}] injected={_a_injected} skipped={_a_skipped}")
+        except Exception as _ae:
+            logger.warning(f"[TableExtractor] Fallback crop anchor col gagal: {_ae}")
 
     columns_config = table_config.get('columns', [])
 
@@ -1053,8 +1354,16 @@ def extract_table(
 
     has_anchor_col = any(col.get('is_row_anchor') for col in columns_config)
 
+    # Hapus teks header kolom ('No', 'Nama', dll.) dari area_items agar
+    # tidak masuk sebagai anchor row palsu di group_by_y_anchor.
+    _skip_texts_global = {'no', 'no.', 'number', '#'}
+    area_items = [
+        i for i in area_items
+        if i.get('text', '').strip().lower() not in _skip_texts_global
+    ]
+
     if method == 'anchor_based' and has_anchor_col:
-        rows = group_by_y_anchor(area_items, columns_config, anchor['x'])
+        rows = group_by_y_anchor(area_items, columns_config, anchor['x'], table_name)
         logger.info(f"[TableExtractor] Row detection: ANCHOR-BASED ({len(rows)} baris fisik)")
     else:
         rows = group_by_y(area_items)
@@ -1122,6 +1431,7 @@ def extract_table(
         # Simpan metadata is_continuation_of_prev di row_data
         # agar merge_multi_line_rows bisa menggunakannya
         row_data['_is_continuation_of_prev'] = is_continuation_of_prev
+        row_data['_ref_y'] = ref_y
 
         if any(isinstance(v, str) and v.strip() for k, v in row_data.items() if not k.startswith('_')):
             result_raw.append(row_data)
@@ -1154,7 +1464,7 @@ def extract_table(
     for row in result:
         for col in columns_config:
             key = col['key']
-            if 'status' not in key.lower() and key != 'kolom_5':
+            if 'status' not in key.lower():
                 continue
             val = row.get(key)
             if isinstance(val, str):

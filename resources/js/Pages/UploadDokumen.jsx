@@ -218,7 +218,7 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
         <AuthenticatedLayout header="Upload Dokumen">
             <Head title="Upload Dokumen" />
 
-            <div className="max-w-4xl mx-auto space-y-6 relative">
+            <div className="max-w-7xl mx-auto space-y-6 relative">
 
                 {/* ── Custom Confirmation Modal ── */}
                 {confirmModal.isOpen && (

@@ -8,6 +8,7 @@ Alur:
     PDF masuk → convert tiap halaman → PNG tersimpan di storage/pages/
 """
 
+import os
 from pathlib import Path
 from pdf2image import convert_from_path
 from config.settings import PAGES_DIR, PDF_DPI, PAGE_FORMAT
@@ -55,6 +56,7 @@ def convert_pdf_to_images(pdf_path: str) -> list[Path]:
         str(pdf_file),
         dpi=PDF_DPI,
         fmt=PAGE_FORMAT.lower(),
+        poppler_path=os.getenv("POPPLER_PATH", None),
     )
 
     print(f"[PDF Converter] Total halaman ditemukan: {len(images)}")

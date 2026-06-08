@@ -487,6 +487,11 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
                 print(f"[OCR] ❌ Anchor '{anchor_text}' TIDAK ditemukan — tabel '{tbl_name}' akan dilewati.")
             rows, tbl_conf = extract_table(ocr_results, table_cfg, anchor, image_path=clean_img_path)
             tables_data[table_key] = rows
+            _col_cfg = table_cfg.get('columns', [])
+            if _col_cfg:
+                tables_data[table_key + '__col_order'] = [
+                    col['key'] for col in sorted(_col_cfg, key=lambda c: c.get('offset_x_start', 0))
+                ]
             conf_str = f"{tbl_conf:.1f}%" if tbl_conf is not None else "N/A"
             print(f"[OCR] Tabel '{tbl_name}' selesai: {len(rows)} baris | confidence: {conf_str}")
             if tbl_conf is not None:
@@ -511,6 +516,18 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
                 logger.warning(f"[OCR] Gagal baca ukuran gambar untuk hint: {_e}")
                 _img_size = None
 
+            # OCR dari gambar asli (sebelum preprocessing) — dipakai sebagai fallback
+            # oleh find_anchor() jika preprocessing menyebabkan label tidak terdeteksi.
+            # Hanya dijalankan sekali per halaman, di luar loop section.
+            _ocr_original = None
+            if str(img_path) != str(clean_img_path):
+                try:
+                    print(f"[OCR] Menjalankan OCR fallback pada gambar asli (halaman {page_num})...")
+                    _ocr_original = run_global_ocr(str(img_path))
+                    print(f"[OCR] OCR fallback selesai: {len(_ocr_original)} teks.")
+                except Exception as _e:
+                    logger.warning(f"[OCR] OCR fallback pada gambar asli gagal: {_e}")
+
             for sec_cfg in repeating_config:
                 sec_name = sec_cfg.get('section_name', 'section')
                 sec_key  = sec_cfg.get('json_key', sec_name)
@@ -520,6 +537,7 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
                     ocr_results, sec_cfg,
                     image_path=clean_img_path,
                     image_size=_img_size,
+                    ocr_results_original=_ocr_original,
                 )
                 repeating_data[sec_key] = sec_result
                 n_inst   = len(sec_result)
@@ -549,6 +567,9 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
                     if tbl_key in sec_result and isinstance(sec_result[tbl_key], list):
                         combined_key              = f"{sec_key}_{tbl_key}"
                         tables_data[combined_key] = sec_result.pop(tbl_key)
+                        col_order_key = tbl_key + '__col_order'
+                        if col_order_key in sec_result:
+                            tables_data[combined_key + '__col_order'] = sec_result.pop(col_order_key)
                         table_keys.append(combined_key)
 
                 # Scalar keys = semua key tersisa yang bukan _ dan bukan list
