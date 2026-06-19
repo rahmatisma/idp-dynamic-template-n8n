@@ -175,20 +175,6 @@ class DocumentController extends Controller
             Storage::disk('public')->delete($document->file_path);
         }
 
-        // 3. Pemicu n8n buat hapus baris di DB (Centralized logic)
-        try {
-            $n8nUrl = config('services.n8n.webhook_url');
-            if ($n8nUrl) {
-                Http::timeout(5)->post($n8nUrl, [
-                    'action'      => 'delete',
-                    'document_id' => $document->id,
-                    'user_id'     => Auth::id(),
-                ]);
-            }
-        } catch (\Exception $e) {
-            \Log::warning('Gagal notify n8n saat hapus dokumen #' . $document->id . ': ' . $e->getMessage());
-        }
-
         // 4. Hapus di lokal biar UI langsung update (Fail-safe)
         $document->delete();
 
@@ -234,6 +220,9 @@ class DocumentController extends Controller
             'original_name' => $validated['original_name'],
             'file_path'     => $validated['storage_path'],
             'status'        => $validated['status'],
+            // Jika n8n langsung membuat dokumen dengan status 'processing',
+            // catat waktu mulai proses. Untuk 'queued' biarkan null.
+            'processing_started_at' => $validated['status'] === 'processing' ? now() : null,
         ]);
 
         return response()->json([
@@ -353,6 +342,18 @@ class DocumentController extends Controller
             $currentMetadata = $document->metadata ?? [];
             $currentMetadata['last_error'] = $validated['error'];
             $updateData['metadata'] = $currentMetadata;
+        }
+
+        // ── Pencatatan timestamp fase pemrosesan ─────────────────────
+        // Hanya MENGISI timestamp, tidak mengubah keputusan status di atas.
+        // Stempel hanya ditulis sekali (saat kolomnya masih null) agar
+        // retry/update berulang dari n8n tidak menggeser waktu.
+        if ($finalStatus === 'processing' && $document->processing_started_at === null) {
+            $updateData['processing_started_at'] = now();
+        }
+        if (in_array($finalStatus, ['completed', 'need_validation', 'failed'], true)
+            && $document->processing_ended_at === null) {
+            $updateData['processing_ended_at'] = now();
         }
 
         $document->update($updateData);
