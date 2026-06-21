@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\TemplateController;
@@ -19,9 +20,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dashboard
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Profile (bawaan Breeze)
     Route::get('/profile',    [ProfileController::class, 'edit'])->name('profile.edit');
