@@ -89,17 +89,23 @@ function FileBadge({ status }) {
 }
 
 // ── File Item (di drop zone) ───────────────────────────────────
-function FileItem({ file, onRemove }) {
+function FileItem({ file, onRemove, error }) {
     return (
-        <div className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-indigo-200 hover:bg-indigo-50/30 transition group">
+        <div className={[
+            "flex items-center gap-3 p-3 bg-white border rounded-xl transition group",
+            error
+                ? "border-red-300 bg-red-50/40"
+                : "border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/30",
+        ].join(" ")}>
             <div className="flex-shrink-0 w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center text-red-400">
                 <FileIcon />
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-slate-800 truncate">{file.name}</p>
                 <p className="text-xs text-slate-400 mt-0.5">{formatBytes(file.size)}</p>
+                {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
             </div>
-            <FileBadge status="idle" />
+            <FileBadge status={error ? "error" : "idle"} />
             <button
                 onClick={() => onRemove(file.name)}
                 className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition opacity-0 group-hover:opacity-100"
@@ -256,7 +262,7 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
                     <div className="px-6 py-5 border-b border-slate-100">
                         <h2 className="text-base font-semibold text-slate-800">Upload Dokumen Teknis</h2>
                         <p className="text-sm text-slate-500 mt-0.5">
-                            Upload file PDF dokumen operasional (PM, SPK, Checklist). Sistem akan mengekstraksi informasi secara otomatis.
+                            Upload file PDF Formulir Preventive Maintenance (PM). Sistem akan mengekstraksi informasi secara otomatis.
                         </p>
                     </div>
 
@@ -307,8 +313,8 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
                                     </button>
                                 </div>
                                 <div className="p-3 space-y-2 max-h-48 overflow-y-auto">
-                                    {files.map((f) => (
-                                        <FileItem key={f.name} file={f} onRemove={removeFile} />
+                                    {files.map((f, idx) => (
+                                        <FileItem key={f.name} file={f} onRemove={removeFile} error={errors[`documents.${idx}`]} />
                                     ))}
                                 </div>
                             </div>
@@ -326,6 +332,9 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
                                 placeholder="Tambahkan keterangan singkat (misal: Lokasi Site, Nama Engineer)..."
                                 className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition placeholder-slate-300"
                             />
+                            {errors.notes && (
+                                <p className="text-sm text-red-500">{errors.notes}</p>
+                            )}
                         </div>
 
                         {errors.documents && (
@@ -387,7 +396,7 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
                                         <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Nama Dokumen</th>
                                         <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Jenis</th>
                                         <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
-                                        <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Akurasi OCR</th>
+                                        <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Skor Kepercayaan OCR</th>
                                         <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Tanggal Upload</th>
                                         <th className="px-5 py-3.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Aksi</th>
                                     </tr>
@@ -420,7 +429,7 @@ export default function UploadDokumen({ documents: initialDocuments = [], templa
                                                 <StatusBadge status={doc.status} />
                                             </td>
 
-                                            {/* Akurasi OCR */}
+                                            {/* Skor Kepercayaan OCR */}
                                             <td className="px-5 py-4">
                                                 <ConfidenceBar score={doc.confidence_score} />
                                             </td>

@@ -1109,7 +1109,18 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                 // OTOMATIS DETEKSI HEADER SETELAH UPLOAD
                 handleAutoDetectHeader(data.pdf_path);
             }
-        } catch (err) { alert("Fail: " + err.message); } finally { setConverting(false); }
+        } catch (err) {
+            // Tampilkan pesan jelas dari response backend, bukan "Request failed with status code ...".
+            //   - 503 (Python Engine mati) → { error: "..." }
+            //   - 422 (validasi ukuran/format file) → { errors: { pdf: ["..."] }, message: "..." }
+            const res = err.response?.data;
+            const msg =
+                res?.error
+                ?? res?.errors?.pdf?.[0]
+                ?? res?.message
+                ?? err.message;
+            alert("Gagal: " + msg);
+        } finally { setConverting(false); }
     };
 
     const [confScore, setConfScore] = useState(null);
@@ -1989,7 +2000,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                                             {detectingHeader && (
                                                 <span className="flex items-center gap-1.5 text-indigo-600 animate-pulse lowercase font-bold tracking-normal italic">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.6)]"></span>
-                                                    AI Scanning Header...
+                                                    Mendeteksi Header...
                                                 </span>
                                             )}
                                         </label>
@@ -2027,7 +2038,7 @@ export default function MasterTemplateEditor({ editingTemplate = null }) {
                                             </div>
                                             {confScore && (
                                                 <div className={`text-[10px] font-black px-2 py-0.5 rounded border ${confScore > 90 ? 'text-indigo-600 bg-indigo-50 border-indigo-100' : 'text-amber-600 bg-amber-50 border-amber-100'}`}>
-                                                    {confScore}% AI Confidence
+                                                    {confScore}% Skor Deteksi Header
                                                 </div>
                                             )}
                                             <button onClick={() => {setPdfPath(null); setConfScore(null);}} className="text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors uppercase">[Change File]</button>

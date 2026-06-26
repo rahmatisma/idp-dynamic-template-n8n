@@ -177,11 +177,11 @@ def extract_repeating_section(
 
         elif field_type == 'handwritten':
             from app.services.field_extractor import _read_handwritten_field
-            hw_text, hw_conf = _read_handwritten_field(image_path, bbox, field_name)
+            hw_text, hw_conf, hw_source = _read_handwritten_field(image_path, bbox, field_name)
             if hw_text:
                 value   = hw_text
                 conf    = round(hw_conf, 1) if hw_conf is not None else 0.0
-                ocr_src = 'trocr'
+                ocr_src = hw_source  # "trocr" | "paddle" sesuai hasil voting (konsisten dgn field_extractor)
             else:
                 # TrOCR kosong → fallback PaddleOCR global scan
                 value, raw_conf = get_text_and_conf_in_bbox(ocr_results, bbox)

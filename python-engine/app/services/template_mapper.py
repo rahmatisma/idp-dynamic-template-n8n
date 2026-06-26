@@ -11,6 +11,17 @@ from rapidfuzz import fuzz
 
 logger = logging.getLogger(__name__)
 
+# Guard untuk anchor SANGAT PENDEK (≤4 char, mis. "S/N", "Hal").
+# Anchor pendek rentan false-positive: partial_ratio bisa lolos threshold hanya
+# karena 1-2 karakter kebetulan berdekatan di teks panjang yang tidak relevan
+# (mis. "S/N" vs ":Senin,22 jun 2026" → partial=67 lolos, tapi token_sort=19).
+# Untuk anchor pendek, kandidat WAJIB punya token_sort_ratio ≥ nilai ini.
+# Angka 40 = titik tengah jendela bersih (tolak ≤23.1, terima ≥57.1) hasil
+# pengujian terhadap kasus nyata; varian OCR ringan ("S /N"=57, "Halaman"=60)
+# tetap diterima, false-positive ("Senin,22 jun 2026"=19) ditolak.
+SHORT_ANCHOR_MAX_LEN          = 4
+SHORT_ANCHOR_TOKEN_SORT_MIN   = 40
+
 
 def merge_vertical_neighbors(ocr_results: list) -> list:
     """
@@ -203,11 +214,23 @@ def find_anchor(
             continue
 
         # Scoring tiga lapis: partial + token_sort + token_set
-        score = max(
-            fuzz.partial_ratio(anchor_lower, item_lower),
-            fuzz.token_sort_ratio(anchor_lower, item_lower),
-            fuzz.token_set_ratio(anchor_lower, item_lower),
-        )
+        _partial    = fuzz.partial_ratio(anchor_lower, item_lower)
+        _token_sort = fuzz.token_sort_ratio(anchor_lower, item_lower)
+        _token_set  = fuzz.token_set_ratio(anchor_lower, item_lower)
+        score = max(_partial, _token_sort, _token_set)
+
+        # ── Guard anchor pendek (≤4 char) — arah: anchor pendek vs kandidat panjang ──
+        # Berbeda dari min_candidate_len (kandidat pendek vs anchor panjang) yang tetap
+        # berjalan berdampingan. Untuk anchor pendek saja: walau partial_ratio lolos
+        # threshold, tolak kandidat jika token_sort_ratio terlalu rendah (false-positive
+        # substring kebetulan). Anchor >4 char TIDAK terkena guard ini — perilaku lama.
+        if len(anchor_lower) <= SHORT_ANCHOR_MAX_LEN and _token_sort < SHORT_ANCHOR_TOKEN_SORT_MIN:
+            logger.debug(
+                f"[ANCHOR] Short-anchor guard '{anchor_text}' (≤{SHORT_ANCHOR_MAX_LEN} char): "
+                f"tolak '{item_text}' (partial={_partial:.1f} lolos threshold, "
+                f"token_sort={_token_sort:.1f} < {SHORT_ANCHOR_TOKEN_SORT_MIN})"
+            )
+            continue
 
         # Length penalty — terapkan hanya untuk anchor 3+ kata.
         # Jika kandidat memiliki lebih sedikit kata dari anchor, skor dikurangi

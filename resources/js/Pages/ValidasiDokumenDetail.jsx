@@ -1,6 +1,12 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, createContext, useContext } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
+
+// Apakah badge/highlight peringatan confidence (oranye/merah) ditampilkan.
+// Untuk dokumen "completed" peringatan disembunyikan (operator dianggap
+// sudah menyetujui SELURUH data). Highlight "Diubah" (kuning) TIDAK
+// terpengaruh. Nilai confidence asli tidak diubah — murni visual.
+const ShowWarningsContext = createContext(true);
 
 // ── Icons ──────────────────────────────────────────────────────
 const BackIcon = () => (
@@ -60,6 +66,8 @@ function flattenFields(rawFields) {
 
 // ── Confidence Alert ───────────────────────────────────────────
 function ConfidenceAlert({ score }) {
+    const showWarnings = useContext(ShowWarningsContext);
+    if (!showWarnings) return null;            // dok completed → sembunyikan
     if (score == null || score >= 80) return null;
     const isLow = score < 60;
     return (
@@ -83,6 +91,7 @@ function ConfidenceAlert({ score }) {
 
 // ── Editable Field Grid ────────────────────────────────────────
 function EditableFieldGrid({ pageIdx, fields, originalFields, onFieldChange }) {
+    const showWarnings = useContext(ShowWarningsContext);
     const flat     = flattenFields(fields);
     const flatOrig = flattenFields(originalFields);
 
@@ -99,13 +108,15 @@ function EditableFieldGrid({ pageIdx, fields, originalFields, onFieldChange }) {
                 const conf         = parseFloat(flat[`_conf_${k}`]);
                 const wasAttempted = flat[`_ocr_source_${k}`] !== undefined && flat[`_ocr_source_${k}`] !== "";
                 const isEmpty      = val === "" && wasAttempted;
-                const isLowConf    = !isNaN(conf) && conf < CONF_LOW;
-                const isMedConf    = !isNaN(conf) && conf >= CONF_LOW && conf < CONF_MED;
+                // Peringatan confidence hanya untuk dok belum completed
+                const isLowConf    = showWarnings && !isNaN(conf) && conf < CONF_LOW;
+                const isMedConf    = showWarnings && !isNaN(conf) && conf >= CONF_LOW && conf < CONF_MED;
+                const showEmptyWarn = showWarnings && isEmpty;
 
                 const cardCls = isEdited
                     ? "bg-yellow-50 border-yellow-300"
                     : isLowConf ? "bg-red-50/50 border-red-100"
-                    : (isMedConf || isEmpty) ? "bg-amber-50/50 border-amber-100"
+                    : (isMedConf || showEmptyWarn) ? "bg-amber-50/50 border-amber-100"
                     : "bg-slate-50 border-slate-100";
 
                 return (
@@ -115,7 +126,7 @@ function EditableFieldGrid({ pageIdx, fields, originalFields, onFieldChange }) {
                                 <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">
                                     {colLabel(k)}
                                 </span>
-                                {!isEdited && (isLowConf || isMedConf || isEmpty) && (
+                                {!isEdited && (isLowConf || isMedConf || showEmptyWarn) && (
                                     <span
                                         title={isEmpty ? "Tidak terdeteksi — perlu diperiksa" : `Confidence rendah (${Math.round(conf)}%)`}
                                         className={isLowConf ? "text-red-400" : "text-amber-400"}
@@ -155,6 +166,7 @@ function EditableFieldGrid({ pageIdx, fields, originalFields, onFieldChange }) {
 
 // ── Editable Result Table ──────────────────────────────────────
 function EditableResultTable({ pageIdx, tableKey, rows, originalRows, onCellChange, columnOrder }) {
+    const showWarnings = useContext(ShowWarningsContext);
     if (!rows?.length) return <p className="text-sm text-slate-400 italic">Tidak ada data tabel.</p>;
 
     const rawKeys    = Object.keys(rows[0]).filter(k => !k.startsWith("_"));
@@ -213,8 +225,8 @@ function EditableResultTable({ pageIdx, tableKey, rows, originalRows, onCellChan
                                         const conf    = row[`_conf_${k}`];
                                         const isEdited  = val !== origVal;
                                         const isNoCol   = k === noKey;
-                                        const isLowConf = !isEdited && !isHeader && conf != null && conf < CONF_LOW;
-                                        const isMedConf = !isEdited && !isHeader && conf != null && conf >= CONF_LOW && conf < CONF_MED;
+                                        const isLowConf = showWarnings && !isEdited && !isHeader && conf != null && conf < CONF_LOW;
+                                        const isMedConf = showWarnings && !isEdited && !isHeader && conf != null && conf >= CONF_LOW && conf < CONF_MED;
 
                                         // Header row tidak mendapat override warna cell (tr sudah bg-slate-100)
                                         const cellBg = isHeader ? ""
@@ -264,59 +276,6 @@ function EditableResultTable({ pageIdx, tableKey, rows, originalRows, onCellChan
             </div>
         </div>
     );
-}
-
-// ── Build revised_data: reset confidence untuk field/sel yang dikoreksi manusia
-function buildRevisedData(editedData, originalData) {
-    const result = JSON.parse(JSON.stringify(editedData));
-    const origPages = originalData?.pages ?? [];
-
-    (result.pages ?? []).forEach((page, pi) => {
-        const origPage   = origPages[pi] ?? {};
-        const pageFields = page.fields;
-        const origFields = origPage.fields ?? {};
-
-        if (pageFields) {
-            const flat     = flattenFields(pageFields);
-            const flatOrig = flattenFields(origFields);
-
-            for (const k of Object.keys(flat)) {
-                if (k.startsWith("_") || k === "copyright") continue;
-                if (String(flat[k] ?? "") !== String(flatOrig[k] ?? "")) {
-                    if (k in pageFields) {
-                        pageFields[`_conf_${k}`]       = 100;
-                        pageFields[`_ocr_source_${k}`] = "human";
-                    } else {
-                        for (const gv of Object.values(pageFields)) {
-                            if (typeof gv === "object" && gv !== null && !Array.isArray(gv) && k in gv) {
-                                gv[`_conf_${k}`]       = 100;
-                                gv[`_ocr_source_${k}`] = "human";
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        const tables    = page.tables ?? {};
-        const origTables = origPage.tables ?? {};
-        for (const [tableKey, rows] of Object.entries(tables)) {
-            if (!Array.isArray(rows)) continue;
-            const origRows = origTables[tableKey] ?? [];
-            rows.forEach((row, ri) => {
-                const origRow = origRows[ri] ?? {};
-                for (const k of Object.keys(row)) {
-                    if (k.startsWith("_")) continue;
-                    if (String(row[k] ?? "") !== String(origRow[k] ?? "")) {
-                        row[`_conf_${k}`] = 100;
-                    }
-                }
-            });
-        }
-    });
-
-    return result;
 }
 
 // ── Main Page ──────────────────────────────────────────────────
@@ -399,7 +358,10 @@ export default function ValidasiDokumenDetail({ document }) {
             : "Setujui dokumen ini sebagai valid? Semua perubahan akan disimpan.";
         if (!confirm(confirmMsg)) return;
 
-        const revisedData = buildRevisedData(editedData, document.extracted_data);
+        // Kirim nilai hasil edit apa adanya. Backend yang membandingkan
+        // terhadap data lama lalu menandai field/sel yang berubah dengan
+        // confidence 100 + source "human" (lihat ValidationController@markHumanEdits).
+        const revisedData = editedData;
         const endpoint    = isCompleted
             ? `/validasi-dokumen/${document.id}/update`
             : `/validasi-dokumen/${document.id}/approve`;
@@ -427,8 +389,13 @@ export default function ValidasiDokumenDetail({ document }) {
     const score         = document.confidence_score;
     const scoreColor    = score >= 80 ? "text-emerald-400" : score >= 60 ? "text-amber-400" : "text-red-400";
 
+    // Dokumen completed → peringatan confidence visual disembunyikan
+    // (highlight "Diubah" kuning tetap aktif; nilai asli tidak diubah).
+    const showWarnings = document.status !== "completed";
+
     return (
         <AuthenticatedLayout>
+          <ShowWarningsContext.Provider value={showWarnings}>
             <Head title={`Validasi #${document.id}`} />
 
             {/*
@@ -749,6 +716,7 @@ export default function ValidasiDokumenDetail({ document }) {
                     </div>
                 </div>
             </div>
+          </ShowWarningsContext.Provider>
         </AuthenticatedLayout>
     );
 }

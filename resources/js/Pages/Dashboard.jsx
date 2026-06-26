@@ -1,5 +1,5 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, usePage } from "@inertiajs/react";
 
 // ── Konfigurasi tampilan per status ───────────────────────────────────
 // label = teks badge, badge = warna Tailwind badge, bar = warna segmen distribusi
@@ -23,6 +23,40 @@ function formatDuration(seconds) {
     const m = Math.floor(s / 60);
     const rem = s % 60;
     return rem ? `${m}m ${rem}s` : `${m}m`;
+}
+
+// ── Tab navigasi Dashboard ─────────────────────────────────────────────
+const DASHBOARD_TABS = [
+    { label: "Ringkasan Dokumen",  href: "/dashboard" },
+    { label: "Monitoring Baterai", href: "/dashboard/baterai" },
+];
+
+function DashboardTabs() {
+    const { url } = usePage();
+    const active = url.startsWith("/dashboard/baterai") ? "/dashboard/baterai" : "/dashboard";
+    return (
+        <div className="border-b border-gray-200">
+            <nav className="-mb-px flex gap-1">
+                {DASHBOARD_TABS.map(({ label, href }) => {
+                    const isActive = active === href;
+                    return (
+                        <Link
+                            key={href}
+                            href={href}
+                            className={[
+                                "inline-flex items-center px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                                isActive
+                                    ? "border-indigo-600 text-indigo-600"
+                                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",
+                            ].join(" ")}
+                        >
+                            {label}
+                        </Link>
+                    );
+                })}
+            </nav>
+        </div>
+    );
 }
 
 // ── Kartu statistik ────────────────────────────────────────────────────
@@ -93,6 +127,9 @@ export default function Dashboard({
             <Head title="Dashboard" />
 
             <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+                {/* Tab navigasi */}
+                <DashboardTabs />
+
                 {/* Kartu statistik */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard label="Total Dokumen" value={totalDocuments} />

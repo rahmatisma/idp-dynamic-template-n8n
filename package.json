@@ -23,6 +23,7 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
-        "@supabase/supabase-js": "^2.103.0"
+        "@supabase/supabase-js": "^2.103.0",
+        "recharts": "^2.15.4"
     }
 }

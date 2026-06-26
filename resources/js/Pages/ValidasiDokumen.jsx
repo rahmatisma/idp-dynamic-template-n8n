@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
 
@@ -108,20 +108,47 @@ function FilterPills({ current, onChange }) {
 }
 
 // ── Main Page ──────────────────────────────────────────────────
-export default function ValidasiDokumen({ documents, flash = {}, currentStatus = "need_validation" }) {
-    const [search, setSearch] = useState("");
+export default function ValidasiDokumen({ documents, flash = {}, currentStatus = "need_validation", search: initialSearch = "" }) {
+    const [search, setSearch] = useState(initialSearch);
 
-    const filtered = (documents.data ?? []).filter(doc =>
-        doc.original_name.toLowerCase().includes(search.toLowerCase()) ||
-        (doc.template_name ?? "").toLowerCase().includes(search.toLowerCase())
-    );
+    // ── Pencarian server-side dengan debounce ──────────────────────
+    // Setiap kali kata kunci berubah, kirim request BARU ke server agar
+    // pencarian menyaring SELURUH data (lalu di-paginate ulang), bukan
+    // memfilter data yang sudah ada di memory browser. Debounce 350ms
+    // supaya tidak request di setiap ketikan huruf.
+    const isFirstRender = useRef(true);
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return; // jangan kirim request saat mount pertama
+        }
+        const handler = setTimeout(() => {
+            router.get(
+                "/validasi-dokumen",
+                { status: currentStatus, search: search || undefined },
+                {
+                    preserveState: true,   // jangan reset state komponen (input tetap fokus)
+                    preserveScroll: true,  // jangan loncat scroll
+                    replace: true,         // jangan menumpuk history tiap ketik
+                    only: ["documents"],   // partial reload: cuma ambil ulang daftar dokumen,
+                                           // bukan seluruh prop → transisi halus tanpa "reset"
+                }
+            );
+        }, 350);
+        return () => clearTimeout(handler);
+    }, [search]);
+
+    // Data yang ditampilkan = hasil dari server (sudah difilter & dipaginate).
+    const docs = documents.data ?? [];
 
     const goToPage    = (url) => { if (url) router.visit(url, { preserveScroll: true }); };
-    const switchFilter = (status) => router.visit("/validasi-dokumen", { data: { status }, preserveState: false });
+    // Saat ganti filter status, bawa juga kata kunci search agar terkombinasi (AND).
+    const switchFilter = (status) =>
+        router.get("/validasi-dokumen", { status, search: search || undefined }, { preserveState: false, preserveScroll: true });
 
-    const totalDocs = documents.total ?? filtered.length;
-    const kritis    = (documents.data ?? []).filter(d => (d.confidence_score ?? 0) < 60).length;
-    const perluCek  = (documents.data ?? []).filter(d => {
+    const totalDocs = documents.total ?? docs.length;
+    const kritis    = docs.filter(d => (d.confidence_score ?? 0) < 60).length;
+    const perluCek  = docs.filter(d => {
         const s = d.confidence_score ?? 0;
         return s >= 60 && s < 80;
     }).length;
@@ -218,7 +245,7 @@ export default function ValidasiDokumen({ documents, flash = {}, currentStatus =
                 <div className="rounded-2xl overflow-hidden"
                     style={{ background: "#1a1a1a", border: "1px solid #2a2a2a" }}>
 
-                    {filtered.length === 0 ? (
+                    {docs.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-3"
                             style={{ color: "#888" }}>
                             <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
@@ -252,12 +279,12 @@ export default function ValidasiDokumen({ documents, flash = {}, currentStatus =
                                 <div className="text-center">Aksi</div>
                             </div>
 
-                            {filtered.map((doc, idx) => (
+                            {docs.map((doc, idx) => (
                                 <div
                                     key={doc.id}
                                     className="grid grid-cols-[1fr_160px_110px_110px_90px] px-6 py-4 items-center transition-colors"
                                     style={{
-                                        borderBottom: idx < filtered.length - 1 ? "1px solid #222" : "none",
+                                        borderBottom: idx < docs.length - 1 ? "1px solid #222" : "none",
                                         cursor: "default",
                                     }}
                                     onMouseEnter={e => e.currentTarget.style.background = "#222"}

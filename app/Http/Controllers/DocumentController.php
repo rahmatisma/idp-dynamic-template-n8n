@@ -18,7 +18,12 @@ class DocumentController extends Controller
 
     /**
      * Halaman Upload Dokumen.
-     * Kirim: daftar template aktif (untuk dropdown) + riwayat dokumen milik user ini.
+     * Kirim: daftar template aktif (untuk dropdown) + riwayat dokumen.
+     *
+     * Sistem bersifat kolaboratif antar role (Admin/Engineer/NMS): semua
+     * dokumen ditampilkan ke setiap pengguna terautentikasi, tidak difilter
+     * per pemilik. Kolom user_id tetap dipakai hanya untuk audit (relasi uploader),
+     * bukan untuk membatasi akses.
      */
     public function create()
     {
@@ -27,7 +32,6 @@ class DocumentController extends Controller
             ->get(['id', 'type_name', 'template_code']);
 
         $documents = Document::with('template')
-            ->where('user_id', Auth::id())
             ->orderByDesc('created_at')
             ->limit(50)
             ->get()
@@ -52,8 +56,8 @@ class DocumentController extends Controller
      */
     public function detail(Document $document)
     {
-        // Pastikan user hanya bisa lihat dokumen miliknya
-        abort_unless($document->user_id === Auth::id(), 403);
+        // Akses dokumen bersifat kolaboratif antar role — tidak dibatasi
+        // per pemilik. Semua pengguna terautentikasi boleh melihat detail.
 
         return Inertia::render('DocumentDetail', [
             'document' => [
@@ -165,12 +169,10 @@ class DocumentController extends Controller
      */
     public function destroy(Document $document)
     {
-        // 1. Pastikan user cuma bisa hapus dokumen miliknya
-        if ($document->user_id !== Auth::id()) {
-            abort(403);
-        }
+        // Penghapusan bersifat kolaboratif antar role — tidak dibatasi
+        // per pemilik. Semua pengguna terautentikasi boleh menghapus.
 
-        // 2. Hapus file fisik dari storage
+        // Hapus file fisik dari storage
         if ($document->file_path) {
             Storage::disk('public')->delete($document->file_path);
         }
@@ -384,10 +386,8 @@ class DocumentController extends Controller
      */
     public function getStatus(Document $document)
     {
-        // Pastikan user hanya bisa cek dokumen miliknya sendiri
-        if ($document->user_id !== Auth::id()) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
+        // Status dokumen bisa di-poll oleh semua pengguna terautentikasi
+        // (kolaboratif antar role) — tidak dibatasi per pemilik.
 
         return response()->json([
             'id'               => $document->id,

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Bukti Limitasi Model TrOCR — Dokumen Uji Template Ruang Shelter (id=498)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color:#1a1a1a; background:#f4f4f4;
+         margin:0; padding:32px; line-height:1.5; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  .sub { color:#555; margin:0 0 20px; font-size:14px; }
+  .meta { background:#fff; border:1px solid #ddd; border-radius:8px; padding:14px 18px;
+          font-size:14px; margin-bottom:24px; }
+  .meta b { color:#000; }
+  .card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:18px 20px;
+          margin-bottom:22px; box-shadow:0 1px 3px rgba(0,0,0,.06); page-break-inside:avoid; }
+  .card h2 { font-size:18px; margin:0 0 4px; }
+  .gt { font-size:15px; margin:0 0 14px; }
+  .gt .val { color:#0a7d2c; font-weight:700; }
+  .cols { display:flex; gap:18px; flex-wrap:wrap; }
+  .col { flex:1 1 480px; border:1px solid #e3e3e3; border-radius:8px; padding:12px; background:#fafafa; }
+  .col h3 { margin:0 0 8px; font-size:14px; letter-spacing:.3px; text-transform:uppercase; }
+  .tag-pre { color:#1763b6; }
+  .tag-raw { color:#9a5b00; }
+  .crop img { width:520px; max-width:100%; height:auto; border:1px solid #333; background:#fff; display:block; }
+  .read { margin-top:10px; font-size:15px; }
+  .read .lbl { color:#555; }
+  .read .val { font-family:"Consolas",monospace; font-weight:700; color:#c0142b;
+               background:#fff0f1; padding:2px 8px; border-radius:4px; border:1px solid #f3c2c8; }
+  .conf { font-size:13px; color:#444; margin-top:4px; }
+  .coords { font-size:12px; color:#888; margin-top:4px; font-family:Consolas,monospace; }
+  .note { margin-top:12px; font-size:14px; padding:8px 12px; border-radius:6px; }
+  .note.beda { background:#fff8e6; border:1px solid #f0dca0; }
+  .note.sama { background:#eef6ff; border:1px solid #bcd9f5; }
+  .summary { background:#fff; border:2px solid #c0142b; border-radius:10px; padding:18px 22px; }
+  .summary h2 { margin:0 0 10px; font-size:19px; color:#c0142b; }
+  table.sum { width:100%; border-collapse:collapse; margin:10px 0 16px; font-size:14px; }
+  table.sum th, table.sum td { border:1px solid #ccc; padding:7px 9px; text-align:left; }
+  table.sum th { background:#f0f0f0; }
+  .wrong { color:#c0142b; font-weight:700; font-family:Consolas,monospace; }
+  .ok { color:#0a7d2c; font-weight:700; }
+  footer { color:#777; font-size:12px; margin-top:18px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Bukti Limitasi Model TrOCR</h1>
+<p class="sub">Dokumen Uji: "Data sampel ruang shelter" (id=498) — Template 47 (Formulir Preventive Maintenance)</p>
+
+<div class="meta">
+  Setiap sel/field di bawah menampilkan <b>potongan gambar ASLI</b> dari dokumen (bukan ketikan ulang),
+  dibandingkan dalam dua versi: <b>sebelum preprocessing</b> (gambar mentah <code>page_1.png</code>) dan
+  <b>sesudah preprocessing</b> (gambar <code>page_1_pre.png</code> — yang sebenarnya dipakai pipeline).
+  Untuk setiap versi ditampilkan apa yang <b>dibaca model TrOCR</b> vs apa yang
+  <b>seharusnya benar</b> (ground truth, dibaca manual dari form asli).
+  Nilai versi preprocessed adalah <b>hasil yang benar-benar tersimpan sistem</b> untuk dokumen ini.
+</div>
+
+<!-- ITEM 1 -->
+<div class="card">
+  <h2>1. Tabel Pelaksana — Baris 1, kolom "Nama"</h2>
+  <p class="gt">Seharusnya (sesuai form asli): <span class="val">"Rahmat"</span></p>
+  <div class="cols">
+    <div class="col">
+      <h3 class="tag-pre">Sesudah Preprocessing (dipakai pipeline)</h3>
+      <div class="crop"><img src="crop_pel_nama_pre.png" alt="crop nama preprocessed"></div>
+      <div class="read"><span class="lbl">Dibaca model:</span> <span class="val">"Rectifier 1"</span></div>
+      <div class="conf">Confidence model: <b>99,6%</b></div>
+      <div class="coords">koordinat crop (x1,y1,x2,y2) = (520, 2446, 1045, 2515)</div>
+    </div>
+    <div class="col">
+      <h3 class="tag-raw">Sebelum Preprocessing (raw)</h3>
+      <div class="crop"><img src="crop_pel_nama_raw.png" alt="crop nama raw"></div>
+      <div class="read"><span class="lbl">Dibaca model:</span> <span class="val">"RectiFier"</span></div>
+      <div class="conf">Confidence model: tidak tercatat (pembacaan ulang read-only)</div>
+      <div class="coords">koordinat crop (x1,y1,x2,y2) = (516, 2445, 1041, 2515)</div>
+    </div>
+  </div>
+  <div class="note beda"><b>Catatan:</b> Hasil raw vs preprocessed <b>BERBEDA</b> ("RectiFier" vs "Rectifier 1") — tetapi <b>keduanya sama-sama salah</b> (seharusnya "Rahmat").</div>
+</div>
+
+<!-- ITEM 2 -->
+<div class="card">
+  <h2>2. Tabel Pelaksana — Baris 1, kolom "Departement"</h2>
+  <p class="gt">Seharusnya (sesuai form asli): <span class="val">"Mahasiswa"</span></p>
+  <div class="cols">
+    <div class="col">
+      <h3 class="tag-pre">Sesudah Preprocessing (dipakai pipeline)</h3>
+      <div class="crop"><img src="crop_pel_departement_pre.png" alt="crop departement preprocessed"></div>
+      <div class="read"><span class="lbl">Dibaca model:</span> <span class="val">"24.58V"</span></div>
+      <div class="conf">Confidence model: <b>63,0%</b></div>
+      <div class="coords">koordinat crop (x1,y1,x2,y2) = (1044, 2446, 1435, 2515)</div>
+    </div>
+    <div class="col">
+      <h3 class="tag-raw">Sebelum Preprocessing (raw)</h3>
+      <div class="crop"><img src="crop_pel_departement_raw.png" alt="crop departement raw"></div>
+      <div class="read"><span class="lbl">Dibaca model:</span> <span class="val">"SimpleMa I"</span></div>
+      <div class="conf">Confidence model: tidak tercatat (pembacaan ulang read-only)</div>
+      <div class="coords">koordinat crop (x1,y1,x2,y2) = (1040, 2445, 1431, 2515)</div>
+    </div>
+  </div>
+  <div class="note beda"><b>Catatan:</b> Hasil raw vs preprocessed <b>BERBEDA</b> ("SimpleMa I" vs "24.58V") — <b>keduanya sama-sama salah</b> (seharusnya "Mahasiswa").</div>
+</div>
+
+<!-- ITEM 3 -->
+<div class="card">
+  <h2>3. Field Header — "Location"</h2>
+  <p class="gt">Seharusnya (sesuai form asli): <span class="val">"PoP Cikarang Utara"</span></p>
+  <div class="cols">
+    <div class="col">
+      <h3 class="tag-pre">Sesudah Preprocessing (dipakai pipeline)</h3>
+      <div class="crop"><img src="crop_location_pre.png" alt="crop location preprocessed"></div>
+      <div class="read"><span class="lbl">Dibaca model:</span> <span class="val">"Perdihersna VOC"</span></div>
+      <div class="conf">Confidence model: <b>59,5%</b></div>
+      <div class="coords">koordinat crop (x1,y1,x2,y2) = (749, 568, 1375, 635)</div>
+    </div>
+    <div class="col">
+      <h3 class="tag-raw">Sebelum Preprocessing (raw)</h3>
+      <div class="crop"><img src="crop_location_raw.png" alt="crop location raw"></div>
+      <div class="read"><span class="lbl">Dibaca model:</span> <span class="val">"grafungsiutra"</span></div>
+      <div class="conf">Confidence model: tidak tercatat (pembacaan ulang read-only)</div>
+      <div class="coords">koordinat crop (x1,y1,x2,y2) = (749, 568, 1375, 635)</div>
+    </div>
+  </div>
+  <div class="note beda"><b>Catatan:</b> Hasil raw vs preprocessed <b>BERBEDA</b> ("grafungsiutra" vs "Perdihersna VOC") — <b>keduanya sama-sama salah</b> (seharusnya "PoP Cikarang Utara").</div>
+</div>
+
+<!-- ITEM 4 -->
+<div class="card">
+  <h2>4. Field Header — "Mengetahui" (nama + tanda tangan)</h2>
+  <p class="gt">Seharusnya (sesuai form asli): <span class="val">tanda tangan + "R. Isma Hidayat"</span></p>
+  <div class="cols">
+    <div class="col">
+      <h3 class="tag-pre">Sesudah Preprocessing (dipakai pipeline)</h3>
+      <div class="crop"><img src="crop_mengetahui_pre.png" alt="crop mengetahui preprocessed"></div>
+      <div class="read"><span class="lbl">Dibaca model:</span> <span class="val">"R. IirdEBA"</span></div>
+      <div class="conf">Confidence model: <b>50,0%</b></div>
+      <div class="coords">koordinat crop (x1,y1,x2,y2) = (1871, 2521, 2232, 2636)</div>
+    </div>
+    <div class="col">
+      <h3 class="tag-raw">Sebelum Preprocessing (raw)</h3>
+      <div class="crop"><img src="crop_mengetahui_raw.png" alt="crop mengetahui raw"></div>
+      <div class="read"><span class="lbl">Dibaca model:</span> <span class="val">"R. 15 Okt 2025)"</span></div>
+      <div class="conf">Confidence model: tidak tercatat (pembacaan ulang read-only)</div>
+      <div class="coords">koordinat crop (x1,y1,x2,y2) = (1871, 2521, 2232, 2636)</div>
+    </div>
+  </div>
+  <div class="note beda"><b>Catatan:</b> Hasil raw vs preprocessed <b>BERBEDA</b> ("R. 15 Okt 2025)" vs "R. IirdEBA") — <b>keduanya sama-sama salah</b> (seharusnya "R. Isma Hidayat").</div>
+</div>
+
+<!-- ITEM 5 -->
+<div class="card">
+  <h2>5. Field Header — "Brand/Type"</h2>
+  <p class="gt">Seharusnya (sesuai form asli): <span class="val">"Shelter"</span></p>
+  <div class="cols">
+    <div class="col">
+      <h3 class="tag-pre">Sesudah Preprocessing (dipakai pipeline)</h3>
+      <div class="crop"><img src="crop_brand_type_pre.png" alt="crop brand_type preprocessed"></div>
+      <div class="read"><span class="lbl">Dibaca model:</span> <span class="val">"Ritar"</span></div>
+      <div class="conf">Confidence model: <b>50,0%</b></div>
+      <div class="coords">koordinat crop (x1,y1,x2,y2) = (744, 665, 1173, 727)</div>
+    </div>
+    <div class="col">
+      <h3 class="tag-raw">Sebelum Preprocessing (raw)</h3>
+      <div class="crop"><img src="crop_brand_type_raw.png" alt="crop brand_type raw"></div>
+      <div class="read"><span class="lbl">Dibaca model:</span> <span class="val">"Ritar"</span></div>
+      <div class="conf">Confidence model: tidak tercatat (pembacaan ulang read-only)</div>
+      <div class="coords">koordinat crop (x1,y1,x2,y2) = (744, 665, 1173, 727)</div>
+    </div>
+  </div>
+  <div class="note sama"><b>Catatan:</b> Hasil raw vs preprocessed <b>SAMA</b> ("Ritar" di keduanya) — <b>tetap salah</b> (seharusnya "Shelter"). Menunjukkan preprocessing bukan penyebab kesalahan.</div>
+</div>
+
+<!-- SUMMARY -->
+<div class="summary">
+  <h2>Ringkasan</h2>
+  <table class="sum">
+    <tr><th>Sel / Field</th><th>Seharusnya</th><th>Dibaca model (preprocessed)</th><th>Conf</th><th>Dibaca model (raw)</th><th>Raw vs Pre</th></tr>
+    <tr><td>Pelaksana — Nama</td><td class="ok">Rahmat</td><td class="wrong">Rectifier 1</td><td>99,6%</td><td class="wrong">RectiFier</td><td>Beda</td></tr>
+    <tr><td>Pelaksana — Departement</td><td class="ok">Mahasiswa</td><td class="wrong">24.58V</td><td>63,0%</td><td class="wrong">SimpleMa I</td><td>Beda</td></tr>
+    <tr><td>Location</td><td class="ok">PoP Cikarang Utara</td><td class="wrong">Perdihersna VOC</td><td>59,5%</td><td class="wrong">grafungsiutra</td><td>Beda</td></tr>
+    <tr><td>Mengetahui</td><td class="ok">R. Isma Hidayat</td><td class="wrong">R. IirdEBA</td><td>50,0%</td><td class="wrong">R. 15 Okt 2025)</td><td>Beda</td></tr>
+    <tr><td>Brand/Type</td><td class="ok">Shelter</td><td class="wrong">Ritar</td><td>50,0%</td><td class="wrong">Ritar</td><td>Sama</td></tr>
+  </table>
+  <p>
+    Dari <b>5 sel/field</b> yang diuji, pada versi <b>preprocessed</b> (yang dipakai pipeline sungguhan)
+    <b>seluruhnya (5 dari 5) dibaca SALAH</b> oleh model — tidak ada satu pun yang benar.
+    Perbandingan raw vs preprocessed: <b>4 dari 5 berbeda</b> hasilnya, dan <b>1 dari 5 sama</b> (Brand/Type → "Ritar").
+    Karena hasilnya <b>tetap salah di kedua versi</b> (baik sebelum maupun sesudah preprocessing),
+    ini menunjukkan kesalahan <b>bukan disebabkan oleh preprocessing</b>, melainkan
+    <b>keterbatasan akurasi model TrOCR</b> dalam membaca tulisan tangan pada dokumen ini.
+  </p>
+  <p>
+    Catatan penting: <b>confidence tinggi tidak menjamin hasil benar</b>. Contoh paling jelas — tulisan
+    tangan <b>"Rahmat"</b> dibaca model sebagai <b>"Rectifier 1"</b> dengan <b>confidence 99,6%</b>,
+    padahal sepenuhnya salah. Artinya nilai confidence dari model tidak dapat dijadikan satu-satunya
+    penentu kebenaran hasil baca.
+  </p>
+</div>
+
+<footer>
+  Dibuat secara read-only dari artefak dokumen id=498 yang sudah ada di disk. Crop = potongan gambar asli dokumen.
+  Hasil baca model preprocessed = nilai yang tersimpan di sistem; hasil baca raw = pembacaan ulang model yang sama (read-only).
+</footer>
+
+</div>
+</body>
+</html>

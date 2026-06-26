@@ -163,6 +163,11 @@ class TemplateController extends Controller
     {
         $request->validate([
             'pdf' => 'required|file|mimes:pdf|max:20480',
+        ], [
+            'pdf.required' => 'Silakan pilih file PDF master terlebih dahulu.',
+            'pdf.file'     => 'Berkas yang diunggah tidak valid.',
+            'pdf.mimes'    => 'File harus berformat PDF.',
+            'pdf.max'      => 'Ukuran file PDF melebihi batas maksimal 20 MB. Silakan kompres atau gunakan file yang lebih kecil.',
         ]);
 
         // 1. Simpan PDF
@@ -240,9 +245,10 @@ class TemplateController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            // Detail teknis dicatat di log; pengguna cukup melihat pesan ringkas.
             \Log::error('[TemplateController] Tidak bisa terhubung ke Python Engine: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Tidak bisa terhubung ke Python Engine: ' . $e->getMessage()
+                'error' => 'Tidak dapat terhubung ke Python Engine. Pastikan server OCR aktif dan coba lagi.'
             ], 503);
         }
     }
@@ -352,6 +358,24 @@ class TemplateController extends Controller
             'image_path'      => 'nullable|string',
         ]);
 
+        // ── Proteksi ubah identifier_text ───────────────────────────
+        // Editor Canvas menyimpan lewat endpoint ini (bukan update()), jadi
+        // guard harus ada DI SINI juga. Hanya berlaku saat MENGEDIT template
+        // yang sudah ada (template_id dikirim) DAN identifier benar-benar
+        // berubah DAN template masih dipakai dokumen queued/processing.
+        if (!empty($validated['template_id'])) {
+            $existing = DocumentTemplate::find($validated['template_id']);
+            if ($existing
+                && ($validated['identifier_text'] ?? null) !== $existing->identifier_text
+                && $existing->hasActiveDocuments()
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal: Identifier tidak boleh diubah karena masih ada dokumen status QUEUED/PROCESSING.',
+                ], 422);
+            }
+        }
+
         $versionSuffix = !empty($validated['doc_version'])
             ? '_v' . Str::slug($validated['doc_version'], '_')
             : '';
@@ -373,7 +397,9 @@ class TemplateController extends Controller
                     'mapping_config'    => $validated['mapping_config'],
                     'ui_metadata'       => $validated['ui_metadata'] ?? [],
                     'created_by'        => Auth::id() ?? 1,
-                    'is_active'         => \Illuminate\Support\Facades\DB::raw('true'),
+                    // Cast AsPgBoolean menulis 'true'/'false' string yang aman utk
+                    // PostgreSQL; jangan pakai DB::raw lagi (akan ditafsir cast jadi false).
+                    'is_active'         => true,
                 ]
             );
 

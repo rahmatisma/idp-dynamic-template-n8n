@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Casts\AsPgBoolean;
 use App\Models\User;
 
 class DocumentTemplate extends Model
@@ -43,7 +44,10 @@ class DocumentTemplate extends Model
         return [
             'mapping_config' => 'array',
             'ui_metadata' => 'array',
-            'is_active' => 'bool',
+            // Pakai cast khusus PostgreSQL (Supabase pooler/emulated prepares):
+            // menulis 'true'/'false' string agar tidak dikonversi jadi integer
+            // yang ditolak kolom boolean. Pola sama dgn is_approved di User.
+            'is_active' => AsPgBoolean::class,
             'template_version' => 'integer',
             'structural_fingerprint' => 'array',
         ];

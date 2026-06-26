@@ -459,10 +459,34 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
         if table_names:
             print(f"[OCR] Tables    : {', '.join(table_names)}")
 
+        # ── Provider LAZY: OCR gambar ASLI (raw, sebelum preprocessing) ──────
+        # Dipakai sebagai fallback oleh find_anchor() saat label rusak di gambar
+        # preprocessed (mis. "S/N" → "N/S"). Dihitung MAKSIMAL SEKALI per halaman,
+        # dan HANYA bila benar-benar dibutuhkan (ada anchor lemah). Cache dibagi
+        # ke extract_fields() dan repeating_sections agar tidak ada scan dobel.
+        _raw_ocr_state = {'done': False, 'val': None}
+
+        def _get_raw_ocr():
+            if not _raw_ocr_state['done']:
+                _raw_ocr_state['done'] = True
+                if str(img_path) != str(clean_img_path):
+                    try:
+                        print(f"[OCR] Menjalankan OCR fallback pada gambar asli (halaman {page_num})...")
+                        _raw_ocr_state['val'] = run_global_ocr(str(img_path))
+                        print(f"[OCR] OCR fallback selesai: {len(_raw_ocr_state['val'])} teks.")
+                    except Exception as _e:
+                        logger.warning(f"[OCR] OCR fallback pada gambar asli gagal: {_e}")
+                        _raw_ocr_state['val'] = None
+            return _raw_ocr_state['val']
+
         # 3. Ekstrak field header — printed via global OCR, handwritten via TrOCR crop
         if fields_config:
             print(f"\n[OCR] ── Ekstraksi Fields ──────────────────────────────")
-        fields_data, field_anchor_y = extract_fields(ocr_results, fields_config, image_path=clean_img_path)
+        fields_data, field_anchor_y = extract_fields(
+            ocr_results, fields_config,
+            image_path=clean_img_path,
+            ocr_results_fallback=_get_raw_ocr,   # lazy: raw OCR hanya jalan bila ada field lemah
+        )
         if fields_config:
             success_fields = sum(1 for k, v in fields_data.items() if not k.startswith('_') and v)
             print(f"[OCR] Fields selesai: {success_fields}/{len(fields_config)} berhasil diekstrak.")
@@ -518,15 +542,9 @@ def extract_document(pdf_path: str, template_code: str = None, document_id: int 
 
             # OCR dari gambar asli (sebelum preprocessing) — dipakai sebagai fallback
             # oleh find_anchor() jika preprocessing menyebabkan label tidak terdeteksi.
-            # Hanya dijalankan sekali per halaman, di luar loop section.
-            _ocr_original = None
-            if str(img_path) != str(clean_img_path):
-                try:
-                    print(f"[OCR] Menjalankan OCR fallback pada gambar asli (halaman {page_num})...")
-                    _ocr_original = run_global_ocr(str(img_path))
-                    print(f"[OCR] OCR fallback selesai: {len(_ocr_original)} teks.")
-                except Exception as _e:
-                    logger.warning(f"[OCR] OCR fallback pada gambar asli gagal: {_e}")
+            # Pakai provider lazy bersama: kalau extract_fields() sudah memicu raw
+            # OCR, cache dipakai ulang (tidak scan ulang); kalau belum, di-scan di sini.
+            _ocr_original = _get_raw_ocr()
 
             for sec_cfg in repeating_config:
                 sec_name = sec_cfg.get('section_name', 'section')

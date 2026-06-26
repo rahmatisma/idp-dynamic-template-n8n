@@ -1274,12 +1274,21 @@ def extract_table(
 
     # ── Fallback crop kolom is_row_anchor (nomor baris) ──────────────────────
     # Blok di atas hanya menyentuh non-anchor columns. Kolom is_row_anchor
-    # ('no' di Executor) sering berisi digit tunggal kecil yang dilewati global
-    # OCR — crop kolom sempit ini secara khusus agar angka 1,2,3 terdeteksi.
+    # ('no' di Executor/Pelaksana) sering berisi digit tunggal kecil yang
+    # dilewati global OCR — crop kolom sempit ini secara khusus agar angka
+    # 1,2,3 terdeteksi.
+    #
+    # Syarat arah (dulu: offset_x_start < 0) SENGAJA dihapus. Arah kolom
+    # nomor (di kiri atau kanan kata-kunci anchor tabel) tidak relevan secara
+    # logis untuk keperluan ini — beberapa template menaruh kolom nomor di
+    # kanan anchor (offset positif). Pembatas yang benar-benar menjaga blok ini
+    # tetap hanya menyasar kolom nomor baris yang sempit adalah tiga syarat
+    # generik di bawah: is_row_anchor == True, type == 'printed', dan lebar
+    # kolom <= 150px. Ketiganya berlaku untuk template apa pun, tanpa nilai
+    # khusus milik satu template.
     anchor_col_for_crop = next(
         (col for col in columns_config
          if col.get('is_row_anchor')
-         and col.get('offset_x_start', 0) < 0
          and col.get('type', 'printed') == 'printed'
          and (int(col.get('offset_x_end', 0))
               - int(col.get('offset_x_start', 0))) <= 150),

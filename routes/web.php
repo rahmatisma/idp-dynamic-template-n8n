@@ -6,6 +6,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\BatteryMonitoringController;
 use App\Http\Controllers\DebugOCRController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/baterai', [BatteryMonitoringController::class, 'index'])->name('dashboard.baterai');
 
     // Profile (bawaan Breeze)
     Route::get('/profile',    [ProfileController::class, 'edit'])->name('profile.edit');
@@ -40,12 +42,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/validasi-dokumen/{document}/reject',  [ValidationController::class, 'reject'])->name('validasi-dokumen.reject');
     Route::patch('/validasi-dokumen/{document}/update',  [ValidationController::class, 'update'])->name('validasi-dokumen.update');
 
-    // ── Master Template ───────────────────────────────────────
-    Route::get('/master-template',                       [TemplateController::class, 'index'])->name('master-template');
-    Route::get('/master-template/create',                [TemplateController::class, 'create'])->name('master-template.create');
-    Route::get('/master-template/{template}/edit',       [TemplateController::class, 'edit'])->name('master-template.edit');
-    Route::patch('/master-template/{template}',          [TemplateController::class, 'update'])->name('master-template.update');
-    Route::delete('/master-template/{template}',         [TemplateController::class, 'destroy'])->name('master-template.destroy');
+    // ── Master Template (Admin only) ───────────────────────────
+    // Sesuai BAB III (Tabel 3.3): pengelolaan template hanya hak Admin.
+    Route::middleware('admin')->group(function () {
+        Route::get('/master-template',                       [TemplateController::class, 'index'])->name('master-template');
+        Route::get('/master-template/create',                [TemplateController::class, 'create'])->name('master-template.create');
+        Route::get('/master-template/{template}/edit',       [TemplateController::class, 'edit'])->name('master-template.edit');
+        Route::patch('/master-template/{template}',          [TemplateController::class, 'update'])->name('master-template.update');
+        Route::delete('/master-template/{template}',         [TemplateController::class, 'destroy'])->name('master-template.destroy');
+    });
 
     // ── User Management (Admin only) ───────────────────────────
     Route::middleware('admin')->group(function () {
@@ -64,22 +69,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ── Internal API (dipanggil fetch() dari React) ───────────
     Route::prefix('internal-api')->name('api.')->group(function () {
 
-        // Convert PDF → PNG untuk Canvas Editor template
-        Route::post('/template/convert-pdf', [TemplateController::class, 'convertPdf'])->name('template.convert-pdf');
-        
-        // OCR cepat untuk crop area di editor
-        Route::post('/template/ocr-predict', [TemplateController::class, 'ocrPredict'])->name('template.ocr-predict');
+        // ── Endpoint Canvas Editor Master Template (Admin only) ───
+        // Hanya dipakai halaman Master Template; proteksi sama dgn route
+        // /master-template agar non-admin tidak bisa memanggil langsung.
+        Route::middleware('admin')->group(function () {
+            // Convert PDF → PNG untuk Canvas Editor template
+            Route::post('/template/convert-pdf', [TemplateController::class, 'convertPdf'])->name('template.convert-pdf');
 
-        // Deteksi Header otomatis untuk Identifier
-        Route::post('/template/detect-header', [TemplateController::class, 'detectHeader'])->name('template.detect-header');
+            // OCR cepat untuk crop area di editor
+            Route::post('/template/ocr-predict', [TemplateController::class, 'ocrPredict'])->name('template.ocr-predict');
 
-        // Simpan konfigurasi template (JSON mapping_config) ke database
-        Route::post('/template/save',        [TemplateController::class, 'save'])->name('template.save');
+            // Deteksi Header otomatis untuk Identifier
+            Route::post('/template/detect-header', [TemplateController::class, 'detectHeader'])->name('template.detect-header');
 
-        // Clone (Duplikasi) template yang sudah ada
-        Route::post('/template/{template}/clone', [TemplateController::class, 'clone'])->name('template.clone');
+            // Simpan konfigurasi template (JSON mapping_config) ke database
+            Route::post('/template/save',        [TemplateController::class, 'save'])->name('template.save');
 
-        // Ambil daftar template aktif (untuk dropdown Upload Dokumen)
+            // Clone (Duplikasi) template yang sudah ada
+            Route::post('/template/{template}/clone', [TemplateController::class, 'clone'])->name('template.clone');
+        });
+
+        // Ambil daftar template aktif (untuk dropdown Upload Dokumen) —
+        // dipakai semua role (engineer/nms upload), JANGAN admin-only.
         Route::get('/templates',             [TemplateController::class, 'list'])->name('templates.list');
 
         // Polling status dokumen dari React (setiap 5 detik)

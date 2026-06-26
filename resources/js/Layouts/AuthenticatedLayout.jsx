@@ -181,7 +181,7 @@ const navItems = [
     { label: "Dashboard",        icon: Icon.Home,      href: "/dashboard" },
     { label: "Upload Dokumen",   icon: Icon.Upload,    href: "/upload-dokumen" },
     { label: "Validasi Dokumen", icon: Icon.Clipboard, href: "/validasi-dokumen" },
-    { label: "Master Template",  icon: Icon.Template,  href: "/master-template" },
+    { label: "Master Template",  icon: Icon.Template,  href: "/master-template", roles: ["admin"] },
     { label: "User Management",  icon: Icon.Users,     href: "/user-management", roles: ["admin"] },
     { label: "Debug OCR",        icon: Icon.Search,    href: "/debug-ocr",       roles: ["admin"] },
 ];
@@ -265,6 +265,7 @@ function SidebarInner({ collapsed, setCollapsed, isMobile, setMobileOpen }) {
                         <div key={href} className="relative group">
                             <Link
                                 href={href}
+                                prefetch
                                 className="flex items-center rounded-lg transition-all"
                                 style={{
                                     gap: collapsed ? 0 : 10,
@@ -966,7 +967,7 @@ export default function AuthenticatedLayout({ header, children }) {
             if (visit.url.pathname === window.location.pathname
                 && visit.url.search === window.location.search) return;
             const type = detectSkeletonType(visit.url.pathname);
-            navigatingRef.current = setTimeout(() => setSkeletonType(type), 200);
+            navigatingRef.current = setTimeout(() => setSkeletonType(type), 80);
         });
         const removeFinish = router.on("finish", () => {
             clearTimeout(navigatingRef.current);

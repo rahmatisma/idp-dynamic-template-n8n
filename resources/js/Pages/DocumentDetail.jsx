@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
+
+// Apakah badge/highlight peringatan confidence (oranye/merah) ditampilkan.
+// Untuk dokumen berstatus "completed" peringatan disembunyikan (operator
+// dianggap sudah menyetujui SELURUH data). Nilai confidence asli TIDAK
+// diubah — ini murni penyembunyian visual. Default true (tetap tampil).
+const ShowWarningsContext = createContext(true);
 
 // ── Icons ──────────────────────────────────────────────────────
 const BackIcon = () => (
@@ -114,6 +120,8 @@ const CONF_MED  = 75;   // < 75  → kuning
 
 // ── Peringatan kualitas OCR per halaman ───────────────────────
 function ConfidenceAlert({ score }) {
+    const showWarnings = useContext(ShowWarningsContext);
+    if (!showWarnings) return null;            // dok completed → sembunyikan
     if (score == null || score >= 80) return null;
     const isLow = score < 60;
     return (
@@ -142,12 +150,28 @@ function ConfidenceAlert({ score }) {
 }
 
 // ── Template Match Badge ──────────────────────────────────────
+// `status` (hasil deteksi template di engine) adalah sumber kebenaran KUALITAS
+// kecocokan: "matched" (L1/L2, score 90-100) | "low_confidence" (L3 name-only
+// score 75, atau L4 fuzzy yang bisa 100 meski match sebenarnya lemah) |
+// "unknown"/"failed". `score` hanya angka kemiripan yang—khusus L4—bisa 100
+// walau status low_confidence (inilah sumber "Low Confidence (100%)").
+// Maka: LABEL selalu dari status; PERSEN hanya ditampilkan saat "matched"
+// supaya label & angka tidak pernah kontradiktif. Ambang score dipakai hanya
+// sebagai fallback untuk data lama yang tidak punya status.
+function matchClass(score, status) {
+    const isFailed = status
+        ? (status === "failed" || status === "unknown")
+        : (score != null && score < 60);
+    const isLow = !isFailed && (status
+        ? status === "low_confidence"
+        : (score != null && score >= 60 && score < 80));
+    return { isFailed, isLow };
+}
+
+// ── Template Match Badge ──────────────────────────────────────
 function TemplateMatchBadge({ score, status }) {
     if (score == null && !status) return null;
-    const isFailed = status === "failed" || status === "unknown"
-                  || (score != null && score < 60);
-    const isLow    = !isFailed && (status === "low_confidence"
-                  || (score != null && score >= 60 && score < 80));
+    const { isFailed, isLow } = matchClass(score, status);
     if (isFailed) return (
         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 text-xs font-semibold">
             <XCircleIcon /> Tidak Dikenali
@@ -155,7 +179,7 @@ function TemplateMatchBadge({ score, status }) {
     );
     if (isLow) return (
         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold">
-            <WarningIcon /> Low Confidence{score != null ? ` (${Math.round(score)}%)` : ""}
+            <WarningIcon /> Low Confidence
         </span>
     );
     return (
@@ -167,10 +191,7 @@ function TemplateMatchBadge({ score, status }) {
 
 // ── Template Match Warning Box ─────────────────────────────────
 function TemplateMatchWarning({ score, status }) {
-    const isFailed = status === "failed" || status === "unknown"
-                  || (score != null && score < 60);
-    const isLow    = !isFailed && (status === "low_confidence"
-                  || (score != null && score >= 60 && score < 80));
+    const { isFailed, isLow } = matchClass(score, status);
     if (!isFailed && !isLow) return null;
     return (
         <div className={`flex items-start gap-3 px-4 py-3.5 rounded-xl border text-sm ${
@@ -254,6 +275,7 @@ function isStatusKey(key) {
 }
 
 function ChecklistTable({ rows, columnOrder }) {
+    const showWarnings = useContext(ShowWarningsContext);
     if (!rows?.length) return null;
 
     const rawKeys = Object.keys(rows[0]).filter(k => !k.startsWith("_"));
@@ -338,11 +360,13 @@ function ChecklistTable({ rows, columnOrder }) {
                                     const conf = row[`_conf_${key}`];
                                     const wasAttempted = row[`_ocr_source_${key}`] != null;
                                     const isEmpty = val === "" && wasAttempted;
-                                    const isLowConf = conf != null && conf < CONF_LOW;
-                                    const isMedConf = conf != null && conf >= CONF_LOW && conf < CONF_MED;
+                                    // Peringatan confidence hanya untuk dok belum completed
+                                    const isLowConf = showWarnings && conf != null && conf < CONF_LOW;
+                                    const isMedConf = showWarnings && conf != null && conf >= CONF_LOW && conf < CONF_MED;
+                                    const showEmptyWarn = showWarnings && isEmpty && !isCategoryHeader;
                                     const cellBg = isLowConf
                                         ? "bg-red-50/60"
-                                        : (isMedConf || (isEmpty && !isCategoryHeader))
+                                        : (isMedConf || showEmptyWarn)
                                             ? "bg-amber-50/60"
                                             : "";
                                     return (
@@ -356,7 +380,7 @@ function ChecklistTable({ rows, columnOrder }) {
                                                             : <span className="text-slate-300 select-none text-xs">—</span>
                                                     }
                                                 </div>
-                                                {(isLowConf || isMedConf || (isEmpty && !isCategoryHeader)) && (
+                                                {(isLowConf || isMedConf || showEmptyWarn) && (
                                                     <span
                                                         title={
                                                             isEmpty
@@ -383,6 +407,7 @@ function ChecklistTable({ rows, columnOrder }) {
 
 // ── Section Fields (key-value pairs) ──────────────────────────
 function FieldGrid({ fields }) {
+    const showWarnings = useContext(ShowWarningsContext);
     if (!fields) return null;
 
     const entries = Object.entries(fields).filter(([k, v]) => {
@@ -404,14 +429,16 @@ function FieldGrid({ fields }) {
                 const wasAttempted = ocr_src !== undefined && ocr_src !== null && ocr_src !== "";
                 const conf      = wasAttempted ? parseFloat(fields[`_conf_${key}`]) : NaN;
                 const isEmpty   = display.trim() === "" && wasAttempted;
-                const isLowConf = !isNaN(conf) && conf < CONF_LOW;
-                const isMedConf = !isNaN(conf) && conf >= CONF_LOW && conf < CONF_MED;
-                const hasWarning = isEmpty || isLowConf || isMedConf;
+                // Peringatan confidence hanya untuk dok belum completed
+                const isLowConf = showWarnings && !isNaN(conf) && conf < CONF_LOW;
+                const isMedConf = showWarnings && !isNaN(conf) && conf >= CONF_LOW && conf < CONF_MED;
+                const showEmptyWarn = showWarnings && isEmpty;
+                const hasWarning = showEmptyWarn || isLowConf || isMedConf;
                 return (
                     <div key={key} className={`flex flex-col gap-0.5 p-3 rounded-lg border ${
-                        isLowConf                ? "bg-red-50/50 border-red-100"
-                        : (isMedConf || isEmpty) ? "bg-amber-50/50 border-amber-100"
-                                                 : "bg-slate-50 border-slate-100"
+                        isLowConf                     ? "bg-red-50/50 border-red-100"
+                        : (isMedConf || showEmptyWarn) ? "bg-amber-50/50 border-amber-100"
+                                                       : "bg-slate-50 border-slate-100"
                     }`}>
                         <div className="flex items-center gap-1">
                             <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{label}</span>
@@ -512,8 +539,13 @@ export default function DocumentDetail({ document }) {
     const pages = data.pages ?? [];
     const hasData = pages.length > 0;
 
+    // Dokumen completed → operator sudah menyetujui seluruh data, peringatan
+    // confidence visual disembunyikan (nilai asli tetap tersimpan).
+    const showWarnings = document.status !== "completed";
+
     return (
         <AuthenticatedLayout>
+          <ShowWarningsContext.Provider value={showWarnings}>
             <Head title={`Detail #${document.id} — ${document.original_name}`} />
 
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-5">
@@ -847,6 +879,7 @@ export default function DocumentDetail({ document }) {
                 )}
 
             </div>
+          </ShowWarningsContext.Provider>
         </AuthenticatedLayout>
     );
 }

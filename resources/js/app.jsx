@@ -21,6 +21,7 @@ createInertiaApp({
     },
     progress: {
         color: '#6366f1',
-        delay: 200,
+        delay: 250, // jangan tampilkan progress bar untuk request cepat (mis. live-search
+                    // dengan debounce) supaya tidak berkedip seperti reload tiap ketik
     },
 });

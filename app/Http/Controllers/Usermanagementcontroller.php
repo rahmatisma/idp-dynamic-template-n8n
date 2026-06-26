@@ -30,8 +30,13 @@ class UserManagementController extends Controller
         }
 
         // Filter status
+        // Kirim STRING 'true'/'false' ke where(), bukan boolean PHP. Boolean
+        // akan dikonversi Laravel jadi integer (0/1) lalu—dgn emulated prepares
+        // Supabase pooler—disisipkan mentah sehingga PostgreSQL menolak
+        // ("operator does not exist: boolean = integer"). Cast AsPgBoolean tidak
+        // berlaku untuk where() literal, jadi konversi dilakukan di sini.
         if ($request->filled('status') && $request->status !== 'all') {
-            $query->where('is_approved', $request->status === 'active');
+            $query->where('is_approved', $request->status === 'active' ? 'true' : 'false');
         }
 
         $users = $query->orderByDesc('created_at')

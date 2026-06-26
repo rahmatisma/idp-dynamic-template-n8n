@@ -40,17 +40,16 @@ const ChevronRightIcon = () => (
 );
 
 // ── Role badge ────────────────────────────────────────────────────
+// Role valid sesuai BAB III (Tabel 3.3): admin, engineer, nms.
 const ROLE_STYLES = {
     admin: "bg-violet-50 text-violet-700 border border-violet-200",
-    manager: "bg-blue-50  text-blue-700  border border-blue-200",
     engineer: "bg-slate-100 text-slate-600 border border-slate-200",
-    operator: "bg-amber-50 text-amber-700 border border-amber-200",
+    nms: "bg-amber-50 text-amber-700 border border-amber-200",
 };
 const ROLE_LABELS = {
     admin: "Admin",
-    manager: "Manager",
     engineer: "Engineer",
-    operator: "Operator",
+    nms: "Operator NMS",
 };
 
 function RoleBadge({ role }) {
@@ -212,9 +211,8 @@ export default function UserManagement({ users, filters = {}, flash = {} }) {
                     >
                         <option value="all">Semua Peran</option>
                         <option value="admin">Admin</option>
-                        <option value="manager">Manager</option>
                         <option value="engineer">Engineer</option>
-                        <option value="operator">Operator</option>
+                        <option value="nms">Operator NMS</option>
                     </select>
 
                     {/* Status filter */}

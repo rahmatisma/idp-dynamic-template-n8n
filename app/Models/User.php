@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\AsPgBoolean;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -44,7 +45,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'is_approved' => 'boolean', // Memastikan nilainya dibaca sebagai true/false
+            // Cast boolean khusus PostgreSQL (Supabase pooler/emulated prepares):
+            // ditulis sebagai string 'true'/'false' agar tidak dikonversi ke integer.
+            'is_approved' => AsPgBoolean::class,
         ];
     }
 }
